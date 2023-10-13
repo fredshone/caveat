@@ -1,0 +1,42 @@
+# OS-specific
+.DS_Store
+
+# Editors
+*~
+\#*\#
+**/.vscode
+.spyderproject
+.spyproject
+.idea/
+
+# Byte-compiled files
+__pycache__
+*.pyc
+
+# Build output
+build/
+*.egg-info
+dist/
+.cruft.json
+
+# Virtual environment
+venv/
+.venv
+
+# Reports
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+reports/
+logs
+
+# Caches
+.*[cC]ache*
+
+# Documentation
+.docs
+mike-*.yml
+
+# Jupyter notebooks
+.ipynb_checkpoints

@@ -1,0 +1,8 @@
+# this dependency exists so that the base file is not empty
+# it was chosen since it is a dependency that is included in any python environment already
+zipp
+pytorch
+pytorch-lightning
+torchvision
+tensorboard
+cml-pam

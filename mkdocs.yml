@@ -1,0 +1,71 @@
+site_name: act-vae
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Examples: [] # this will be filled in automatically to include reference to all the notebooks
+  - Contributing: contributing.md
+  - Changelog: CHANGELOG.md
+  - Reference:
+    - Command line interface: api/cli.md
+  
+theme:
+  name: material
+  custom_dir: docs/overrides
+  features:
+    - navigation.indexes
+repo_url: https://github.com/fredshone/caveat/
+site_dir: .docs
+markdown_extensions:
+  - admonition
+  - attr_list
+  - mkdocs-click
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.snippets
+  - pymdownx.tasklist:
+      clickable_checkbox: true
+  - toc:
+      permalink: "#"
+      toc_depth: 3
+hooks:
+  - docs/static/hooks.py
+plugins:
+  - autorefs
+  - mkdocs-jupyter:
+      include: ["examples/*.ipynb"]
+      allow_errors: false
+      kernel_name: caveat
+      include_source: True
+      execute: false
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_section_style: spacy
+            show_bases: true
+            filters:
+              - "!^_"
+            merge_init_into_class: true
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            show_root_toc_entry: false
+            show_signature_annotations: false
+          import:
+            - https://docs.python.org/3/objects.inv
+  - search
+watch:
+  - caveat
+extra_css:
+  - static/extras.css
+extra:
+  version:
+    provider: mike
