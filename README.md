@@ -9,6 +9,8 @@ Deep generative models for human activity sequences.
 [![Daily CI Build](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg)](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml)
 [![Documentation](https://github.com/fredshone/caveat/actions/workflows/pages/pages-build-deployment/badge.svg)](https://fredshone.github.io/caveat)
 
+*Work in progress*
+
 Generate a synthetic [data set](https://fredshone.github.io/caveat/latest/examples/1_synthetic_population_generation/) or load your own using a [data loader](https://github.com/fredshone/caveat/tree/main/caveat/data).
 
 Train a generative [model](https://github.com/fredshone/caveat/tree/main/caveat/models).
