@@ -9,6 +9,13 @@ from torch.utils.data import DataLoader, Dataset
 
 class DescreteSequenceDataset(Dataset):
     def __init__(self, path: str, length: int, step: int):
+        """Torch Dataset for descretised sequence data.
+
+        Args:
+            path (str): Path to population sequences.
+            length (int): Length of desired sequences in minutes.
+            step (int): Step size of descretisation in minutes.
+        """
         df = pd.read_csv(path)
         self.size = df.pid.nunique()
         self.index_to_acts = {i: a for i, a in enumerate(df.act.unique())}
@@ -43,6 +50,20 @@ class VAEDataset(LightningDataModule):
         pin_memory: bool = False,
         **kwargs,
     ):
+        """Torch Dataset.
+
+        Args:
+            path (str): _description_
+            length (int, optional): _description_. Defaults to 1440.
+            step (int, optional): _description_. Defaults to 10.
+            val_split (float, optional): _description_. Defaults to 0.1.
+            seed (int, optional): _description_. Defaults to 1234.
+            train_batch_size (int, optional): _description_. Defaults to 128.
+            val_batch_size (int, optional): _description_. Defaults to 128.
+            test_batch_size (int, optional): _description_. Defaults to 128.
+            num_workers (int, optional): _description_. Defaults to 0.
+            pin_memory (bool, optional): _description_. Defaults to False.
+        """
         super().__init__()
 
         self.path = path
@@ -98,6 +119,22 @@ class VAEDataset(LightningDataModule):
 def descretise_population(
     data: pd.DataFrame, samples: int, length: int, step: int, class_map: dict
 ) -> torch.tensor:
+    """Convert given population of activity traces into vector [P, C, H, W].
+    P is the population size.
+    C (channel) is length 1.
+    H is a one-hot encoding of activity type.
+    W is time steps.
+
+    Args:
+        data (pd.DataFrame): _description_
+        samples (int): _description_
+        length (int): _description_
+        step (int): _description_
+        class_map (dict): _description_
+
+    Returns:
+        torch.tensor: [P, C, H, W]
+    """
     num_classes = len(class_map)  # bit dodgy
     steps = length // step
     encoded = np.zeros((samples, steps, num_classes, 1), dtype=np.float32)
@@ -127,8 +164,17 @@ def descretise_trace(
     length: int,
     class_map: dict,
 ) -> np.array:
-    """
-    Create categorical encoding from ranges with step of 1.
+    """Create categorical encoding from ranges with step of 1.
+
+    Args:
+        acts (Iterable[str]): _description_
+        starts (Iterable[int]): _description_
+        ends (Iterable[int]): _description_
+        length (int): _description_
+        class_map (dict): _description_
+
+    Returns:
+        np.array: _description_
     """
     encoding = np.zeros((length), dtype=np.int8)
     for act, start, end in zip(acts, starts, ends):
@@ -137,14 +183,30 @@ def descretise_trace(
 
 
 def down_sample(array: np.array, step: int) -> np.array:
-    """
+    """Down-sample by steppiong through given array.
     todo:
     Methodology will down sample based on first classification.
     If we are down sampling a lot (for example from minutes to hours),
     we would be better of, samplig based on majority class.
+
+    Args:
+        array (np.array): _description_
+        step (int): _description_
+
+    Returns:
+        np.array: _description_
     """
     return array[::step]
 
 
 def one_hot(target: np.array, num_classes: int) -> np.array:
+    """One hot encoding of given categorical array.
+
+    Args:
+        target (np.array): _description_
+        num_classes (int): _description_
+
+    Returns:
+        np.array: _description_
+    """
     return np.eye(num_classes)[target]

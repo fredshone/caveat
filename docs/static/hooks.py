@@ -15,7 +15,9 @@ def on_files(files: list, config: dict, **kwargs):
     """Link (1) top-level files to mkdocs files and (2) generate the python API documentation."""
     for file in sorted(Path("./examples").glob("*.ipynb")):
         files.append(_new_file(file, config))
-        nav_reference = [idx for idx in config["nav"] if set(idx.keys()) == {"Examples"}][0]
+        nav_reference = [
+            idx for idx in config["nav"] if set(idx.keys()) == {"Examples"}
+        ][0]
         nav_reference["Examples"].append(file.as_posix())
     for file in Path("./resources").glob("**/*.*"):
         files.append(_new_file(file, config))
@@ -116,9 +118,14 @@ def _update_nav(api_nav: dict, config: dict) -> None:
     """
 
     api_reference_nav = {
-        "Python API": [*api_nav.pop("top_level"), *[{k: v} for k, v in api_nav.items()]]
+        "Python API": [
+            *api_nav.pop("top_level"),
+            *[{k: v} for k, v in api_nav.items()],
+        ]
     }
-    nav_reference = [idx for idx in config["nav"] if set(idx.keys()) == {"Reference"}][0]
+    nav_reference = [
+        idx for idx in config["nav"] if set(idx.keys()) == {"Reference"}
+    ][0]
     nav_reference["Reference"].append(api_reference_nav)
 
 
