@@ -1,4 +1,4 @@
-site_name: act-vae
+site_name: caveat
 nav:
   - Home: index.md
   - Installation: installation.md
