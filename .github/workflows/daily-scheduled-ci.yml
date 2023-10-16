@@ -23,13 +23,13 @@ jobs:
       lint: false
       mamba_env_name: daily-ci
 
-  slack-notify-ci:
-    needs: test
-    if: always()
-    uses: fredshone/actions/.github/workflows/slack-notify.yml@main
-    secrets:
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-    with:
-      result: needs.test.result
-      channel: caveat-feed
-      message: Daily CI action
+  # slack-notify-ci:
+  #   needs: test
+  #   if: always()
+  #   uses: fredshone/actions/.github/workflows/slack-notify.yml@main
+  #   secrets:
+  #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+  #   with:
+  #     result: needs.test.result
+  #     channel: caveat-feed
+  #     message: Daily CI action

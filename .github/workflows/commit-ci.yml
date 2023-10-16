@@ -21,11 +21,11 @@ jobs:
       notebook_kernel: caveat
       lint: false
 
-  aws-upload:
-    needs: test
-    if: needs.test.result == 'success'
-    uses: fredshone/actions/.github/workflows/aws-upload.yml@main
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_S3_CODE_BUCKET: ${{ secrets.AWS_S3_CODE_BUCKET }}
+  # aws-upload:
+  #   needs: test
+  #   if: needs.test.result == 'success'
+  #   uses: fredshone/actions/.github/workflows/aws-upload.yml@main
+  #   secrets:
+  #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #     AWS_S3_CODE_BUCKET: ${{ secrets.AWS_S3_CODE_BUCKET }}
