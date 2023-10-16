@@ -1,6 +1,6 @@
 <!--- the "--8<--" html comments define what part of the README to add to the index page of the documentation -->
 <!--- --8<-- [start:docs] -->
-![caveat](resources/logos/title.jpg)
+![caveat](resources/logos/title.png)
 
 # CAVEAT
 
