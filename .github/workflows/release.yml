@@ -1,0 +1,22 @@
+name: Publish
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  conda-upload:
+    uses: fredshone/actions/.github/workflows/conda-upload.yml@main
+    secrets:
+      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+    with:
+      package_name: caveat
+      build_workflow: pre-release.yml
+
+  docs-stable:
+    permissions:
+      contents: write
+    uses: fredshone/actions/.github/workflows/docs-deploy.yml@main
+    with:
+      deploy_type: update_stable
+      notebook_kernel: caveat

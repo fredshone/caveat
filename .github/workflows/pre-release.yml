@@ -1,0 +1,14 @@
+name: Build Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  conda-build:
+    uses: fredshone/actions/.github/workflows/conda-build.yml@main
+    secrets:
+      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+    with:
+      package_name: caveat
