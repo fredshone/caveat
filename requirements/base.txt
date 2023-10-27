@@ -1,8 +1,10 @@
 # this dependency exists so that the base file is not empty
 # it was chosen since it is a dependency that is included in any python environment already
+multiprocessing
 zipp
 pytorch
 pytorch-lightning
+tabulate
 torchvision
 tensorboard
 cml-pam

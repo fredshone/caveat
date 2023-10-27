@@ -36,7 +36,7 @@ from caveat.models import utils
     ],
 )
 def test_argmax_on_axis(target, axis, expected):
-    result = utils.argmax_on_axis(target, axis)
+    result = utils.hot_argmax(target, axis)
     equal(result, expected)
 
 

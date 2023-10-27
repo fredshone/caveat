@@ -1,41 +1,108 @@
 from pathlib import Path
 
+import pandas as pd
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import (
+    EarlyStopping,
+    LearningRateMonitor,
+    ModelCheckpoint,
+)
 from pytorch_lightning.loggers import TensorBoardLogger
+from torch import manual_seed
 
-# from pytorch_lightning.plugins import DDPPlugin
-from caveat import models
-from caveat.data.loader import VAEDataset
+from caveat import data, models, report
+from caveat.data import encoders
+from caveat.data.loader import DataModule
 from caveat.experiment import Experiment
 
-tb_logger = TensorBoardLogger(save_dir="logs", name="testVAE")
-Path(f"{tb_logger.log_dir}/samples").mkdir(exist_ok=True, parents=True)
-Path(f"{tb_logger.log_dir}/reconstructions").mkdir(exist_ok=True, parents=True)
 
-model = models.VAE(
-    in_shape=(1, 5, 144), latent_dim=2, hidden_dims=[64, 64], stride=(2, 2)
-)
-experiment = Experiment(model)
-# summary = ModelSummary(experiment)
+def runner(config: dict):
+    print("======= Model Setup =======")
+    manual_seed(config.get("seed", 1234))
 
-data = VAEDataset(path="~/Projects/caveat/examples/example_population.csv")
-data.setup()
-print(data.mapping)
+    model_name = config["model_params"]["model"]
+    model = models.library[model_name]
 
-runner = Trainer(
-    logger=tb_logger,
-    callbacks=[
-        LearningRateMonitor(),
-        ModelCheckpoint(
-            save_top_k=2,
-            dirpath=Path(tb_logger.log_dir, "checkpoints"),
-            monitor="val_loss",
-            save_last=True,
-        ),
-    ],
-    max_epochs=20,
-)
+    model = model(**config["model_params"])
+    print(model)
+    experiment = Experiment(model, **config["experiment_params"])
 
-print("======= Training =======")
-runner.fit(experiment, datamodule=data)
+    logger = initiate_logger(config)
+
+    runner = Trainer(
+        logger=logger,
+        callbacks=[
+            EarlyStopping(
+                monitor="val_reconstruction_loss",
+                patience=3,
+                stopping_threshold=0.0,
+            ),
+            LearningRateMonitor(),
+            ModelCheckpoint(
+                save_top_k=2,
+                dirpath=Path(logger.log_dir, "checkpoints"),
+                monitor="val_loss",
+                save_last=True,
+            ),
+        ],
+        strategy="ddp",
+        **config.get("trainer_params", {}),
+    )
+
+    print("======= Data Setup =======")
+    data_path = config["data_params"].pop("data_path")
+    encoder_name = config["data_params"].pop("encoding")
+
+    observed = data.load_and_validate(data_path)
+    data_encoder = encoders.library[encoder_name]
+    encoded = data_encoder(observed, **config["data_params"])
+
+    data_loader_params = config.get("loader_params", {})
+    datamodule = DataModule(data=encoded, **data_loader_params)
+    datamodule.setup()
+
+    print("======= Training =======")
+    runner.fit(experiment, datamodule=datamodule)
+
+    print("======= Evaluating =======")
+    best = Experiment.load_from_checkpoint(
+        Path(logger.log_dir, "checkpoints", "last.ckpt")
+    )
+    y = best.sample(datamodule.size)
+    y = data_encoder.decode(y)
+    data.validate(y)
+    synthesis_path = Path(experiment.logger.log_dir, "synthetic.csv")
+    y.to_csv(synthesis_path)
+
+    df = pd.concat(
+        [
+            report.check_activity_start_and_ends(observed, y),
+            report.activity_participation_rates(observed, y),
+            report.av_activity_durations(observed, y),
+            report.av_activity_start_times(observed, y),
+            report.av_activity_end_times(observed, y),
+        ]
+    )
+    df.style.format(
+        {
+            "observed": "{:.2f}",
+            "synth": "{:.2f}",
+            "delta": "{:.2f}",
+            "perc": "{:.2%}",
+        }
+    )
+
+    print(df.to_markdown())
+
+
+def initiate_logger(config: dict) -> TensorBoardLogger:
+    model_name = config["model_params"]["model"]
+    logging_params = config.get("logging_params", {})
+    save_dir = logging_params.get("save_dir", "logs")
+    log_name = logging_params.get("name", model_name)
+    tb_logger = TensorBoardLogger(save_dir=save_dir, name=log_name)
+    Path(f"{tb_logger.log_dir}/samples").mkdir(exist_ok=True, parents=True)
+    Path(f"{tb_logger.log_dir}/reconstructions").mkdir(
+        exist_ok=True, parents=True
+    )
+    return tb_logger

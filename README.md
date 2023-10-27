@@ -17,6 +17,10 @@ Train a generative [model](https://github.com/fredshone/caveat/tree/main/caveat/
 
 Test and compare your experiments using [metrics](https://github.com/fredshone/caveat/tree/main/caveat/metrics).
 
+## WIP
+
+Run model using `python caveat/run.py`, monitor progress using `tensorboard --logdir=logs`.
+
 <!--- --8<-- [end:docs] -->
 
 ## Documentation

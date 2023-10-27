@@ -5,7 +5,7 @@ import torch
 from torch import tensor
 
 
-def argmax_on_axis(batch: tensor, axis: int = -1) -> tensor:
+def hot_argmax(batch: tensor, axis: int = -1) -> tensor:
     """Encoded given axis as one-hot based on argmax for that axis.
 
     Args:

@@ -1,12 +1,21 @@
 """Console script for caveat."""
 
 import click
+import yaml
+
+from caveat.run import runner
 
 
 @click.version_option(package_name="caveat")
-@click.command()
-def cli(args=None):
+@click.group()
+def cli():
     """Console script for caveat."""
-    click.echo("Replace this message by putting your code into caveat.cli.cli")
-    click.echo("See click documentation at https://click.palletsprojects.com/")
-    return 0
+    pass
+
+
+@cli.command()
+@click.argument("config_path", type=click.Path(exists=True))
+def run(config_path: click.Path):
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        runner(config)

@@ -1,0 +1,33 @@
+model_params:
+  model: "VAE"
+  in_shape: [1, 144, 5]
+  hidden_dims: [64,64]
+  latent_dim: 2
+  stride: [2,2]
+
+data_params:
+  encoding: "descrete"
+  data_path: "examples/example_population.csv"
+  duration: 1440
+  step_size: 10
+
+loader_params:
+  train_batch_size: 128
+  val_batch_size:  128
+  num_workers: 4
+
+experiment_params:
+  LR: 0.005
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.00025
+
+trainer_params:
+  max_epochs: 40
+
+logging_params:
+  save_dir: "logs"
+  name: "VAE"
+
+seed: 1234
+  

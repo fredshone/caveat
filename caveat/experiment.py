@@ -7,30 +7,34 @@ from torch import tensor as Tensor
 
 from caveat.models.base import BaseVAE
 
-default_params = {"kld_weight": 0.00025, "LR": 0.005, "weight_decay": 0.0}
-
 
 class Experiment(pl.LightningModule):
-    def __init__(self, model: BaseVAE) -> None:
+    def __init__(
+        self,
+        model: BaseVAE,
+        LR: float = 0.005,
+        weight_decay: float = 0.0,
+        scheduler_gamma: float = 0.95,
+        kld_weight: float = 0.00025,
+    ) -> None:
         super(Experiment, self).__init__()
-
         self.model = model
-        self.params = default_params
+        self.LR = LR
+        self.weight_decay = weight_decay
+        self.scheduler_gamma = scheduler_gamma
+        self.kld_weight = kld_weight
         self.curr_device = None
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
 
-    def training_step(self, batch, batch_idx, optimizer_idx=0):
+    def training_step(self, batch, batch_idx):
         self.curr_device = batch.device
 
         results = self.forward(batch)
         train_loss = self.model.loss_function(
             *results,
-            M_N=self.params[
-                "kld_weight"
-            ],  # al_img.shape[0]/ self.num_train_imgs,
-            optimizer_idx=optimizer_idx,
+            M_N=self.kld_weight,  # al_img.shape[0]/ self.num_train_imgs,
             batch_idx=batch_idx,
         )
 
@@ -54,40 +58,50 @@ class Experiment(pl.LightningModule):
         self.log_dict(
             {f"val_{key}": val.item() for key, val in val_loss.items()},
             sync_dist=True,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
         )
 
     def on_validation_end(self) -> None:
-        self.sample_sequences()
+        self.regenerate_val_batch()
+        self.sample_sequences(100)
 
-    def sample_sequences(self):
-        # Get sample reconstruction image
+    def regenerate_test_batch(self):
         x = next(iter(self.trainer.datamodule.test_dataloader()))
         x = x.to(self.curr_device)
+        self.regenerate_batch(x, name="test_reconstructions")
 
-        # test_input, test_label = batch
+    def regenerate_val_batch(self):
+        x = next(iter(self.trainer.datamodule.val_dataloader()))
+        x = x.to(self.curr_device)
+        self.regenerate_batch(x, name="reconstructions")
+
+    def regenerate_batch(self, x: Tensor, name: str):
         reconstructed = self.model.generate(x)
         vutils.save_image(
             reconstructed.data,
             Path(
                 self.logger.log_dir,
-                "reconstructions",
+                name,
                 f"recons_{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
             normalize=True,
-            nrow=2,
+            ncol=10,
+            pad_value=0.5,
         )
 
-        # sample from latent space
-        samples = self.model.sample(144, self.curr_device)
+    def sample_sequences(self, size: int, name: str = "samples") -> None:
+        samples = self.model.sample(size, self.curr_device)
         vutils.save_image(
             samples.cpu().data,
             Path(
                 self.logger.log_dir,
-                "samples",
-                f"{self.logger.name}_Epoch_{self.current_epoch}.png",
+                name,
+                f"{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
             normalize=True,
-            nrow=2,
+            ncol=10,
         )
 
     def configure_optimizers(self):
@@ -95,15 +109,16 @@ class Experiment(pl.LightningModule):
         scheds = []
 
         optimizer = optim.Adam(
-            self.model.parameters(),
-            lr=self.params["LR"],
-            weight_decay=self.params["weight_decay"],
+            self.model.parameters(), lr=self.LR, weight_decay=self.weight_decay
         )
         optims.append(optimizer)
 
-        if self.params.get("scheduler_gamma") is not None:
+        if self.scheduler_gamma is not None:
             scheduler = optim.lr_scheduler.ExponentialLR(
-                optims[0], gamma=self.params["scheduler_gamma"]
+                optims[0], gamma=self.scheduler_gamma
             )
             scheds.append(scheduler)
         return optims, scheds
+
+    def sample(self, size: int) -> None:
+        return self.model.sample(size, self.curr_device)
