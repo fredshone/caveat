@@ -10,9 +10,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch import manual_seed
 
-from caveat import data, models, report
-from caveat.data import encoders
-from caveat.data.loader import DataModule
+from caveat import data, encoders, models, report
 from caveat.experiment import Experiment
 
 
@@ -26,7 +24,7 @@ def runner(config: dict):
     encoded = data_encoder.encode(observed)
 
     data_loader_params = config.get("loader_params", {})
-    datamodule = DataModule(data=encoded, **data_loader_params)
+    datamodule = encoders.DataModule(data=encoded, **data_loader_params)
     datamodule.setup()
 
     print("======= Model Setup =======")

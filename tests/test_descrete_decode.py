@@ -3,11 +3,11 @@ import pytest
 from pandas.testing import assert_frame_equal
 from torch import Tensor
 
-from caveat.data import decode
+from caveat.encoders import descrete
 
 
 @pytest.mark.parametrize(
-    "encoded,length,expected",
+    "encoded,length,step_size,expected",
     [
         (
             Tensor(
@@ -17,6 +17,7 @@ from caveat.data import decode
                 ]
             ),
             144,
+            48,
             pd.DataFrame(
                 [
                     [0, "a", 0, 96],
@@ -31,6 +32,7 @@ from caveat.data import decode
         (
             Tensor([[[[1, 0, 0], [1, 0, 0], [0, 1, 0]]]]),
             3,
+            1,
             pd.DataFrame(
                 [[0, "a", 0, 2], [0, "b", 2, 3]],
                 columns=["pid", "act", "start", "end"],
@@ -38,7 +40,8 @@ from caveat.data import decode
         ),
     ],
 )
-def test_decode_descretised(encoded, length, expected):
-    mapping = {0: "a", 1: "b", 2: "c"}
-    result = decode.decode_descretised(encoded, mapping, length)
+def test_decode_descretised(encoded, length, step_size, expected):
+    encoder = descrete.DescreteEncoder(duration=length, step_size=step_size)
+    encoder.index_to_acts = {0: "a", 1: "b", 2: "c"}
+    result = encoder.decode(encoded)
     assert_frame_equal(expected, result)

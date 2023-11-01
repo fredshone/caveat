@@ -2,8 +2,6 @@
 <!--- --8<-- [start:docs] -->
 ![caveat](resources/logos/title.png)
 
-# CAVEAT
-
 Generative models for human activity sequences.
 
 [![Daily CI Build](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg)](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml)
@@ -11,9 +9,9 @@ Generative models for human activity sequences.
 
 Caveat is for building a comparing models that generate human activity sequences. This includes:
 
-- Methods for generating training datasets, either:
-  - Synthetic data
-  - UK National Travel Survey data
+- Methods for generating training datasets, either from:
+  - synthetic data
+  - survey data
 - A framework for training models
 - Metrics for comparing models
 
@@ -32,7 +30,7 @@ Caveat uses a simple .csv format to represent a population of activity sequences
 
 - **pid** (Person id) field is a unique identifier for each sequence
 - **act** is a categorical value for the type of activity in the sequence
-- **start** and **end** are the start and end of the activities in the sequence
+- **start** and **end** are the start and end times of the activities in the sequence
 
 Times are assumed to be in minutes and should be integers.
 

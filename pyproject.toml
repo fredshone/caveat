@@ -105,6 +105,7 @@ dynamic = ["dependencies", "optional-dependencies", "version"]
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements/base.txt"] }
 version = { attr = "caveat.__version__" }
+
 [project.scripts]
 caveat="caveat.cli:cli"
 

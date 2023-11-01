@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import torch
 
-from caveat.data import loader
+from caveat.encoders import descrete
 
 
 @pytest.mark.parametrize(
@@ -14,7 +14,7 @@ from caveat.data import loader
     ],
 )
 def test_one_hot(target, num_classes, expected):
-    result = loader.one_hot(target, num_classes)
+    result = descrete.one_hot(target, num_classes)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -30,7 +30,7 @@ def test_one_hot(target, num_classes, expected):
     ],
 )
 def test_down_sample(target, step, expected):
-    result = loader.down_sample(target, step)
+    result = descrete.down_sample(target, step)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -50,7 +50,7 @@ def test_down_sample(target, step, expected):
 )
 def test_descretise_trace(acts, starts, ends, length, expected):
     class_map = {"a": 0, "b": 1}
-    result = loader.descretise_trace(acts, starts, ends, length, class_map)
+    result = descrete.descretise_trace(acts, starts, ends, length, class_map)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -69,13 +69,10 @@ def test_descretise_population():
     length = 6
     step = 2
     expected = np.array(
-        [[[[1, 0, 0], [0, 1, 1]]], [[[1, 1, 0], [0, 0, 1]]]], dtype=np.int8
+        [[[[1, 0], [0, 1], [0, 1]]], [[[1, 0], [1, 0], [0, 1]]]], dtype=np.int8
     )
-    samples = traces.pid.nunique()
     class_map = {"a": 0, "b": 1}
-    result = loader.descretise_population(
-        traces, samples, length, step, class_map
-    )
+    result = descrete.descretise_population(traces, length, step, class_map)
     expected = torch.from_numpy(expected)
     assert torch.equal(result, expected)
 
@@ -88,12 +85,10 @@ def test_large_downsample_descretise_population():
     length = 1440
     step = 180
     expected = np.array(
-        [[[[1, 1, 0, 0, 0, 1, 1, 1], [0, 0, 1, 1, 1, 0, 0, 0]]]], dtype=np.int8
+        [[[[1, 0], [1, 0], [0, 1], [0, 1], [0, 1], [1, 0], [1, 0], [1, 0]]]],
+        dtype=np.int8,
     )
-    samples = traces.pid.nunique()
     class_map = {"a": 0, "b": 1}
-    result = loader.descretise_population(
-        traces, samples, length, step, class_map
-    )
+    result = descrete.descretise_population(traces, length, step, class_map)
     expected = torch.from_numpy(expected)
     assert torch.equal(result, expected)
