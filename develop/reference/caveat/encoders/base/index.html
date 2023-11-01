@@ -13,22 +13,22 @@
       
       
       
-        <link rel="prev" href="../../../api/cli/">
+        <link rel="prev" href="../../data/validate/">
       
       
-        <link rel="next" href="../experiment/">
+        <link rel="next" href="../descrete/">
       
       
-      <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.6">
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.7">
     
     
       
-        <title>caveat.core - caveat</title>
+        <title>caveat.encoders.base - caveat</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.35e1ed30.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.4b4a2bd9.min.css">
       
       
 
@@ -47,11 +47,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../../static/extras.css">
+      <link rel="stylesheet" href="../../../../static/extras.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -72,6 +72,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#caveat.encoders.base.BaseEncoder" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -88,7 +93,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="caveat" class="md-header__button md-logo" aria-label="caveat" data-md-component="logo">
+    <a href="../../../.." title="caveat" class="md-header__button md-logo" aria-label="caveat" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -108,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              caveat.core
+              caveat.encoders.base
             
           </span>
         </div>
@@ -192,7 +197,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="caveat" class="md-nav__button md-logo" aria-label="caveat" data-md-component="logo">
+    <a href="../../../.." title="caveat" class="md-nav__button md-logo" aria-label="caveat" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -221,7 +226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../../../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -240,7 +245,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../installation/" class="md-nav__link">
+      <a href="../../../../installation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -260,6 +265,8 @@
   
     
     
+      
+        
       
         
       
@@ -299,11 +306,31 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../examples/1_synthetic_population_generation/" class="md-nav__link">
+      <a href="../../../../examples/1_synthetic_population_generation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Introduction to Synthetic Population Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../examples/2_NTS_population_generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generate Population from National Transport Survey Data
   </span>
   
 
@@ -326,7 +353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../contributing/" class="md-nav__link">
+      <a href="../../../../contributing/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -345,7 +372,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CHANGELOG/" class="md-nav__link">
+      <a href="../../../../CHANGELOG/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -408,7 +435,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/cli/" class="md-nav__link">
+      <a href="../../../../api/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -431,6 +458,8 @@
   
     
     
+      
+        
       
         
       
@@ -476,37 +505,9 @@
                 
   
   
-    
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  <span class="md-ellipsis">
-    caveat.core
-  </span>
-  
-
-      </a>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
   
     <li class="md-nav__item">
-      <a href="../experiment/" class="md-nav__link">
+      <a href="../../experiment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -526,7 +527,27 @@
   
   
     <li class="md-nav__item">
-      <a href="../run/" class="md-nav__link">
+      <a href="../../report/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.report
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../run/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -547,6 +568,8 @@
   
     
     
+      
+        
       
         
       
@@ -590,7 +613,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../data/loader/" class="md-nav__link">
+      <a href="../../data/loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -610,7 +633,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../data/synth/" class="md-nav__link">
+      <a href="../../data/synth/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -630,11 +653,186 @@
   
   
     <li class="md-nav__item">
-      <a href="../data/utils/" class="md-nav__link">
+      <a href="../../data/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     caveat.data.utils
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data/validate/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.data.validate
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6_2_5" id="__nav_6_2_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    caveat.encoders
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            caveat.encoders
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    caveat.encoders.base
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoders.base
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder" class="md-nav__link">
+    BaseEncoder
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseEncoder">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder.decode" class="md-nav__link">
+    decode()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder.encode" class="md-nav__link">
+    encode()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../descrete/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoders.descrete
   </span>
   
 
@@ -675,10 +873,10 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_6_2_5" id="__nav_6_2_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_2_6" id="__nav_6_2_6_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -689,8 +887,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_2_5">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2_6">
             <span class="md-nav__icon md-icon"></span>
             caveat.models
           </label>
@@ -702,7 +900,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../models/base/" class="md-nav__link">
+      <a href="../../models/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -722,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../models/utils/" class="md-nav__link">
+      <a href="../../models/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -742,7 +940,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../models/vae/" class="md-nav__link">
+      <a href="../../models/vae/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -797,6 +995,41 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder" class="md-nav__link">
+    BaseEncoder
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseEncoder">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder.decode" class="md-nav__link">
+    decode()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder.encode" class="md-nav__link">
+    encode()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -816,7 +1049,7 @@
   
 
 
-  <h1>caveat.core</h1>
+  <h1>caveat.encoders.base</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -824,8 +1057,110 @@
 
 
   <div class="doc doc-contents first">
+
   
-      <p>Main module.</p>
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+
+<h2 id="caveat.encoders.base.BaseEncoder" class="doc doc-heading">
+          <code>BaseEncoder</code>
+
+
+<a href="#caveat.encoders.base.BaseEncoder" class="headerlink" title="Permanent link">#</a></h2>
+
+
+  <div class="doc doc-contents ">
+          <p class="doc doc-class-bases">
+            Bases: <code><a class="autorefs autorefs-external" title="abc.ABC" href="https://docs.python.org/3/library/abc.html#abc.ABC">ABC</a></code></p>
+
+
+
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h3 id="caveat.encoders.base.BaseEncoder.decode" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">decode</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></code>
+
+<a href="#caveat.encoders.base.BaseEncoder.decode" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+
+          <details class="quote">
+            <summary>Source code in <code>caveat/encoders/base.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</span></code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h3 id="caveat.encoders.base.BaseEncoder.encode" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">encode</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></code>
+
+<a href="#caveat.encoders.base.BaseEncoder.encode" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+
+          <details class="quote">
+            <summary>Source code in <code>caveat/encoders/base.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-8">8</a></span>
+<span class="normal"><a href="#__codelineno-0-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tensor</span><span class="p">:</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</span></code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+
+  </div>
+
+  </div>
+
+</div>
+
+
+
+
+  </div>
 
   </div>
 
@@ -869,10 +1204,10 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.indexes"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../../../..", "features": ["navigation.indexes"], "search": "../../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.aecac24b.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.aecac24b.min.js"></script>
       
     
   </body>
