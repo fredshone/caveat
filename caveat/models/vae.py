@@ -6,7 +6,7 @@ from torchmetrics.classification import MulticlassHammingDistance
 from torchmetrics.regression import MeanSquaredError
 
 from caveat.models.base import BaseVAE
-from caveat.models.utils import conv_size, hot_argmax, transconv_size
+from caveat.models.utils import calc_output_padding, conv_size, hot_argmax
 
 
 class VAE(BaseVAE):
@@ -38,34 +38,33 @@ class VAE(BaseVAE):
             num_classes=in_shape[-1], average="micro"
         )
         modules = []
+        target_shapes = []
         channels, h, w = in_shape
-        print("ENCODE:", channels, h, w)
 
         # Build Encoder
-        for h_dim in hidden_dims:
+        for hidden_channels in hidden_dims:
             modules.append(
                 nn.Sequential(
                     nn.Conv2d(
                         in_channels=channels,
-                        out_channels=h_dim,
+                        out_channels=hidden_channels,
                         kernel_size=kernel_size,
                         stride=stride,
                         padding=padding,
                     ),
-                    nn.BatchNorm2d(h_dim),
+                    nn.BatchNorm2d(hidden_channels),
                     nn.LeakyReLU(),
                 )
             )
+            target_shapes.append((h, w))
             h, w = conv_size(
                 (h, w), kernel_size=kernel_size, padding=padding, stride=stride
             )
-            channels = h_dim
-            print("ENCODE:", channels, h, w)
+            channels = hidden_channels
 
         self.shape_before_flattening = (-1, channels, h, w)
         self.encoder = nn.Sequential(*modules)
         flat_size = int(channels * h * w)
-        print("FLAT:", flat_size)
         self.fc_mu = nn.Linear(flat_size, latent_dim)
         self.fc_var = nn.Linear(flat_size, latent_dim)
 
@@ -76,7 +75,6 @@ class VAE(BaseVAE):
         hidden_dims.reverse()
 
         _, channels, h, w = self.shape_before_flattening
-        print("DECODE:", channels, h, w)
 
         for i in range(len(hidden_dims) - 1):
             modules.append(
@@ -86,22 +84,13 @@ class VAE(BaseVAE):
                         out_channels=hidden_dims[i],
                         kernel_size=kernel_size,
                         stride=stride,
-                        padding=0,
-                        output_padding=(0, 0),  # todo - this is a hack
+                        padding=padding,
+                        output_padding=calc_output_padding(target_shapes[i]),
                     ),
                     nn.BatchNorm2d(hidden_dims[i + 1]),
                     nn.LeakyReLU(),
                 )
             )
-            h, w = transconv_size(
-                (h, w),
-                kernel_size=kernel_size,
-                padding=0,
-                stride=stride,
-                output_padding=(0, 0),
-            )
-            channels = hidden_dims[i]
-            print("DECODE:", channels, h, w)
 
         self.decoder = nn.Sequential(*modules)
 
@@ -111,21 +100,12 @@ class VAE(BaseVAE):
                 out_channels=in_shape[0],
                 kernel_size=kernel_size,
                 stride=stride,
-                padding=0,
-                output_padding=(0, 0),
+                padding=padding,
+                output_padding=calc_output_padding(target_shapes[-1]),
             ),
             nn.BatchNorm2d(in_shape[0]),
             nn.Tanh(),
         )
-        h, w = transconv_size(
-            (h, w),
-            kernel_size=kernel_size,
-            padding=0,
-            stride=stride,
-            output_padding=(0, 0),
-        )
-        channels = in_shape[0]
-        print("DECODE:", channels, h, w)
 
     def encode(self, input: tensor) -> list[tensor]:
         """Encodes the input by passing through the encoder network.
@@ -201,7 +181,6 @@ class VAE(BaseVAE):
             "M_N"
         ]  # Account for the minibatch samples from the dataset
         # recons_loss = F.mse_loss(recons, input)
-        print("======", recons.shape)
         recons_mse_loss = self.MSE(recons, input)
         recon_argmax = torch.argmax(recons, dim=-1)
         input_argmax = torch.argmax(input, dim=-1)

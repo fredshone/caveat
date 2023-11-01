@@ -74,8 +74,12 @@ def check_activity_start_and_ends(
 # ================ Participation Metrics ================== #
 def activity_participation_rates(x: DataFrame, y: DataFrame) -> DataFrame:
     report = DataFrame()
-    report["observed"] = x.groupby("act").pid.count() / x.pid.nunique()
-    report["synth"] = y.groupby("act").pid.count() / y.pid.nunique()
+    report["observed"] = (
+        x.groupby("act", observed=False).pid.count() / x.pid.nunique()
+    )
+    report["synth"] = (
+        y.groupby("act", observed=False).pid.count() / y.pid.nunique()
+    )
 
     totals = DataFrame(
         [
@@ -130,8 +134,8 @@ def joint_participation(x: DataFrame) -> Series:
 # ================ Scheduling Metrics ================== #
 def av_activity_durations(x: DataFrame, y: DataFrame) -> DataFrame:
     report = DataFrame()
-    report["observed"] = x.groupby("act").duration.mean()
-    report["synth"] = y.groupby("act").duration.mean()
+    report["observed"] = x.groupby("act", observed=False).duration.mean()
+    report["synth"] = y.groupby("act", observed=False).duration.mean()
 
     report = report.reset_index()
     report["metric"] = "av. activity durations"
@@ -144,7 +148,7 @@ def av_activity_durations(x: DataFrame, y: DataFrame) -> DataFrame:
 
 def average_activity_starts(plans: DataFrame) -> Series:
     plans = plans[plans.start != 0]  # ignore first act
-    return plans.groupby("act").start.mean()
+    return plans.groupby("act", observed=False).start.mean()
 
 
 def average_starts(plans: DataFrame) -> int:
@@ -179,7 +183,7 @@ def av_activity_start_times(x: DataFrame, y: DataFrame) -> DataFrame:
 def average_activity_ends(plans: DataFrame) -> Series:
     end = plans.end.max()
     plans = plans[plans.end != end]  # ignore last act
-    return plans.groupby("act").end.mean()
+    return plans.groupby("act", observed=False).end.mean()
 
 
 def average_ends(plans: DataFrame) -> int:
@@ -219,7 +223,7 @@ def time_distributions(population: DataFrame) -> tuple[dict, dict, dict]:
     starts = {k: [] for k in acts}
     ends = {k: [] for k in acts}
     durations = {k: [] for k in acts}
-    for act, acts in population.groupby("act"):
+    for act, acts in population.groupby("act", observed=False):
         starts[act] = list(acts.start)
         ends[act] = list(acts.end)
         durations[act] = list(acts.duration)

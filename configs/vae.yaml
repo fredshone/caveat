@@ -1,6 +1,5 @@
 model_params:
   model: "VAE"
-  in_shape: [1, 144, 8]
   hidden_dims: [64,64]
   latent_dim: 2
   kernel_size: [3,3]
@@ -8,7 +7,7 @@ model_params:
 
 data_params:
   encoding: "descrete"
-  data_path: "examples/nts_population.csv"
+  data_path: "examples/nts_toy.csv"
   duration: 1440
   step_size: 10
 

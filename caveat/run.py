@@ -17,14 +17,25 @@ from caveat.experiment import Experiment
 
 
 def runner(config: dict):
+    print("======= Data Setup =======")
+    data_path = config["data_params"].pop("data_path")
+    encoder_name = config["data_params"].pop("encoding")
+
+    observed = data.load_and_validate(data_path)
+    data_encoder = encoders.library[encoder_name](**config["data_params"])
+    encoded = data_encoder.encode(observed)
+
+    data_loader_params = config.get("loader_params", {})
+    datamodule = DataModule(data=encoded, **data_loader_params)
+    datamodule.setup()
+
     print("======= Model Setup =======")
     manual_seed(config.get("seed", 1234))
 
     model_name = config["model_params"]["model"]
     model = models.library[model_name]
 
-    model = model(**config["model_params"])
-    print(model)
+    model = model(in_shape=encoded.shape(), **config["model_params"])
     experiment = Experiment(model, **config["experiment_params"])
 
     logger = initiate_logger(config)
@@ -49,27 +60,17 @@ def runner(config: dict):
         **config.get("trainer_params", {}),
     )
 
-    print("======= Data Setup =======")
-    data_path = config["data_params"].pop("data_path")
-    encoder_name = config["data_params"].pop("encoding")
-
-    observed = data.load_and_validate(data_path)
-    data_encoder = encoders.library[encoder_name]
-    encoded = data_encoder(observed, **config["data_params"])
-
-    data_loader_params = config.get("loader_params", {})
-    datamodule = DataModule(data=encoded, **data_loader_params)
-    datamodule.setup()
-
     print("======= Training =======")
     runner.fit(experiment, datamodule=datamodule)
 
     print("======= Evaluating =======")
     best = Experiment.load_from_checkpoint(
-        Path(logger.log_dir, "checkpoints", "last.ckpt")
+        Path(logger.log_dir, "checkpoints", "last.ckpt"),
+        model=model,
+        **config["experiment_params"],
     )
-    y = best.sample(datamodule.size)
-    y = data_encoder.decode(y)
+    y = best.sample(len(encoded))
+    y = data_encoder.decode(encoded=y)
     data.validate(y)
     synthesis_path = Path(experiment.logger.log_dir, "synthetic.csv")
     y.to_csv(synthesis_path)

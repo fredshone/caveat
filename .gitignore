@@ -18,6 +18,7 @@ build/
 *.egg-info
 dist/
 .cruft.json
+tmp/
 
 # Virtual environment
 venv/

@@ -64,6 +64,8 @@ def test_conv_size(size, kernel, stride, padding, dilation, expected):
         (4, 3, 2, 1, 1, 0, np.array([7, 7])),
         (72, 3, 2, 1, 1, 0, np.array([143, 143])),
         (72, 3, 2, 1, 1, 1, np.array([144, 144])),
+        (36, 3, 2, 1, 1, 0, np.array([71, 71])),
+        (36, 3, 2, 1, 1, 1, np.array([72, 72])),
     ],
 )
 def test_transconv_size(
@@ -72,4 +74,20 @@ def test_transconv_size(
     result = utils.transconv_size(
         size, kernel, stride, padding, dilation, output_padding
     )
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "size,expected",
+    [
+        (2, np.array([1, 1])),
+        ((2, 2), np.array([1, 1])),
+        (1, np.array([0, 0])),
+        ((1, 1), np.array([0, 0])),
+        (4, np.array([1, 1])),
+        ((4, 3), np.array([1, 0])),
+    ],
+)
+def test_specify_output_padding(size, expected):
+    result = utils.calc_output_padding(size)
     np.testing.assert_array_equal(result, expected)

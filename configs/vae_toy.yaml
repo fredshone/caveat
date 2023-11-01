@@ -1,13 +1,12 @@
 model_params:
   model: "VAE"
-  in_shape: [1, 144, 5]
   hidden_dims: [64,64]
   latent_dim: 2
   stride: [2,2]
 
 data_params:
   encoding: "descrete"
-  data_path: "examples/example_population.csv"
+  data_path: "examples/data/example_population.csv"
   duration: 1440
   step_size: 10
 
