@@ -13,10 +13,10 @@
       
       
       
-        <link rel="prev" href="../../metrics/structural/">
+        <link rel="prev" href="../participation/">
       
       
-        <link rel="next" href="../utils/">
+        <link rel="next" href="../structural/">
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>caveat.models.base - caveat</title>
+        <title>caveat.metrics.sequence - caveat</title>
       
     
     
@@ -73,7 +73,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#caveat.models.base.BaseVAE" class="md-skip">
+        <a href="#caveat.metrics.sequence.collect_sequence" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              caveat.models.base
+              caveat.metrics.sequence
             
           </span>
         </div>
@@ -791,6 +791,8 @@
                 
   
   
+    
+  
   
     
     
@@ -805,12 +807,12 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6_2_6" id="__nav_6_2_6_label" tabindex="0">
@@ -824,7 +826,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6_2_6">
             <span class="md-nav__icon md-icon"></span>
             caveat.metrics
@@ -837,7 +839,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../metrics/participation/" class="md-nav__link">
+      <a href="../participation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -855,9 +857,27 @@
                 
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../../metrics/sequence/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    caveat.metrics.sequence
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -866,6 +886,45 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.metrics.sequence.collect_sequence" class="md-nav__link">
+    collect_sequence()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.metrics.sequence.report_sequence_probs" class="md-nav__link">
+    report_sequence_probs()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.metrics.sequence.sequence_probs" class="md-nav__link">
+    sequence_probs()
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -877,7 +936,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../metrics/structural/" class="md-nav__link">
+      <a href="../structural/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -903,8 +962,6 @@
                 
   
   
-    
-  
   
     
     
@@ -919,12 +976,12 @@
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_7" >
         
           
           <label class="md-nav__link" for="__nav_6_2_7" id="__nav_6_2_7_label" tabindex="0">
@@ -938,7 +995,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_7_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6_2_7">
             <span class="md-nav__icon md-icon"></span>
             caveat.models
@@ -949,27 +1006,9 @@
                 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    caveat.models.base
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../models/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -978,79 +1017,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE" class="md-nav__link">
-    BaseVAE
-  </a>
-  
-    <nav class="md-nav" aria-label="BaseVAE">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.decode" class="md-nav__link">
-    decode()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.encode" class="md-nav__link">
-    encode()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.forward" class="md-nav__link">
-    forward()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.generate" class="md-nav__link">
-    generate()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.loss_function" class="md-nav__link">
-    loss_function()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.sample" class="md-nav__link">
-    sample()
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1062,7 +1028,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/" class="md-nav__link">
+      <a href="../../models/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1082,7 +1048,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../vae/" class="md-nav__link">
+      <a href="../../models/vae/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1144,57 +1110,23 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE" class="md-nav__link">
-    BaseVAE
-  </a>
-  
-    <nav class="md-nav" aria-label="BaseVAE">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.decode" class="md-nav__link">
-    decode()
+  <a href="#caveat.metrics.sequence.collect_sequence" class="md-nav__link">
+    collect_sequence()
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.encode" class="md-nav__link">
-    encode()
+      
+        <li class="md-nav__item">
+  <a href="#caveat.metrics.sequence.report_sequence_probs" class="md-nav__link">
+    report_sequence_probs()
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.forward" class="md-nav__link">
-    forward()
+      
+        <li class="md-nav__item">
+  <a href="#caveat.metrics.sequence.sequence_probs" class="md-nav__link">
+    sequence_probs()
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.generate" class="md-nav__link">
-    generate()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.loss_function" class="md-nav__link">
-    loss_function()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.models.base.BaseVAE.sample" class="md-nav__link">
-    sample()
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1219,7 +1151,7 @@
   
 
 
-  <h1>caveat.models.base</h1>
+  <h1>caveat.metrics.sequence</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -1239,41 +1171,6 @@
 
 
 
-<div class="doc doc-object doc-class">
-
-
-
-
-<h2 id="caveat.models.base.BaseVAE" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">BaseVAE</span><span class="p">()</span></code>
-
-<a href="#caveat.models.base.BaseVAE" class="headerlink" title="Permanent link">#</a></h2>
-
-
-  <div class="doc doc-contents ">
-          <p class="doc doc-class-bases">
-            Bases: <code><span title="torch.nn.Module">Module</span></code></p>
-
-
-                <details class="quote">
-                  <summary>Source code in <code>caveat/models/base.py</code></summary>
-                  <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-0-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="nb">super</span><span class="p">(</span><span class="n">BaseVAE</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></code></pre></div></td></tr></table></div>
-                </details>
-
-  
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
 
 
 <div class="doc doc-object doc-function">
@@ -1281,19 +1178,19 @@
 
 
 
-<h3 id="caveat.models.base.BaseVAE.decode" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">decode</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></code>
+<h2 id="caveat.metrics.sequence.collect_sequence" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">collect_sequence</span><span class="p">(</span><span class="n">acts</span><span class="p">)</span></code>
 
-<a href="#caveat.models.base.BaseVAE.decode" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.metrics.sequence.collect_sequence" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <summary>Source code in <code>caveat/metrics/sequence.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-6">6</a></span>
+<span class="normal"><a href="#__codelineno-0-7">7</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="k">def</span> <span class="nf">collect_sequence</span><span class="p">(</span><span class="n">acts</span><span class="p">:</span> <span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7"></a>    <span class="k">return</span> <span class="s2">&quot;&gt;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">acts</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -1306,19 +1203,159 @@
 
 
 
-<h3 id="caveat.models.base.BaseVAE.encode" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">encode</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></code>
+<h2 id="caveat.metrics.sequence.report_sequence_probs" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">report_sequence_probs</span><span class="p">(</span><span class="n">observed</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-<a href="#caveat.models.base.BaseVAE.encode" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.metrics.sequence.report_sequence_probs" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
+  
+      <p>Generate a report of sequence probabilities for the observed and comparison DataFrames.</p>
+
+
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>PARAMETER</b></th>
+        <th><b> DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>observed</code></td>
+          <td class="doc-param-details">
+            <div class="doc-md-description">
+              <p>The observed DataFrame.</p>
+            </div>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code><span title="pandas.DataFrame">DataFrame</span></code>
+                </span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td><code>ys</code></td>
+          <td class="doc-param-details">
+            <div class="doc-md-description">
+              <p>A dictionary of comparison DataFrames.</p>
+            </div>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                </span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td><code>head</code></td>
+          <td class="doc-param-details">
+            <div class="doc-md-description">
+              <p>The number of rows to include in the report. Defaults to None.</p>
+            </div>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code><a class="autorefs autorefs-external" title="typing.Optional" href="https://docs.python.org/3/library/typing.html#typing.Optional">Optional</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>
+                </span>
+                <span class="doc-param-default">
+                  <b>DEFAULT:</b> 
+                    <code>None</code>
+                </span>
+            </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>RETURNS</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+              <code>DataFrame</code>
+          </td>
+          <td class="doc-returns-details">
+            <div class="doc-md-description">
+              <p>A report of sequence probabilities for the observed and comparison DataFrames.</p>
+            </div>
+              <p>
+                <span class="doc-returns-annotation">
+                  <b>TYPE:</b>
+                    <code><span title="pandas.DataFrame">DataFrame</span></code>
+                </span>
+              </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">tensor</span><span class="p">]:</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <summary>Source code in <code>caveat/metrics/sequence.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#__codelineno-0-58">58</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">def</span> <span class="nf">report_sequence_probs</span><span class="p">(</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="n">observed</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">],</span> <span class="n">head</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    Generate a report of sequence probabilities for the observed and comparison DataFrames.</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">        observed (DataFrame): The observed DataFrame.</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        ys (dict[str, DataFrame]): A dictionary of comparison DataFrames.</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">        head (Optional[int], optional): The number of rows to include in the report. Defaults to None.</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">        DataFrame: A report of sequence probabilities for the observed and comparison DataFrames.</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="n">x_report</span> <span class="o">=</span> <span class="n">sequence_probs</span><span class="p">(</span><span class="n">observed</span><span class="p">)</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">x_report</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;observed&quot;</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">report</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">x_report</span><span class="p">)</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="n">y_report</span> <span class="o">=</span> <span class="n">sequence_probs</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="n">y_report</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">y_report</span><span class="p">)</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="n">report</span> <span class="o">=</span> <span class="n">concat</span><span class="p">([</span><span class="n">report</span><span class="p">,</span> <span class="n">y_report</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>        <span class="n">report</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>        <span class="n">report</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> delta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">-</span> <span class="n">report</span><span class="o">.</span><span class="n">observed</span>
+</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="k">if</span> <span class="n">head</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>        <span class="n">report</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">head</span><span class="p">)</span>
+</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>    <span class="k">return</span> <span class="n">report</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -1331,120 +1368,118 @@
 
 
 
-<h3 id="caveat.models.base.BaseVAE.forward" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">forward</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span></code>
-  
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
-  </span>
+<h2 id="caveat.metrics.sequence.sequence_probs" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">sequence_probs</span><span class="p">(</span><span class="n">population</span><span class="p">)</span></code>
 
-<a href="#caveat.models.base.BaseVAE.forward" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.metrics.sequence.sequence_probs" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
+  
+      <p>Calculates the sequence probabilities in the given population DataFrame.</p>
+
+
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>PARAMETER</b></th>
+        <th><b> DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>population</code></td>
+          <td class="doc-param-details">
+            <div class="doc-md-description">
+              <p>A DataFrame containing the population data.</p>
+            </div>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code><span title="pandas.DataFrame">DataFrame</span></code>
+                </span>
+            </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>RETURNS</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+              <code>DataFrame</code>
+          </td>
+          <td class="doc-returns-details">
+            <div class="doc-md-description">
+              <p>A DataFrame containing the probability of each sequence.</p>
+            </div>
+              <p>
+                <span class="doc-returns-annotation">
+                  <b>TYPE:</b>
+                    <code><span title="pandas.DataFrame">DataFrame</span></code>
+                </span>
+              </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-24">24</a></span>
+            <summary>Source code in <code>caveat/metrics/sequence.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#__codelineno-0-24">24</a></span>
 <span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="nd">@abstractmethod</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">:</span> <span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tensor</span><span class="p">:</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>    <span class="k">pass</span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="k">def</span> <span class="nf">sequence_probs</span><span class="p">(</span><span class="n">population</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="sd">    Calculates the sequence probabilities in the given population DataFrame.</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">        population (DataFrame): A DataFrame containing the population data.</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">        DataFrame: A DataFrame containing the probability of each sequence.</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="n">metrics</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>        <span class="n">population</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;pid&quot;</span><span class="p">)</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>        <span class="o">.</span><span class="n">act</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">collect_sequence</span><span class="p">)</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>        <span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>    <span class="p">)</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>    <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>    <span class="n">metrics</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>        <span class="p">[(</span><span class="s2">&quot;sequence prob.&quot;</span><span class="p">,</span> <span class="n">acts</span><span class="p">)</span> <span class="k">for</span> <span class="n">acts</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="p">)</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="k">return</span> <span class="n">metrics</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
 
 </div>
-
-
-<div class="doc doc-object doc-function">
-
-
-
-
-<h3 id="caveat.models.base.BaseVAE.generate" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">generate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
-
-<a href="#caveat.models.base.BaseVAE.generate" class="headerlink" title="Permanent link">#</a></h3>
-
-
-  <div class="doc doc-contents ">
-
-          <details class="quote">
-            <summary>Source code in <code>caveat/models/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tensor</span><span class="p">:</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-</span></code></pre></div></td></tr></table></div>
-          </details>
-  </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-
-
-<h3 id="caveat.models.base.BaseVAE.loss_function" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">loss_function</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
-  
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
-  </span>
-
-<a href="#caveat.models.base.BaseVAE.loss_function" class="headerlink" title="Permanent link">#</a></h3>
-
-
-  <div class="doc doc-contents ">
-
-          <details class="quote">
-            <summary>Source code in <code>caveat/models/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="nd">@abstractmethod</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">def</span> <span class="nf">loss_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tensor</span><span class="p">:</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="k">pass</span>
-</span></code></pre></div></td></tr></table></div>
-          </details>
-  </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-
-
-<h3 id="caveat.models.base.BaseVAE.sample" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">sample</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">current_device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
-
-<a href="#caveat.models.base.BaseVAE.sample" class="headerlink" title="Permanent link">#</a></h3>
-
-
-  <div class="doc doc-contents ">
-
-          <details class="quote">
-            <summary>Source code in <code>caveat/models/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">current_device</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tensor</span><span class="p">:</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-</span></code></pre></div></td></tr></table></div>
-          </details>
-  </div>
-
-</div>
-
-
-
-  </div>
-
-  </div>
-
-</div>
-
 
 
 
