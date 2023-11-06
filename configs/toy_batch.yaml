@@ -1,0 +1,58 @@
+global:
+  data_path: "examples/data/example_population.csv"
+  logging_params:
+    save_dir: "logs"
+    name: "toy_batch"
+  seed: 1234
+
+2d_latent:
+  model_params:
+    model: "VAE"
+    hidden_dims: [64,64]
+    latent_dim: 2
+    stride: [2,2]
+
+  encoder_params:
+    encoding: "descrete"
+    duration: 1440
+    step_size: 10
+
+  loader_params:
+    train_batch_size: 128
+    val_batch_size:  128
+    num_workers: 4
+
+  experiment_params:
+    LR: 0.005
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.00025
+
+  trainer_params:
+    max_epochs: 1
+
+3d_latent:
+  model_params:
+    model: "VAE"
+    hidden_dims: [64,64]
+    latent_dim: 3
+    stride: [2,2]
+
+  encoder_params:
+    encoding: "descrete"
+    duration: 1440
+    step_size: 10
+
+  loader_params:
+    train_batch_size: 128
+    val_batch_size:  128
+    num_workers: 4
+
+  experiment_params:
+    LR: 0.005
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.00025
+
+  trainer_params:
+    max_epochs: 1

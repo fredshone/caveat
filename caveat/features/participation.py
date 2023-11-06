@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pandas import DataFrame, MultiIndex, Series
 
 
@@ -20,34 +18,50 @@ def participation_rates(population: DataFrame) -> Series:
     metrics.index = MultiIndex.from_tuples(
         [("participation rate", act) for act in metrics.index]
     )
+    metrics = metrics.sort_values(ascending=False)
     return metrics
 
 
-def report_participation_rates(
-    observed: DataFrame, ys: dict[str, DataFrame], head: Optional[int] = None
-) -> DataFrame:
+def act_plan_seq_participation_rates(population: DataFrame) -> Series:
     """
-    Generate a report of participation rates for observed and comparison groups.
+    Calculates the participation rates for each activity (indexed by sequence enumeration) in the given population DataFrame.
 
     Args:
-        observed (DataFrame): A DataFrame containing the observed participation rates.
-        ys (dict[str, DataFrame]): A dictionary of DataFrames containing the comparison group participation rates.
-        head (Optional[int], optional): The number of rows to include in the report. Defaults to None.
+        population (DataFrame): A DataFrame containing the population data.
 
     Returns:
-        DataFrame: A DataFrame containing the participation rates for the observed and comparison groups, as well as the delta between them.
+        Series: A Series containing the participation rates for each activity.
     """
-    x_report = participation_rates(observed)
-    x_report.name = "observed"
-    report = DataFrame(x_report)
-    for name, y in ys.items():
-        y_report = participation_rates(y)
-        report[name] = y_report
-        report = report.fillna(0)
-        report[f"{name} delta"] = report[name] - report.observed
-    if head is not None:
-        report = report.head(head)
-    return report
+    actseq = population.act.astype(str) + population.groupby(
+        "pid", as_index=False
+    ).cumcount().astype(str)
+    metrics = population.groupby(actseq).pid.count() / population.pid.nunique()
+    metrics.index = MultiIndex.from_tuples(
+        [("act plan seq participation rate", act) for act in metrics.index]
+    )
+    metrics = metrics.sort_values(ascending=False)
+    return metrics
+
+
+def act_seq_participation_rates(population: DataFrame) -> Series:
+    """
+    Calculates the participation rates for each activity (indexed by enumeration) in the given population DataFrame.
+
+    Args:
+        population (DataFrame): A DataFrame containing the population data.
+
+    Returns:
+        Series: A Series containing the participation rates for each activity.
+    """
+    actseq = population.act.astype(str) + population.groupby(
+        ["pid", "act"], as_index=False, observed=False
+    ).cumcount().astype(str)
+    metrics = population.groupby(actseq).pid.count() / population.pid.nunique()
+    metrics.index = MultiIndex.from_tuples(
+        [("act seq participation rate", act) for act in metrics.index]
+    )
+    metrics = metrics.sort_values(ascending=False)
+    return metrics
 
 
 def combinations_with_replacement(
@@ -94,7 +108,7 @@ def calc_pair_rate(act_counts: DataFrame, pair: tuple) -> float:
     return ((act_counts[a] > 0) & (act_counts[b] > 0)).mean()
 
 
-def participation_pairs(population: DataFrame) -> Series:
+def joint_participation_rates(population: DataFrame) -> Series:
     """
     Calculate the participation rate for all pairs of activities in the given population.
 
@@ -110,36 +124,9 @@ def participation_pairs(population: DataFrame) -> Series:
     pairs = combinations_with_replacement(list(population.act.unique()), 2)
     idx = ["+".join(pair) for pair in pairs]
     p = [calc_pair_rate(act_counts, pair) for pair in pairs]
-    report = Series(p, index=idx)
-    report = report.sort_values(ascending=False)
-    report.index = MultiIndex.from_tuples(
-        [("participation rate", pair) for pair in report.index]
+    metrics = Series(p, index=idx)
+    metrics = metrics.sort_values(ascending=False)
+    metrics.index = MultiIndex.from_tuples(
+        [("joint participation rate", pair) for pair in metrics.index]
     )
-    return report
-
-
-def report_participation_pairs(
-    observed: DataFrame, ys: dict[str, DataFrame], head: Optional[int] = None
-) -> DataFrame:
-    """
-    Generate a report of participation pairs for the observed and comparison DataFrames.
-
-    Args:
-        observed (DataFrame): The observed DataFrame.
-        ys (dict[str, DataFrame]): A dictionary of comparison DataFrames.
-        head (Optional[int], optional): The number of rows to include in the report. Defaults to None.
-
-    Returns:
-        DataFrame: A report of participation pairs for the observed and comparison DataFrames.
-    """
-    x_report = participation_pairs(observed)
-    x_report.name = "observed"
-    report = DataFrame(x_report)
-    for name, y in ys.items():
-        y_report = participation_pairs(y)
-        report[name] = y_report
-        report = report.fillna(0)
-        report[f"{name} delta"] = report[name] - report.observed
-    if head is not None:
-        report = report.head(head)
-    return report
+    return metrics

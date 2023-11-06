@@ -120,5 +120,5 @@ class Experiment(pl.LightningModule):
             scheds.append(scheduler)
         return optims, scheds
 
-    def sample(self, size: int) -> None:
+    def generate(self, size: int) -> None:
         return self.model.sample(size, self.curr_device)

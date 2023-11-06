@@ -1,10 +1,10 @@
 from pandas import DataFrame, Series
 
 from caveat import report
-from caveat.features.sequence import sequence_probs
+from caveat.features import transitions
 
 
-def test_sequence_probs():
+def test_transitions():
     population = DataFrame(
         [
             {"pid": 0, "act": "home"},
@@ -16,15 +16,15 @@ def test_sequence_probs():
     )
     expected = Series(
         {
-            ("sequence rate", "home>work>home"): 0.5,
-            ("sequence rate", "home>work"): 0.5,
+            ("transition rate", "home->work"): 1.0,
+            ("transition rate", "work->home"): 0.5,
         }
     )
-    result = sequence_probs(population)
+    result = transitions.transition_rates(population)
     assert result.equals(expected)
 
 
-def test_report_sequence_probs():
+def test_compare_transitions():
     x = DataFrame(
         [
             {"pid": 0, "act": "home"},
@@ -55,21 +55,17 @@ def test_report_sequence_probs():
         ),
     }
     data = {
-        "observed": {"home>work>home": 0.5, "home>work": 0.5, "home>home": 0.0},
-        "y1": {"home>work>home": 0.5, "home>work": 0.5, "home>home": 0.0},
-        "y1 delta": {"home>work>home": 0.0, "home>work": 0.0, "home>home": 0.0},
-        "y2": {"home>work>home": 0.5, "home>work": 0.0, "home>home": 0.5},
-        "y2 delta": {
-            "home>work>home": 0.0,
-            "home>work": -0.5,
-            "home>home": 0.5,
-        },
+        "observed": {"home->work": 1.0, "work->home": 0.5, "home->home": 0.0},
+        "y1": {"home->work": 1.0, "work->home": 0.5, "home->home": 0.0},
+        "y1 delta": {"home->work": 0.0, "work->home": 0.0, "home->home": 0.0},
+        "y2": {"home->work": 0.5, "work->home": 0.5, "home->home": 0.5},
+        "y2 delta": {"home->work": -0.5, "work->home": 0.0, "home->home": 0.5},
     }
     expected = DataFrame(
         {
-            key: Series({("sequence rate", k): v for k, v in value.items()})
+            key: Series({("transition rate", k): v for k, v in value.items()})
             for key, value in data.items()
         }
     )
-    result = report.report_diff(x, ys, sequence_probs)
+    result = report.report_diff(x, ys, transitions.transition_rates)
     assert result.equals(expected)

@@ -1,6 +1,7 @@
 from pandas import DataFrame, Series
 
-from caveat.metrics import participation
+from caveat import report
+from caveat.features import participation
 
 
 def test_participation():
@@ -20,6 +21,48 @@ def test_participation():
         }
     )
     result = participation.participation_rates(population)
+    assert result.equals(expected)
+
+
+def test_act_plan_seq_participation_rates():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home"},
+            {"pid": 0, "act": "work"},
+            {"pid": 0, "act": "home"},
+            {"pid": 1, "act": "home"},
+            {"pid": 1, "act": "work"},
+        ]
+    )
+    expected = Series(
+        {
+            ("act plan seq participation rate", "home0"): 1.0,
+            ("act plan seq participation rate", "work1"): 1.0,
+            ("act plan seq participation rate", "home2"): 0.5,
+        }
+    )
+    result = participation.act_plan_seq_participation_rates(population)
+    assert result.equals(expected)
+
+
+def test_act_seq_participation_rates():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home"},
+            {"pid": 0, "act": "work"},
+            {"pid": 0, "act": "home"},
+            {"pid": 1, "act": "home"},
+            {"pid": 1, "act": "work"},
+        ]
+    )
+    expected = Series(
+        {
+            ("act seq participation rate", "home0"): 1.0,
+            ("act seq participation rate", "work0"): 1.0,
+            ("act seq participation rate", "home1"): 0.5,
+        }
+    )
+    result = participation.act_seq_participation_rates(population)
     assert result.equals(expected)
 
 
@@ -68,7 +111,7 @@ def test_compare_participation_rates():
             for key, value in data.items()
         }
     )
-    result = participation.report_participation_rates(x, ys)
+    result = report.report_diff(x, ys, participation.participation_rates)
     assert result.equals(expected)
 
 
@@ -111,12 +154,12 @@ def test_participation_pairs():
     )
     expected = Series(
         {
-            ("participation rate", "home+work"): 1,
-            ("participation rate", "home+home"): 0.5,
-            ("participation rate", "work+work"): 0.0,
+            ("joint participation rate", "home+work"): 1,
+            ("joint participation rate", "home+home"): 0.5,
+            ("joint participation rate", "work+work"): 0.0,
         }
     )
-    result = participation.participation_pairs(population)
+    result = participation.joint_participation_rates(population)
     assert result.equals(expected)
 
 
@@ -160,10 +203,10 @@ def test_report_participation_pairs():
     expected = DataFrame(
         {
             key: Series(
-                {("participation rate", k): v for k, v in value.items()}
+                {("joint participation rate", k): v for k, v in value.items()}
             )
             for key, value in data.items()
         }
     )
-    result = participation.report_participation_pairs(x, ys)
+    result = report.report_diff(x, ys, participation.joint_participation_rates)
     assert result.equals(expected)

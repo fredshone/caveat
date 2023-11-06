@@ -1,13 +1,17 @@
+logging_params:
+  save_dir: "logs"
+  name: "toy_run"
+
+data_path: "examples/data/example_population.csv"
+
 model_params:
   model: "VAE"
   hidden_dims: [64,64]
   latent_dim: 2
-  kernel_size: [3,3]
   stride: [2,2]
 
-data_params:
+encoder_params:
   encoding: "descrete"
-  data_path: "examples/nts_toy.csv"
   duration: 1440
   step_size: 10
 
@@ -23,11 +27,7 @@ experiment_params:
   kld_weight: 0.00025
 
 trainer_params:
-  max_epochs: 40
-
-logging_params:
-  save_dir: "logs"
-  name: "VAE"
+  max_epochs: 100
 
 seed: 1234
   

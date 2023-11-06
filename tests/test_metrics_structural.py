@@ -1,9 +1,7 @@
 from pandas import DataFrame, Series
 
-from caveat.metrics.structural import (
-    report_activity_start_and_end_acts,
-    start_and_end_acts,
-)
+from caveat import report
+from caveat.features.structural import start_and_end_acts
 
 
 def test_start_and_end_acts():
@@ -18,8 +16,8 @@ def test_start_and_end_acts():
     )
     expected = Series(
         {
-            ("structural", "first act at home"): 1.0,
-            ("structural", "last act at home"): 0.5,
+            ("structural", "first act is home"): 1.0,
+            ("structural", "last act is home"): 0.5,
         }
     )
     result = start_and_end_acts(population, target="home")
@@ -60,36 +58,35 @@ def test_compare_activity_start_and_end_acts():
         {
             "observed": Series(
                 {
-                    ("structural", "first act at home"): 1.0,
-                    ("structural", "last act at home"): 0.5,
+                    ("structural", "first act is home"): 1.0,
+                    ("structural", "last act is home"): 0.5,
                 }
             ),
             "y1": Series(
                 {
-                    ("structural", "first act at home"): 1.0,
-                    ("structural", "last act at home"): 0.5,
+                    ("structural", "first act is home"): 1.0,
+                    ("structural", "last act is home"): 0.5,
                 }
             ),
             "y1 delta": Series(
                 {
-                    ("structural", "first act at home"): 0.0,
-                    ("structural", "last act at home"): 0.0,
+                    ("structural", "first act is home"): 0.0,
+                    ("structural", "last act is home"): 0.0,
                 }
             ),
             "y2": Series(
                 {
-                    ("structural", "first act at home"): 1.0,
-                    ("structural", "last act at home"): 1.0,
+                    ("structural", "first act is home"): 1.0,
+                    ("structural", "last act is home"): 1.0,
                 }
             ),
             "y2 delta": Series(
                 {
-                    ("structural", "first act at home"): 0.0,
-                    ("structural", "last act at home"): 0.5,
+                    ("structural", "first act is home"): 0.0,
+                    ("structural", "last act is home"): 0.5,
                 }
             ),
         }
     )
-    result = report_activity_start_and_end_acts(x, ys, target="home")
-    print(result)
+    result = report.report_diff(x, ys, start_and_end_acts)
     assert result.equals(expected)
