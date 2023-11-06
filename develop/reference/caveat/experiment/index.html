@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.7">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
     
     
       
@@ -270,6 +270,8 @@
       
         
       
+        
+      
     
     
     
@@ -331,6 +333,26 @@
   
   <span class="md-ellipsis">
     Generate Population from National Transport Survey Data
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/3_metrics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    3 metrics
   </span>
   
 
@@ -615,6 +637,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#caveat.experiment.Experiment.generate" class="md-nav__link">
+    generate()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#caveat.experiment.Experiment.on_validation_end" class="md-nav__link">
     on_validation_end()
   </a>
@@ -638,13 +667,6 @@
           <li class="md-nav__item">
   <a href="#caveat.experiment.Experiment.regenerate_val_batch" class="md-nav__link">
     regenerate_val_batch()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.experiment.Experiment.sample" class="md-nav__link">
-    sample()
   </a>
   
 </li>
@@ -962,6 +984,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -978,7 +1006,7 @@
             
   
   <span class="md-ellipsis">
-    caveat.metrics
+    caveat.features
   </span>
   
 
@@ -988,7 +1016,7 @@
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6_2_6">
             <span class="md-nav__icon md-icon"></span>
-            caveat.metrics
+            caveat.features
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -998,11 +1026,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/participation/" class="md-nav__link">
+      <a href="../features/durations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.metrics.participation
+    caveat.features.durations
   </span>
   
 
@@ -1018,11 +1046,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/sequence/" class="md-nav__link">
+      <a href="../features/participation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.metrics.sequence
+    caveat.features.participation
   </span>
   
 
@@ -1038,11 +1066,71 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/structural/" class="md-nav__link">
+      <a href="../features/sequence/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.metrics.structural
+    caveat.features.sequence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/structural/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.features.structural
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/times/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.features.times
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/transitions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.features.transitions
   </span>
   
 
@@ -1276,6 +1364,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#caveat.experiment.Experiment.generate" class="md-nav__link">
+    generate()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#caveat.experiment.Experiment.on_validation_end" class="md-nav__link">
     on_validation_end()
   </a>
@@ -1299,13 +1394,6 @@
           <li class="md-nav__item">
   <a href="#caveat.experiment.Experiment.regenerate_val_batch" class="md-nav__link">
     regenerate_val_batch()
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#caveat.experiment.Experiment.sample" class="md-nav__link">
-    sample()
   </a>
   
 </li>
@@ -1641,6 +1729,31 @@
 
 
 
+<h3 id="caveat.experiment.Experiment.generate" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">generate</span><span class="p">(</span><span class="n">size</span><span class="p">)</span></code>
+
+<a href="#caveat.experiment.Experiment.generate" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+
+          <details class="quote">
+            <summary>Source code in <code>caveat/experiment.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-123">123</a></span>
+<span class="normal"><a href="#__codelineno-0-124">124</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-124"><a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_device</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
 <h3 id="caveat.experiment.Experiment.on_validation_end" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">on_validation_end</span><span class="p">()</span></code>
 
@@ -1761,31 +1874,6 @@
 </span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="n">x</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">datamodule</span><span class="o">.</span><span class="n">val_dataloader</span><span class="p">()))</span>
 </span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_device</span><span class="p">)</span>
 </span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">regenerate_batch</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;reconstructions&quot;</span><span class="p">)</span>
-</span></code></pre></div></td></tr></table></div>
-          </details>
-  </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-
-
-<h3 id="caveat.experiment.Experiment.sample" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">sample</span><span class="p">(</span><span class="n">size</span><span class="p">)</span></code>
-
-<a href="#caveat.experiment.Experiment.sample" class="headerlink" title="Permanent link">#</a></h3>
-
-
-  <div class="doc doc-contents ">
-
-          <details class="quote">
-            <summary>Source code in <code>caveat/experiment.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-123">123</a></span>
-<span class="normal"><a href="#__codelineno-0-124">124</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-124"><a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_device</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -2003,7 +2091,7 @@
     <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.indexes"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.aecac24b.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.81fa17fe.min.js"></script>
       
     
   </body>
