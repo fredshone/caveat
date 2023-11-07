@@ -4,14 +4,14 @@ logging_params:
   save_dir: "logs"
 
 model_params:
-  model: "VAE"
+  name: "VAE"
   hidden_dims: [64,64]
   latent_dim: 2
   kernel_size: [3,3]
   stride: [2,2]
 
 encoder_params:
-  encoding: "descrete"
+  name: "descrete"
   duration: 1440
   step_size: 10
 

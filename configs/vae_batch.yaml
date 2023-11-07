@@ -7,13 +7,13 @@ global:
 
 2d_latent:
   model_params:
-    model: "VAE"
+    name: "VAE"
     hidden_dims: [64,64]
     latent_dim: 2
     stride: [2,2]
 
   encoder_params:
-    encoding: "descrete"
+    name: "descrete"
     duration: 1440
     step_size: 10
 
@@ -33,13 +33,13 @@ global:
 
 3d_latent:
   model_params:
-    model: "VAE"
+    name: "VAE"
     hidden_dims: [64,64]
     latent_dim: 3
     stride: [2,2]
 
   encoder_params:
-    encoding: "descrete"
+    name: "descrete"
     duration: 1440
     step_size: 10
 

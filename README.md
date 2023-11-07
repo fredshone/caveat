@@ -7,17 +7,36 @@ Generative models for human activity sequences.
 [![Daily CI Build](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg)](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml)
 [![Documentation](https://github.com/fredshone/caveat/actions/workflows/pages/pages-build-deployment/badge.svg)](https://fredshone.github.io/caveat)
 
-Caveat is for building a comparing models that generate human activity sequences. This includes:
+Caveat is for building models that generate human activity sequences.
 
-- Methods for generating training datasets, either from:
-  - synthetic data
-  - survey data
-- A framework for training models
-- Metrics for comparing models
+## Framework
 
-## Training Data
+Caveat provides a framework to train and test generative models. A model run is composed of:
 
-Caveat uses a simple .csv format to represent a population of activity sequences, we commonly refer to these as *populations*:
+- Data - see the caveat examples for synthetic and real data generation
+- Encoder - see caveat encoders for available encoders
+- Model - see caveat models for available models
+- Report - see caveat report
+
+## Quick Start
+
+Once installed get started using `caveat --help`.
+
+`caveat run --help`
+
+Train and report on a model using `caveat run configs/toy_run.yaml`. The run data, encoder, model and other parameters are controlled using a run config. This will write results and tensorboard logs to `logs/` (this is configurable). Monitor or review training progress using `tensorboard --logdir=logs`.
+
+`caveat batch --help`
+
+Train and report on a batch of runs using a special batch config `caveat batch configs/toy_batch.yaml`. Batch allows comparison of multiple models and/or hyper-params as per the batch config.
+
+`caveat nrun --help`
+
+Run and report the variance of n of the same run using `caveat nrun configs/toy_run.yaml --n 3`. The config is as per a regular run config but `seed` is ignored.
+
+## Data
+
+Caveat requires a .csv format to represent a *population* of *activity sequences*:
 
 | pid | act | start | end |
 |---|---|---|---|
@@ -28,48 +47,42 @@ Caveat uses a simple .csv format to represent a population of activity sequences
 | 1 | education | 390 | 960 |
 | 1 | home | 960 | 1440 |
 
-- **pid** (Person id) field is a unique identifier for each sequence
+- **pid** (person id) field is a unique identifier for each sequence
 - **act** is a categorical value for the type of activity in the sequence
 - **start** and **end** are the start and end times of the activities in the sequence
 
-Times are assumed to be in minutes and should be integers.
+We commonly refer to these as ***populations***. Times are assumed to be in minutes and should be integers. Valid sequences should be complete, ie the start of an activity should be equal to the end of the previous. The convention is to start at midnight. Such that time can be thought of as *minutes since midnight*.
 
-Valid sequences should be complete, ie the start of an activity should be equal to the end of the previous. The convention is to start at midnight. Such that time can be thought of as *minutes since midnight*.
-
-There is an example toy population with 1000 sequences in the [examples](https://github.com/fredshone/caveat/latest/examples/data). There are also notebooks for:
+There is an example toy population with 1000 sequences in the [examples](https://github.com/fredshone/caveat/latest/examples/data). There are also example notebooks for:
 
 - [Generation of a synthetic population](https://fredshone.github.io/caveat/latest/examples/1_synthetic_population_generation.ipynb)
 - [Generation of a population from travel diaries](https://fredshone.github.io/caveat/latest/examples/2_NTS_population_generation.ipynb)
 
-## Training and Testing Models
-
-Once you have generated a population of activity sequences you can train generative models and test how well they are able to recreate the original population. Testing uses metrics to quantify how good the generated populations are. Metrics are covered in the next section.
-
-A typical experiment trains a model on some given **population**, using a sequence **encoding** and **model** structure. The trained model is then used to generate a new population which can be compared to the original using metrics.
-
-To facilitate rapid reproducible experiemnts, the specification of the **population**, **encoding** and **model** are orchestrated via [config files](https://fredshone.github.io/caveat/latest/configs/).
-
-As an example (from the project root) you can run the toy synthetic population through a simple VAE model using `caveat run configs/vae-toy.yaml`. This will write results and tensorboard logs to `logs/`.
-
-#### Tensorboard
-
-Monitor or review model training progress using `tensorboard --logdir=SAVE_DIR`. Where the `SAVE_DIR` is specified in the config (default is `logs`).
-
-### Model Library
-
-Models are defined in `models` and should be accessed via `caveat.models.library`. Models and their training should be specified via the config.
-
-### Encoding Library
+### Encoder
 
 We are keen to test different encodings (such as continuous sequences versus descretised time-steps). The exact encoding required will depend on the model structure being used.
 
-Encoders are defined in `encoders` and should be accessed via `caveat.encoders.library`. Note that encoders must implement both an encode and decode method so that model outputs can be converted back into the population of activity sequences format.
+The encoder and it's parameters are defined in the config `encoder` group.
 
-## Metrics
+Encoders are defined in the `encoders` module and should be accessed via `caveat.encoders.library`.
 
-The `metrics` module provides measures of how well a generated population represents it's original "observed" population.
+Note that encoders must implement both an encode and decode method so that model outputs can be converted back into the population format for reporting.
 
-Metrics are boradly intended to measure the distance of distributions between two populations. Such that models and their associated encodings can be systematically tested.
+## Model
+
+The model and it's parameters are defined in the config `model` group. Models are trained until validation stabilises or until some max number of epochs.
+
+Models are defined in `models` and should be accessed via `caveat.models.library`. Models and their training should be specified via the config.
+
+The `data_loader`, `experiment` and `trainer` hyper-params are also configured by similarly named groups. These groups use the standard [pytorch-lightning](https://pypi.org/project/pytorch-lightning/) framework.
+
+## Report
+
+Each model (with training weights from the best performing validation step) is used to generate a new "sythetic" population.
+
+Sythetic populations are compared to the original "observed" population.
+
+Reporting the quality of generated populations is subjective. The `features` module provides functions for extracting features from populations. Such as "average activity durations". These are then used to make comparison metrics between the observed and sythetic populations.
 
 <!--- --8<-- [end:docs] -->
 

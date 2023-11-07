@@ -2,23 +2,23 @@ logging_params:
   save_dir: "logs"
   name: "toy_run"
 
-data_path: "examples/data/example_population.csv"
+data_path: "examples/data/synthetic_population.csv"
 
 model_params:
-  model: "VAE"
+  name: "VAE"
   hidden_dims: [64,64]
   latent_dim: 2
   stride: [2,2]
 
 encoder_params:
-  encoding: "descrete"
+  name: "descrete"
   duration: 1440
   step_size: 10
 
 loader_params:
-  train_batch_size: 128
-  val_batch_size:  128
-  num_workers: 4
+  train_batch_size: 32
+  val_batch_size:  32
+  num_workers: 3
 
 experiment_params:
   LR: 0.005
@@ -27,7 +27,7 @@ experiment_params:
   kld_weight: 0.00025
 
 trainer_params:
-  max_epochs: 100
+  max_epochs: 50
 
 seed: 1234
   

@@ -5,7 +5,6 @@ from torch import nn, tensor
 
 
 class BaseVAE(nn.Module):
-    
     def __init__(self) -> None:
         super(BaseVAE, self).__init__()
 

@@ -1,3 +1,3 @@
-from .vae import VAE
+from .vae import VAE2D
 
-library = {"VAE": VAE}
+library = {"VAE": VAE2D, "VAE2D": VAE2D}

@@ -9,7 +9,7 @@ from caveat.models.base import BaseVAE
 from caveat.models.utils import calc_output_padding, conv_size, hot_argmax
 
 
-class VAE(BaseVAE):
+class VAE2D(BaseVAE):
     def __init__(
         self,
         in_shape: tuple[int, int, int],
@@ -30,7 +30,7 @@ class VAE(BaseVAE):
             stride (Union[tuple[int, int], int], optional): _description_. Defaults to 2.
             padding (Union[tuple[int, int], int], optional): _description_. Defaults to 1.
         """
-        super(VAE, self).__init__()
+        super(VAE2D, self).__init__()
 
         self.latent_dim = latent_dim
         self.MSE = MeanSquaredError()

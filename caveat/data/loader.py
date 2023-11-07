@@ -10,7 +10,6 @@ class DataModule(LightningDataModule):
         self,
         data: Dataset,
         val_split: float = 0.1,
-        seed: int = 1234,
         train_batch_size: int = 128,
         val_batch_size: int = 128,
         test_batch_size: int = 128,
@@ -23,7 +22,6 @@ class DataModule(LightningDataModule):
         Args:
             data (Dataset): Data
             val_split (float, optional): _description_. Defaults to 0.1.
-            seed (int, optional): _description_. Defaults to 1234.
             train_batch_size (int, optional): _description_. Defaults to 128.
             val_batch_size (int, optional): _description_. Defaults to 128.
             test_batch_size (int, optional): _description_. Defaults to 128.
@@ -34,7 +32,6 @@ class DataModule(LightningDataModule):
 
         self.data = data
         self.val_split = val_split
-        self.generator = torch.manual_seed(seed)  # TODO
         self.train_batch_size = train_batch_size
         self.val_batch_size = val_batch_size
         self.test_batch_size = test_batch_size
@@ -44,9 +41,7 @@ class DataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         self.train_dataset, self.val_dataset = torch.utils.data.random_split(
-            self.data,
-            [1 - self.val_split, self.val_split],
-            generator=self.generator,
+            self.data, [1 - self.val_split, self.val_split]
         )
 
     def train_dataloader(self) -> DataLoader:

@@ -10,7 +10,7 @@ from caveat.encoders import BaseEncoder
 
 
 class DescreteEncoder(BaseEncoder):
-    def __init__(self, duration: int = 1440, step_size: int = 10):
+    def __init__(self, duration: int = 1440, step_size: int = 10, **kwargs):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
