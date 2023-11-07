@@ -6,6 +6,15 @@ from pandas import DataFrame, MultiIndex, Series
 
 
 def average_start_times(population: DataFrame) -> Series:
+    """
+    Calculates the average start time for each activity type in the given population.
+
+    Args:
+        population (DataFrame): A pandas DataFrame containing the population data.
+
+    Returns:
+        Series: A pandas Series containing the average start time for each activity.
+    """
     metrics = population.groupby("act", observed=False).start.mean()
     order = (
         population.groupby("act", observed=False)
@@ -20,7 +29,70 @@ def average_start_times(population: DataFrame) -> Series:
     return metrics
 
 
+def average_start_times_plan_seq(population: DataFrame) -> Series:
+    """
+    Calculates the average start time for each activity indexed by plan sequence enumeration in the given population.
+
+    Args:
+        population (DataFrame): A pandas DataFrame containing the population data.
+
+    Returns:
+        Series: A pandas Series containing the average start time for each activity sequence.
+    """
+    actseq = population.act.astype(str) + population.groupby(
+        "pid", as_index=False
+    ).cumcount().astype(str)
+    metrics = population.groupby(actseq).start.mean()
+    order = (
+        population.groupby(actseq, observed=False)
+        .start.count()
+        .sort_values(ascending=False)
+        .index
+    )
+    metrics = metrics[order]
+    metrics.index = MultiIndex.from_tuples(
+        [("average start time plan seq", act) for act in metrics.index]
+    )
+    return metrics
+
+
+def average_start_times_act_seq(population: DataFrame) -> Series:
+    """
+    Calculates the average start time for each activity indexed by enumeration in the population DataFrame.
+
+    Args:
+        population (DataFrame): A pandas DataFrame containing the population data.
+
+    Returns:
+        Series: A pandas Series containing the average start time for each activity enumeration.
+    """
+    actseq = population.act.astype(str) + population.groupby(
+        ["pid", "act"], as_index=False, observed=False
+    ).cumcount().astype(str)
+    metrics = population.groupby(actseq).start.mean()
+    order = (
+        population.groupby(actseq, observed=False)
+        .start.count()
+        .sort_values(ascending=False)
+        .index
+    )
+    metrics = metrics[order]
+    metrics.index = MultiIndex.from_tuples(
+        [("average start time act seq", act) for act in metrics.index]
+    )
+    return metrics
+
+
 def average_end_times(population: DataFrame) -> Series:
+    """
+    Calculate the average end time for each activity in the given population.
+
+    Args:
+        population (DataFrame): A DataFrame containing the population data.
+
+    Returns:
+        Series: A Series containing the average end time for each activity, indexed by activity name.
+    """
     metrics = population.groupby("act", observed=False).end.mean()
     order = (
         population.groupby("act", observed=False)
@@ -31,6 +103,60 @@ def average_end_times(population: DataFrame) -> Series:
     metrics = metrics[order]
     metrics.index = MultiIndex.from_tuples(
         [("average end time", act) for act in metrics.index]
+    )
+    return metrics
+
+
+def average_end_times_plan_seq(population: DataFrame) -> Series:
+    """
+    Calculates the average end time for each activity indexed by plan sequence in the given population.
+
+    Args:
+        population (DataFrame): A pandas DataFrame containing the population data.
+
+    Returns:
+        Series: A pandas Series containing average end times indexed by plan enumerated activity type.
+    """
+    actseq = population.act.astype(str) + population.groupby(
+        "pid", as_index=False
+    ).cumcount().astype(str)
+    metrics = population.groupby(actseq).end.mean()
+    order = (
+        population.groupby(actseq, observed=False)
+        .end.count()
+        .sort_values(ascending=False)
+        .index
+    )
+    metrics = metrics[order]
+    metrics.index = MultiIndex.from_tuples(
+        [("average end time plan seq", act) for act in metrics.index]
+    )
+    return metrics
+
+
+def average_end_times_act_seq(population: DataFrame) -> Series:
+    """
+    Calculates the average end time for each activity indexed by enumeration.
+
+    Args:
+        population (DataFrame): A DataFrame containing the population data.
+
+    Returns:
+        Series: A Series containing average end times, indexed by activity sequence enumeration.
+    """
+    actseq = population.act.astype(str) + population.groupby(
+        ["pid", "act"], as_index=False, observed=False
+    ).cumcount().astype(str)
+    metrics = population.groupby(actseq).end.mean()
+    order = (
+        population.groupby(actseq, observed=False)
+        .end.count()
+        .sort_values(ascending=False)
+        .index
+    )
+    metrics = metrics[order]
+    metrics.index = MultiIndex.from_tuples(
+        [("average end time act seq", act) for act in metrics.index]
     )
     return metrics
 
