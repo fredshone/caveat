@@ -53,10 +53,10 @@ Caveat requires a .csv format to represent a *population* of *activity sequences
 
 We commonly refer to these as ***populations***. Times are assumed to be in minutes and should be integers. Valid sequences should be complete, ie the start of an activity should be equal to the end of the previous. The convention is to start at midnight. Such that time can be thought of as *minutes since midnight*.
 
-There is an example toy population with 1000 sequences in the [examples](https://github.com/fredshone/caveat/latest/examples/data). There are also example notebooks for:
+There is an example [toy population](https://github.com/fredshone/caveat/latest/examples/data) with 1000 sequences in `caveat/examples/data`. There are also [example notebooks](https://github.com/fredshone/caveat/tree/main/examples) for:
 
-- [Generation of a synthetic population](https://fredshone.github.io/caveat/latest/examples/1_synthetic_population_generation.ipynb)
-- [Generation of a population from travel diaries](https://fredshone.github.io/caveat/latest/examples/2_NTS_population_generation.ipynb)
+- Generation of a synthetic population
+- Generation of a population from UK travel diaries
 
 ### Encoder
 
