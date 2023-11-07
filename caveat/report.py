@@ -38,7 +38,7 @@ def describe(
         report = concat([report, y_report], axis=1)
         report = report.fillna(0)
     report["mean"] = report[ys.keys()].mean(axis=1)
-    report["mean delta"] = report.mean - report.observed
+    report["mean delta"] = report["mean"] - report.observed
     report["std"] = report[ys.keys()].std(axis=1)
     if head is not None:
         report = report.head(head)
