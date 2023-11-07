@@ -1,7 +1,7 @@
 from pandas import DataFrame, Series
 
-from caveat.metrics.report import report
-from caveat.metrics.times import average_start_times
+from caveat.features.times import average_start_times
+from caveat.report import report
 
 
 def test_report_average_start_times():
