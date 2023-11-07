@@ -518,6 +518,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#caveat-nrun" class="md-nav__link">
+    nrun
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#caveat-run" class="md-nav__link">
     run
   </a>
@@ -1221,6 +1228,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#caveat-nrun" class="md-nav__link">
+    nrun
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#caveat-run" class="md-nav__link">
     run
   </a>
@@ -1286,6 +1300,7 @@
 </tbody>
 </table>
 <h3 id="caveat-batch">caveat batch<a class="headerlink" href="#caveat-batch" title="Permanent link">#</a></h3>
+<p>Train and report on a batch of encoders and models as per the given configuration file.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>caveat batch [OPTIONS] CONFIG_PATH
 </span></code></pre></div>
@@ -1308,9 +1323,40 @@
 </tr>
 </tbody>
 </table>
-<h3 id="caveat-run">caveat run<a class="headerlink" href="#caveat-run" title="Permanent link">#</a></h3>
+<h3 id="caveat-nrun">caveat nrun<a class="headerlink" href="#caveat-nrun" title="Permanent link">#</a></h3>
+<p>Train and report variance on n identical runs with varying seeds.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>caveat run [OPTIONS] CONFIG_PATH
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>caveat nrun [OPTIONS] CONFIG_PATH
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--n</code></td>
+<td>integer</td>
+<td>N/A</td>
+<td><code>5</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="caveat-run">caveat run<a class="headerlink" href="#caveat-run" title="Permanent link">#</a></h3>
+<p>Train and report on an encoder and model as per the given configuration file.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>caveat run [OPTIONS] CONFIG_PATH
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
