@@ -73,3 +73,8 @@ class DataModule(LightningDataModule):
             pin_memory=self.pin_memory,
             persistent_workers=True,
         )
+
+
+def predict_dataloader(num_samples, latent_dim, batch_size: int = 256, num_workers: int = 4):
+    z = torch.randn(num_samples, latent_dim)
+    return DataLoader(z, batch_size=batch_size, num_workers=num_workers, persistent_workers=True)

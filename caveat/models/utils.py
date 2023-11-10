@@ -18,6 +18,7 @@ def hot_argmax(batch: tensor, axis: int = -1) -> tensor:
     batch = batch.swapaxes(axis, -1)
     argmax = batch.argmax(axis=-1)
     eye = torch.eye(batch.shape[-1])
+    eye = eye.to(torch.cuda.current_device())
     batch = eye[argmax]
     return batch.swapaxes(axis, -1)
 

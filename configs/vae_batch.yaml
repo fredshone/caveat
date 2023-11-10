@@ -1,5 +1,5 @@
 global:
-  data_path: "examples/tmp/nts_toy_population.csv"
+  data_path: C:\Users\DAF3\Data\NTS\nts_toy_home_population.csv
   logging_params:
     save_dir: "logs"
     name: "vae_batch"
@@ -29,7 +29,7 @@ global:
     kld_weight: 0.00025
 
   trainer_params:
-    max_epochs: 4
+    max_epochs: 40
 
 3d_latent:
   model_params:
@@ -55,4 +55,4 @@ global:
     kld_weight: 0.00025
 
   trainer_params:
-    max_epochs: 3
+    max_epochs: 40
