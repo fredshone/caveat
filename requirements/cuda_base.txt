@@ -2,6 +2,7 @@ click
 matplotlib
 zipp
 pytorch
+pytorch-cuda == 12.1
 pytorch-lightning
 tabulate
 torchvision

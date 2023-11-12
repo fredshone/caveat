@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytorch_lightning as pl
-import torchvision.utils as vutils
 import torch
+import torchvision.utils as vutils
 from torch import optim
 from torch import tensor as Tensor
 
@@ -25,7 +25,7 @@ class Experiment(pl.LightningModule):
         self.scheduler_gamma = scheduler_gamma
         self.kld_weight = kld_weight
         self.curr_device = None
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=["model"])
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -125,4 +125,3 @@ class Experiment(pl.LightningModule):
 
     def predict_step(self, batch):
         return self.model.predict_step(batch, self.curr_device)
- 

@@ -114,6 +114,13 @@ mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch --file re
 mamba activate caveat
 pip install --no-deps -e .
 ```
+
+### Windoes and CUDA
+If you want to get a cuda enabled windows install you can try the following mamba create:
+```
+mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
+```
+Or lake a look [here](https://pytorch.org/get-started/locally/).
 <!--- --8<-- [end:docs-install-dev] -->
 For more detailed instructions, see our [documentation](https://fredshone.github.io/caveat/latest/installation/).
 
