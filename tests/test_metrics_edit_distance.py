@@ -1,6 +1,6 @@
 import pytest
 from torch import equal, tensor
-from torchmetrics.text import ExtendedEditDistance
+from torchmetrics.text import EditDistance
 
 
 @pytest.mark.parametrize(
@@ -10,12 +10,7 @@ from torchmetrics.text import ExtendedEditDistance
             tensor([[[1, 0, 2, 2]], [[1, 0, 2, 2]]]),
             tensor([[[1, 0, 2, 2]], [[1, 0, 2, 2]]]),
             tensor(0.0),
-        ),
-        (
-            tensor([[[1, 0, 2]], [[1, 0, 2, 2]]]),
-            tensor([[[1, 0, 2, 2]], [[1, 0, 2, 2]]]),
-            tensor(0.0),
-        ),
+        )
     ],
 )
 def test_edit_distances(target, preds, expected):
@@ -27,5 +22,5 @@ def test_edit_distances(target, preds, expected):
 
     target = [to_string(x) for x in target.tolist()]
     preds = [to_string(x) for x in preds.tolist()]
-    metric = ExtendedEditDistance()
+    metric = EditDistance()
     assert equal(metric(preds, target), expected)
