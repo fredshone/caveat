@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytorch_lightning as pl
+import torch
 import torchvision.utils as vutils
 from torch import optim
 from torch import tensor as Tensor
@@ -24,6 +25,7 @@ class Experiment(pl.LightningModule):
         self.scheduler_gamma = scheduler_gamma
         self.kld_weight = kld_weight
         self.curr_device = None
+        self.save_hyperparameters(ignore=["model"])
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -78,7 +80,7 @@ class Experiment(pl.LightningModule):
         self.regenerate_batch(x, name="reconstructions")
 
     def regenerate_batch(self, x: Tensor, name: str):
-        reconstructed = self.model.generate(x)
+        reconstructed = self.model.generate(x, self.curr_device)
         vutils.save_image(
             reconstructed.data,
             Path(
@@ -87,12 +89,13 @@ class Experiment(pl.LightningModule):
                 f"recons_{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
             normalize=True,
-            ncol=10,
+            nrow=10,
             pad_value=0.5,
         )
 
-    def sample_sequences(self, size: int, name: str = "samples") -> None:
-        samples = self.model.sample(size, self.curr_device)
+    def sample_sequences(self, num_samples: int, name: str = "samples") -> None:
+        z = torch.randn(num_samples, self.model.latent_dim)
+        samples = self.model.predict_step(z, self.curr_device)
         vutils.save_image(
             samples.cpu().data,
             Path(
@@ -101,7 +104,7 @@ class Experiment(pl.LightningModule):
                 f"{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
             normalize=True,
-            ncol=10,
+            nrow=10,
         )
 
     def configure_optimizers(self):
@@ -120,5 +123,5 @@ class Experiment(pl.LightningModule):
             scheds.append(scheduler)
         return optims, scheds
 
-    def generate(self, size: int) -> None:
-        return self.model.sample(size, self.curr_device)
+    def predict_step(self, batch):
+        return self.model.predict_step(batch, self.curr_device)

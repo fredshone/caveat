@@ -4,6 +4,8 @@ import numpy as np
 import torch
 from torch import tensor
 
+from caveat import current_device
+
 
 def hot_argmax(batch: tensor, axis: int = -1) -> tensor:
     """Encoded given axis as one-hot based on argmax for that axis.
@@ -18,6 +20,7 @@ def hot_argmax(batch: tensor, axis: int = -1) -> tensor:
     batch = batch.swapaxes(axis, -1)
     argmax = batch.argmax(axis=-1)
     eye = torch.eye(batch.shape[-1])
+    eye = eye.to(current_device())
     batch = eye[argmax]
     return batch.swapaxes(axis, -1)
 

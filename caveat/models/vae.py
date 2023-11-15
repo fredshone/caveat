@@ -200,7 +200,7 @@ class VAE2D(BaseVAE):
             "KLD": -kld_loss.detach(),
         }
 
-    def sample(self, num_samples: int, current_device: int, **kwargs) -> tensor:
+    def predict_step(self, z: tensor, current_device: int, **kwargs) -> tensor:
         """Sample from the latent space and return the corresponding decoder space map.
 
         Args:
@@ -211,13 +211,13 @@ class VAE2D(BaseVAE):
             tensor: _description_
         """
 
-        z = torch.randn(num_samples, self.latent_dim)
+        # z = torch.randn(num_samples, self.latent_dim)
         z = z.to(current_device)
         samples = self.decode(z)
         samples = hot_argmax(samples, -1)
         return samples
 
-    def generate(self, x: tensor, **kwargs) -> tensor:
+    def generate(self, x: tensor, current_device: int, **kwargs) -> tensor:
         """Given an encoder input, return reconstructed output.
 
         Args:
@@ -226,7 +226,7 @@ class VAE2D(BaseVAE):
         Returns:
             tensor: [B x C x H x W]
         """
-
         samples = self.forward(x)[0]
+        samples = samples.to(current_device)
         samples = hot_argmax(samples, -1)
         return samples
