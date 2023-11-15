@@ -1,6 +1,47 @@
 from pandas import DataFrame, MultiIndex, Series
 
 
+def participation_probs(population: DataFrame) -> Series:
+    """
+    Returns a Series containing the probability that an agents participate in each activity.
+
+    Args:
+        population (DataFrame): A pandas DataFrame containing information about participants and their activities.
+
+    Returns:
+        Series: A pandas Series where the index is activity names and the values are participation probabilities.
+    """
+    metrics = population.groupby(["pid", "act"]).size() > 0
+    metrics = metrics.groupby("act").value_counts() / population.pid.nunique()
+    metrics = metrics.sort_values(ascending=False)
+    return metrics
+
+
+def raw_participation_rates_by_act(population: DataFrame) -> dict[str, list]:
+    rates = population.groupby("pid").act.value_counts().unstack().fillna(0)
+    return rates.to_dict(orient="list")
+
+
+def raw_participation_rates_by_seq_act(
+    population: DataFrame,
+) -> dict[str, list]:
+    actseq = population.groupby("pid", as_index=False).cumcount().astype(
+        str
+    ) + population.act.astype(str)
+    rates = actseq.groupby(population.pid).value_counts().unstack().fillna(0)
+    return rates.to_dict(orient="list")
+
+
+def raw_participation_rates_by_act_enum(
+    population: DataFrame,
+) -> dict[str, list]:
+    act_enum = population.act.astype(str) + population.groupby(
+        ["pid", "act"], as_index=False, observed=False
+    ).cumcount().astype(str)
+    rates = act_enum.groupby(population.pid).value_counts().unstack().fillna(0)
+    return rates.to_dict(orient="list")
+
+
 def participation_rates(population: DataFrame) -> Series:
     """
     Calculates the participation rates for each activity in the given population DataFrame.
