@@ -777,6 +777,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#caveat.data.loader.predict_dataloader" class="md-nav__link">
+    predict_dataloader()
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1370,6 +1377,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#caveat.data.loader.predict_dataloader" class="md-nav__link">
+    predict_dataloader()
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1958,6 +1972,33 @@
 
 </div>
 
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h2 id="caveat.data.loader.predict_dataloader" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">predict_dataloader</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></code>
+
+<a href="#caveat.data.loader.predict_dataloader" class="headerlink" title="Permanent link">#</a></h2>
+
+
+  <div class="doc doc-contents ">
+
+          <details class="quote">
+            <summary>Source code in <code>caveat/data/loader.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#__codelineno-0-80">80</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="k">def</span> <span class="nf">predict_dataloader</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span> <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">):</span>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
+</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span> <span class="n">persistent_workers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
 
 
 

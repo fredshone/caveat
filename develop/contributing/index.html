@@ -443,6 +443,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#windoes-and-cuda" class="md-nav__link">
+    Windoes and CUDA
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rapid-fire-testing" class="md-nav__link">
     Rapid-fire testing
   </a>
@@ -1308,6 +1315,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#windoes-and-cuda" class="md-nav__link">
+    Windoes and CUDA
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rapid-fire-testing" class="md-nav__link">
     Rapid-fire testing
   </a>
@@ -1447,6 +1461,11 @@
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>mamba<span class="w"> </span>activate<span class="w"> </span>caveat
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
 </span></code></pre></div>
+<h3 id="windoes-and-cuda">Windoes and CUDA<a class="headerlink" href="#windoes-and-cuda" title="Permanent link">#</a></h3>
+<p>If you want to get a cuda enabled windows install you can try the following mamba create:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
+</span></code></pre></div>
+Or lake a look <a href="https://pytorch.org/get-started/locally/">here</a>.</p>
 <p>If installing directly with pip, you can install these libraries using the <code>dev</code> option, i.e., <code>pip install -e '.[dev]'</code>
 Either way, you should add your environment as a jupyter kernel, so the example notebooks can run in the tests: <code>ipython kernel install --user --name=caveat</code>
 If you plan to make changes to the code then please make regular use of the following tools to verify the codebase while you work:</p>
@@ -1468,7 +1487,7 @@ The integration tests can be slow, so if you want to avoid them during developme
 2. You can avoid generating coverage reports, by adding the <code>--no-cov</code> argument: <code>pytest --no-cov</code>.
 3. By default, the tests run with up to two parallel threads, to increase this to e.g. 4 threads: <code>pytest -n4</code>.</p>
 <p>All together:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pytest<span class="w"> </span>tests/<span class="w"> </span>--no-cov<span class="w"> </span>-n4
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pytest<span class="w"> </span>tests/<span class="w"> </span>--no-cov<span class="w"> </span>-n4
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -1490,9 +1509,9 @@ If you are running on a UNIX device (i.e., <strong>not</strong> on Windows), you
 You will then find the HTML report at <code>[my_path]/memray-flamegraph-[my_prefix]-tests-test_100_memory_profiling.py-test_mem.html</code>.</li>
 </ol>
 <p>All together:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mamba<span class="w"> </span>install<span class="w"> </span>memray<span class="w"> </span>pytest-memray
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pytest<span class="w"> </span>-p<span class="w"> </span>memray<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;high_mem&quot;</span><span class="w"> </span>--no-cov<span class="w"> </span>--memray-bin-path<span class="o">=[</span>my_path<span class="o">]</span><span class="w"> </span>--memray-bin-prefix<span class="o">=[</span>my_prefix<span class="o">]</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>memray<span class="w"> </span>flamegraph<span class="w"> </span><span class="o">[</span>my_path<span class="o">]</span>/<span class="o">[</span>my_prefix<span class="o">]</span>-tests-test_100_memory_profiling.py-test_mem.bin
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>mamba<span class="w"> </span>install<span class="w"> </span>memray<span class="w"> </span>pytest-memray
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pytest<span class="w"> </span>-p<span class="w"> </span>memray<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;high_mem&quot;</span><span class="w"> </span>--no-cov<span class="w"> </span>--memray-bin-path<span class="o">=[</span>my_path<span class="o">]</span><span class="w"> </span>--memray-bin-prefix<span class="o">=[</span>my_prefix<span class="o">]</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>memray<span class="w"> </span>flamegraph<span class="w"> </span><span class="o">[</span>my_path<span class="o">]</span>/<span class="o">[</span>my_prefix<span class="o">]</span>-tests-test_100_memory_profiling.py-test_mem.bin
 </span></code></pre></div>
 <p>For more information on using memray, refer to their <a href="https://bloomberg.github.io/memray/index.html">documentation</a>.</p>
 <h2 id="submitting-changes">Submitting changes<a class="headerlink" href="#submitting-changes" title="Permanent link">#</a></h2>

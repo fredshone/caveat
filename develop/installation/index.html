@@ -322,6 +322,19 @@
     Setting up a development environment
   </a>
   
+    <nav class="md-nav" aria-label="Setting up a development environment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#windoes-and-cuda" class="md-nav__link">
+    Windoes and CUDA
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1242,6 +1255,19 @@
     Setting up a development environment
   </a>
   
+    <nav class="md-nav" aria-label="Setting up a development environment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#windoes-and-cuda" class="md-nav__link">
+    Windoes and CUDA
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1304,6 +1330,11 @@
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>mamba<span class="w"> </span>activate<span class="w"> </span>caveat
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>-e<span class="w"> </span>.
 </span></code></pre></div>
+<h3 id="windoes-and-cuda">Windoes and CUDA<a class="headerlink" href="#windoes-and-cuda" title="Permanent link">#</a></h3>
+<p>If you want to get a cuda enabled windows install you can try the following mamba create:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
+</span></code></pre></div>
+Or lake a look <a href="https://pytorch.org/get-started/locally/">here</a>.</p>
 <p>For more detailed installation instructions specific to developing the caveat codebase, see our <a class="autorefs autorefs-internal" href="#setting-up-a-development-environment">development documentation</a>.</p>
 
 
