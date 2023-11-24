@@ -1,148 +1,285 @@
 from pathlib import Path
 from typing import Callable, Optional
 
+import numpy as np
 from pandas import DataFrame, MultiIndex, Series, concat, set_option
-from scipy.stats import wasserstein_distance
 
 from caveat import features
-from caveat.metrics.wasserstein import sinkhorn
+from caveat.features.utils import average, average2d
+from caveat.metrics import ape, emd
+
+participation_jobs = [
+    (
+        ("participation", features.participation.participation_prob_by_act),
+        ("prob.", average),
+        ("APE.", ape),
+    ),
+    (
+        (
+            "joint participation",
+            features.participation.joint_participation_prob,
+        ),
+        ("prob.", average),
+        ("APE", ape),
+    ),
+]
+participation_rate_jobs = [
+    (
+        ("participation rate", features.participation.participation_rates),
+        ("av. rate", average),
+        ("EMD", emd),
+    ),
+    (
+        (
+            "activity participation rates",
+            features.participation.participation_rates_by_act,
+        ),
+        ("av. rate", average),
+        ("EMD", emd),
+    ),
+    (
+        (
+            "enumerated participation rates",
+            features.participation.participation_rates_by_act_enum,
+        ),
+        ("av. rate", average),
+        ("EMD", emd),
+    ),
+]
+transition_jobs = [
+    (
+        ("transition pairs", features.transitions.transitions_by_act),
+        ("av. rate", average),
+        ("EMD", emd),
+    ),
+    (
+        ("transition 3s", features.transitions.transition_3s_by_act),
+        ("av. rate", average),
+        ("EMD", emd),
+    ),
+    # (
+    #     ("sequences", features.transitions.full_sequences),
+    #     ("mean", average),
+    #     ("EMD", emd),
+    # ),
+]
+time_jobs = [
+    (
+        ("start times", features.times.start_times_by_act),
+        ("average", average),
+        ("EMD", emd),
+    ),
+    (
+        ("end times", features.times.end_times_by_act),
+        ("average", average),
+        ("EMD", emd),
+    ),
+    (
+        ("durations", features.times.durations_by_act),
+        ("average", average),
+        ("EMD", emd),
+    ),
+    (
+        ("start-durations", features.times.start_durations_by_act_15min_bins),
+        ("average", average2d),
+        ("EMD", emd),
+    ),
+]
 
 
-def score_synthesis(
+def report(
     observed: DataFrame,
     sampled: dict[str, DataFrame],
     log_dir: Optional[Path] = None,
-    n: int = 10,
+    report_description: bool = True,
+    report_scores: bool = True,
+    head: int = 10,
     verbose: bool = True,
 ):
-    participation_jobs = [
-        (
-            "participation rates",
-            features.participation.raw_participation_rates_by_act,
-            wasserstein_distance,
-        ),
-        (
-            "enumerated participation rates",
-            features.participation.raw_participation_rates_by_act_enum,
-            wasserstein_distance,
-        ),
-    ]
-    transition_jobs = [
-        (
-            "transition rates",
-            features.transitions.raw_transition_rates,
-            wasserstein_distance,
-        )
-    ]
-    time_jobs = [
-        (
-            "start times",
-            features.times.start_times_by_act,
-            wasserstein_distance,
-        ),
-        ("end times", features.times.end_times_by_act, wasserstein_distance),
-        ("durations", features.times.durations_by_act, wasserstein_distance),
-        ("start-durations", features.times.start_durations_by_act, sinkhorn),
-    ]
-    reports = DataFrame()
-    display_reports = DataFrame()
+    descriptions = DataFrame()
+    scores = DataFrame()
 
-    for theme, jobs in [
+    for domain, jobs in [
         ("participation", participation_jobs),
+        ("participation rates", participation_rate_jobs),
         ("transitions", transition_jobs),
         ("scheduling", time_jobs),
     ]:
-        for name, feature, distance in jobs:
-            report = report_distances(
-                observed, sampled, name, feature, distance, head=n
-            )
-            report.index = MultiIndex.from_tuples(
-                [(theme, a, b) for (a, b) in report.index]
-            )
-            report.index.names = ["theme", "metric", "activity"]
+        for feature, description, distance in jobs:
+            # unpack tuples
+            feature_name, feature = feature
+            description_name, describe = description
+            distance_name, distance = distance
 
-            reports = concat([reports, report], axis=0)
-            if n is not None:
-                report = report.head(n)
-            display_reports = concat([display_reports, report], axis=0)
+            # build observed features
+            observed_features = feature(observed)
 
-    metric_scores = reports.groupby(["theme", "metric"]).apply(weighted_av)
-    theme_scores = reports.groupby("theme").apply(weighted_av)
+            # need to create a default feature for missing sampled features
+            default = extract_default(observed_features)
+
+            # create an observed feature count and description
+            counts = Series(
+                {k: w.sum() for k, (_, w) in observed_features.items()},
+                name="feature count",
+            )
+            description = describe(observed_features)
+            feature_template = DataFrame(
+                {"feature count": counts, "observed": description}
+            )
+
+            # sort by count and description, drop description and add distance description
+            feature_template = feature_template.sort_values(
+                ascending=False, by=["feature count", "observed"]
+            )
+
+            feature_descriptions = feature_template.copy()
+            feature_scores = feature_template.copy()
+
+            # iterate through samples
+            for model, y in sampled.items():
+                features = feature(y)
+                feature_descriptions = concat(
+                    [
+                        feature_descriptions,
+                        describe_feature(model, features, describe),
+                    ],
+                    axis=1,
+                )
+
+                # report sampled distances
+                feature_scores = concat(
+                    [
+                        feature_scores,
+                        score_features(
+                            model,
+                            observed_features,
+                            features,
+                            distance,
+                            default,
+                        ),
+                    ],
+                    axis=1,
+                )
+
+            # add domain and feature name to index
+            feature_descriptions["description"] = description_name
+            feature_scores["distance"] = distance_name
+            feature_descriptions.index = MultiIndex.from_tuples(
+                [(domain, feature_name, f) for f in feature_descriptions.index],
+                name=["domain", "feature", "segment"],
+            )
+            feature_scores.index = MultiIndex.from_tuples(
+                [(domain, feature_name, f) for f in feature_scores.index],
+                name=["domain", "feature", "segment"],
+            )
+            descriptions = concat([descriptions, feature_descriptions], axis=0)
+            scores = concat([scores, feature_scores], axis=0)
+
+    # remove nans
+    descriptions = descriptions.fillna(0)
+    scores = scores.fillna(0)
+
+    # features
+    features_descriptions = (
+        descriptions.drop("description", axis=1)
+        .groupby(["domain", "feature"])
+        .apply(weighted_av)
+    )
+    features_scores = (
+        scores.drop("distance", axis=1)
+        .groupby(["domain", "feature"])
+        .apply(weighted_av)
+    )
+    # themes
+    domain_descriptions = (
+        descriptions.drop("description", axis=1)
+        .groupby("domain")
+        .apply(weighted_av)
+    )
+    domain_scores = (
+        scores.drop("distance", axis=1).groupby("domain").apply(weighted_av)
+    )
+    # rank by scores
+    domain_ranks = domain_scores.drop("observed", axis=1).rank(
+        axis=1, method="min"
+    )
+    col_ranks = domain_ranks.sum(axis=0)
+    ranked = [i for _, i in sorted(zip(col_ranks, col_ranks.index))]
+    ranked = domain_ranks[ranked]
 
     if log_dir is not None:
-        reports.to_csv(Path(log_dir, "report.csv"))
-        metric_scores.to_csv(Path(log_dir, "metric_scores.csv"))
-        theme_scores.to_csv(Path(log_dir, "theme_scores.csv"))
+        descriptions.to_csv(Path(log_dir, "descriptions.csv"))
+        features_descriptions.to_csv(Path(log_dir, "feature_descriptions.csv"))
+        domain_descriptions.to_csv(Path(log_dir, "domain_descriptions.csv"))
+        scores.to_csv(Path(log_dir, "scores.csv"))
+        features_scores.to_csv(Path(log_dir, "feature_scores.csv"))
+        domain_scores.to_csv(Path(log_dir, "domain_scores.csv"))
+
+    if head is not None:
+        descriptions_short = descriptions.groupby(["domain", "feature"]).head(
+            head
+        )
+        descriptions_short.to_csv(Path(log_dir, "descriptions_short.csv"))
+        scores_short = scores.groupby(["domain", "feature"]).head(head)
+        scores_short.to_csv(Path(log_dir, "scores_short.csv"))
+    else:
+        scores_short = scores
 
     set_option("display.precision", 2)
     if verbose:
-        print(display_reports.to_markdown())
-    print(metric_scores.to_markdown())
-    print(theme_scores.to_markdown())
+        print("\nFull Descriptions:")
+        print(descriptions_short.to_markdown())
+        print("\nFull Scores:")
+        print(scores_short.to_markdown())
+    print("\nFeature Descriptions:")
+    print(features_descriptions.to_markdown())
+    print("\nFeature Scores:")
+    print(features_scores.to_markdown())
+    print("\nDomain Descriptions:")
+    print(domain_descriptions.to_markdown())
+    print("\nDomain Scores:")
+    print(domain_scores.to_markdown())
+    print("\nDomain Ranks:")
+    print(ranked.to_markdown())
 
-    return reports, metric_scores, theme_scores
+
+def describe_feature(
+    model: str,
+    features: dict[str, tuple[np.array, np.array]],
+    describe: Callable,
+):
+    feature_description = describe(features)
+    feature_description.name = model
+    return feature_description
 
 
-def report_scalar_distance(
-    observed: DataFrame,
-    ys: dict[str, DataFrame],
-    name: str,
-    feature: Callable,
+def score_features(
+    model: str,
+    observed: dict[str, tuple[np.array, np.array]],
+    features: dict[str, tuple[np.array, np.array]],
     distance: Callable,
-    head: Optional[int] = None,
-) -> DataFrame:
-    x_report = feature(observed)
-    x_report.name = "observed"
-    report = DataFrame(x_report)
-    for name, y in ys.items():
-        y_report = feature(y)
-        y_report.name = name
-        report = concat([report, y_report], axis=1)
-        report = report.fillna(0)
-        report[f"{name} score"] = report[name] - report.observed
-    if head is not None:
-        report = report.head(head)
-    return report
+    default: tuple[np.array, np.array],
+):
+    index = set(observed.keys()) | set(features.keys())
+    metrics = Series(
+        {
+            k: distance(observed.get(k, default), features.get(k, default))
+            for k in index
+        },
+        name=model,
+    )
+    metrics = metrics.fillna(0)
+    metrics = metrics[np.isfinite(metrics)]
+    return metrics
 
 
-def report_distances(
-    observed: DataFrame,
-    ys: dict[str, DataFrame],
-    name: str,
-    feature: Callable,
-    distance: Callable,
-    head: Optional[int] = None,
-) -> DataFrame:
-    x_features = feature(observed)
-    counts = Series({k: len(v) for k, v in x_features.items()})
-    counts.name = "feature count"
-    counts.sort_values(ascending=False, inplace=True)
-    report = DataFrame(counts)
-
-    for model, y in ys.items():
-        features = feature(y)
-        col = Series(
-            {
-                k: distance(x_features[k], features.get(k, [0]))
-                for k in report.index
-            }
-        )
-        col.name = model
-        report = concat([report, col], axis=1)
-
-    report.index = MultiIndex.from_tuples([(name, f) for f in report.index])
-
-    if head is not None:
-        report = report.head(head)
-    return report
-
-
-def av(report: DataFrame, ignore_col: str = "feature count") -> Series:
-    cols = list(report.columns)
-    cols.remove(ignore_col)
-    score = report[cols].mean(axis=0)
-    score.name = report.index.get_level_values(0)[0]
-    return score
+def extract_default(features: dict[str, tuple[np.array, np.array]]):
+    # we use a single feature of zeros as required
+    default_sample = next(iter(features.values()))
+    default_shape = list(default_sample[0].shape)
+    default_shape[0] = 1
+    default_support = np.zeros(default_shape)
+    return (default_support, np.array([1]))
 
 
 def weighted_av(report: DataFrame, weight_col: str = "feature count") -> Series:

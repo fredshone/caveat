@@ -2,7 +2,10 @@ from typing import Optional
 
 from matplotlib import pyplot as plt
 from matplotlib.figure import Axes, Figure
+from numpy import array
 from pandas import DataFrame, MultiIndex, Series
+
+from caveat.features.utils import weighted_features
 
 
 def start_times(population: DataFrame) -> list:
@@ -18,26 +21,37 @@ def durations(population: DataFrame) -> list:
 
 
 def start_times_by_act(population: DataFrame) -> dict[str, list]:
-    return population.groupby("act", observed=False).start.apply(list).to_dict()
+    return weighted_features(
+        population.groupby("act", observed=False).start.apply(list).to_dict()
+    )
 
 
 def end_times_by_act(population: DataFrame) -> dict[str, list]:
-    return population.groupby("act", observed=False).end.apply(list).to_dict()
+    return weighted_features(
+        population.groupby("act", observed=False).end.apply(list).to_dict()
+    )
 
 
 def durations_by_act(population: DataFrame) -> dict[str, list]:
-    return (
+    return weighted_features(
         population.groupby("act", observed=False).duration.apply(list).to_dict()
     )
 
 
-def zip_columns(group) -> list[list]:
-    return [[s, d] for s, d in zip(group.start, group.duration)]
+def zip_columns(group) -> array:
+    return array([(s, d) for s, d in zip(group.start, group.duration)])
 
 
-def start_durations_by_act(population: DataFrame) -> dict[str, list]:
-    return (
-        population.groupby("act", observed=False).apply(zip_columns).to_dict()
+def start_durations_by_act(population: DataFrame) -> dict[str, array]:
+    sds = population.groupby("act", observed=False).apply(zip_columns).to_dict()
+    return sds
+
+
+def start_durations_by_act_15min_bins(
+    population: DataFrame, bin_size: int = 15
+) -> dict[str, array]:
+    return weighted_features(
+        start_durations_by_act(population), bin_size=bin_size
     )
 
 

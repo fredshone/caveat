@@ -1,4 +1,6 @@
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Series
+
+from caveat.features.utils import weighted_features
 
 
 def extract_transitions(acts: Series) -> list[str]:
@@ -28,35 +30,94 @@ def extract_transition_counts(acts: Series) -> Series:
     return Series(transitions).value_counts()
 
 
-def raw_transition_rates(population: DataFrame) -> dict[str, list]:
-    rates = (
-        population.groupby("pid")
-        .act.apply(extract_transition_counts)
+def transitions_by_act(population: DataFrame) -> dict[str, list]:
+    transitions = population.reset_index()
+    transitions = transitions.set_index(["index", "pid"])
+    transitions.act = transitions.act.astype(str)
+    transitions = transitions.act + ">" + transitions.act.shift(-1)
+    transitions = transitions.drop(transitions.groupby("pid").tail(1).index)
+    transitions = (
+        transitions.groupby("pid")
+        .value_counts()
         .unstack()
         .fillna(0)
+        .astype(int)
+        .to_dict(orient="list")
     )
-    return rates.to_dict(orient="list")
+    return weighted_features(transitions)
 
 
-def transition_rates(population: DataFrame) -> Series:
+def transition_3s_by_act(population: DataFrame) -> dict[str, list]:
+    transitions = population.reset_index()
+    transitions = transitions.set_index(["index", "pid"])
+    transitions.act = transitions.act.astype(str)
+    transitions = (
+        transitions.act
+        + ">"
+        + transitions.act.shift(-1)
+        + ">"
+        + transitions.act.shift(-2)
+    )
+    transitions = transitions.drop(transitions.groupby("pid").tail(2).index)
+    transitions = (
+        transitions.groupby("pid")
+        .value_counts()
+        .unstack()
+        .fillna(0)
+        .astype(int)
+        .to_dict(orient="list")
+    )
+    return weighted_features(transitions)
+
+
+def tour(acts: Series) -> str:
     """
-    Calculates the transition rates per person in the given population DataFrame.
+    Extracts the tour from the given Series of activities.
 
     Args:
-        population (DataFrame): A DataFrame containing the population data.
+        acts (Series): A Series containing the activities.
 
     Returns:
-        Series: A Series containing the rate of occurance of each transition per person.
+        str: A string representation of the tour.
     """
-    transitions = {}
-    for acts in population.groupby("pid").act.apply(list):
-        for i in range(len(acts) - 1):
-            t = "->".join(acts[i : i + 2])
-            transitions[t] = transitions.get(t, 0) + 1
-    transitions = Series(transitions).sort_values(ascending=False)
-    transitions /= population.pid.nunique()
-    transitions = transitions.sort_values(ascending=False)
-    transitions.index = MultiIndex.from_tuples(
-        [("transition rate", acts) for acts in transitions.index]
+    return ">".join(acts.str[0])
+
+
+def full_sequences(population: DataFrame) -> dict[str, list]:
+    transitions = population.reset_index()
+    transitions = transitions.set_index(["index", "pid"])
+    transitions.act = transitions.act.astype(str)
+    transitions = transitions.groupby("pid").act.apply(tour)
+    transitions = (
+        transitions.groupby("pid")
+        .value_counts()
+        .unstack()
+        .fillna(0)
+        .astype(int)
+        .to_dict(orient="list")
     )
-    return transitions
+    return weighted_features(transitions)
+
+
+# def transition_rates(population: DataFrame) -> Series:
+#     """
+#     Calculates the transition rates per person in the given population DataFrame.
+
+#     Args:
+#         population (DataFrame): A DataFrame containing the population data.
+
+#     Returns:
+#         Series: A Series containing the rate of occurance of each transition per person.
+#     """
+#     transitions = {}
+#     for acts in population.groupby("pid").act.apply(list):
+#         for i in range(len(acts) - 1):
+#             t = "->".join(acts[i : i + 2])
+#             transitions[t] = transitions.get(t, 0) + 1
+#     transitions = Series(transitions).sort_values(ascending=False)
+#     transitions /= population.pid.nunique()
+#     transitions = transitions.sort_values(ascending=False)
+#     transitions.index = MultiIndex.from_tuples(
+#         [("transition rate", acts) for acts in transitions.index]
+#     )
+#     return transitions

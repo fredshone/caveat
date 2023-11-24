@@ -17,7 +17,7 @@ from caveat import cuda_available, data, encoders, features, models, report
 from caveat.experiment import Experiment
 
 
-def run(config: Dict) -> None:
+def run_command(config: Dict) -> None:
     """
     Runs the training and reporting process using the provided configuration.
 
@@ -46,7 +46,7 @@ def run(config: Dict) -> None:
     report_results(observed, sampled, write_path)
 
 
-def batch(batch_config: dict[dict]):
+def batch_command(batch_config: dict[dict]):
     """
     Runs a batch of training and reporting runs based on the provided configuration.
 
@@ -76,7 +76,7 @@ def batch(batch_config: dict[dict]):
     report_results(observed, sampled, log_dir)
 
 
-def nrun(config: Dict, n: int = 5):
+def nrun_command(config: Dict, n: int = 5):
     """
     Repeat a single run while varying the seed, report on variance.
 
@@ -102,6 +102,28 @@ def nrun(config: Dict, n: int = 5):
     }
 
     describe_results(observed, sampled, write_path)
+
+
+def report_command(
+    observed_path: Path,
+    log_dir: Path,
+    name: str = "synthetic.csv",
+    verbose: bool = False,
+    head: int = 10,
+):
+    observed_path = Path(observed_path)
+    log_dir = Path(log_dir)
+    observed = data.load_and_validate(observed_path)
+    sampled = {}
+    paths = [p for p in log_dir.iterdir() if p.is_dir()]
+    for experiment in paths:
+        # get most recent version
+        version = sorted([d for d in experiment.iterdir() if d.is_dir()])[-1]
+        path = experiment / version / name
+        sampled[experiment.name] = data.load_and_validate(path)
+        print("Loaded: ", experiment.name)
+    print("Loaded all data")
+    report.report(observed, sampled, log_dir, verbose, head)
 
 
 def train_sample_and_report(

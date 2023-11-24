@@ -1,7 +1,40 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from ot import dist, emd2, emd2_1d
 from scipy.stats import wasserstein_distance
+
+
+def emd(
+    a: tuple[np.array, np.array], b: tuple[np.array, np.array, int]
+) -> float:
+    if a[0].ndim == 1:
+        return emd1d(a, b)
+    elif a[0].ndim == 2:
+        return emd2d(a, b)
+    else:
+        raise ValueError("Only 1d and 2d features are supported")
+
+
+def emd2d(
+    a: tuple[np.array, np.array], b: tuple[np.array, np.array, int]
+) -> float:
+    ak, aw = a
+    bk, bw = b
+    aw = aw / aw.sum()
+    bw = bw / bw.sum()
+    d = dist(ak, bk, metric="cityblock")
+    return emd2(aw, bw, d, check_marginals=False)
+
+
+def emd1d(
+    a: tuple[np.array, np.array], b: tuple[np.array, np.array, int]
+) -> float:
+    ak, aw = a
+    bk, bw = b
+    aw = aw / aw.sum()
+    bw = bw / bw.sum()
+    return emd2_1d(ak, bk, aw, bw, metric="cityblock")
 
 
 def wasserstein(x: list[list], y: list[list]):
@@ -68,6 +101,7 @@ class SinkhornDistance(nn.Module):
 
     def forward(self, x, y):
         # The Sinkhorn algorithm takes as input three variables :
+        print("calc cost matrix")
         C = self._cost_matrix(x, y)  # Wasserstein cost function
         x_points = x.shape[-2]
         y_points = y.shape[-2]
@@ -77,6 +111,7 @@ class SinkhornDistance(nn.Module):
             batch_size = x.shape[0]
 
         # both marginals are fixed with equal weights
+        print("mu")
         mu = (
             torch.empty(
                 batch_size, x_points, dtype=torch.float, requires_grad=False
@@ -84,6 +119,7 @@ class SinkhornDistance(nn.Module):
             .fill_(1.0 / x_points)
             .squeeze()
         )
+        print("nu")
         nu = (
             torch.empty(
                 batch_size, y_points, dtype=torch.float, requires_grad=False
@@ -102,6 +138,7 @@ class SinkhornDistance(nn.Module):
 
         # Sinkhorn iterations
         for i in range(self.max_iter):
+            print(i, "start")
             u1 = u  # useful to check the update
             u = (
                 self.eps
@@ -120,6 +157,7 @@ class SinkhornDistance(nn.Module):
                 + v
             )
             err = (u - u1).abs().sum(-1).mean()
+            print(i, err.item())
 
             actual_nits += 1
             if err.item() < thresh:
