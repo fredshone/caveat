@@ -1,26 +1,23 @@
 from typing import Optional
 
-import numpy as np
 from numpy import array, ndarray, unique
-from pandas import Series
 
 
-def average(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
-    return Series(
-        {
-            k: np.average(v, axis=0, weights=w).sum()
-            for k, (v, w) in features.items()
-        }
-    )
-
-
-def average2d(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
-    return Series(
-        {
-            k: np.average(v, axis=0, weights=w).sum().sum()
-            for k, (v, w) in features.items()
-        }
-    )
+def equals(
+    a: dict[str, tuple[ndarray, ndarray]], b: dict[str, tuple[ndarray, ndarray]]
+) -> bool:
+    if set(a.keys()) != set(b.keys()):
+        return False
+    for k in a.keys():
+        if not len(a[k][0]) == len(b[k][0]):
+            return False
+        if not len(a[k][1]) == len(b[k][1]):
+            return False
+        if not (a[k][0] == b[k][0]).all():
+            return False
+        if not (a[k][1] == b[k][1]).all():
+            return False
+    return True
 
 
 def bin_values(values: array, bin_size: int) -> ndarray:

@@ -8,7 +8,7 @@ def ape(
     # unpack
     ak, aw = a
     bk, bw = b
-    # alc weighted average
+    # calc weighted average
     akw = (ak * aw).sum() / aw.sum()
     bkw = (bk * bw).sum() / bw.sum()
     diff = np.abs(akw - bkw)
@@ -25,3 +25,21 @@ def mape_scalar(a, b):
 
 def actual(features: dict[str, float]) -> Series:
     return Series(features)
+
+
+def mse(
+    a: tuple[np.ndarray, np.ndarray], b: tuple[np.ndarray, np.ndarray]
+) -> float:
+    # unpack
+    ak, aw = a
+    bk, bw = b
+    return ((aw - bw) ** 2).mean()
+
+
+def mae(
+    a: tuple[np.ndarray, np.ndarray], b: tuple[np.ndarray, np.ndarray]
+) -> float:
+    # unpack
+    ak, aw = a
+    bk, bw = b
+    return np.abs(aw - bw).mean()

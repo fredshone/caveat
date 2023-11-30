@@ -45,7 +45,7 @@ def nrun(config_path: click.Path, n: int):
 @click.argument("observed_path", type=click.Path(exists=True))
 @click.argument("logs_dir", type=click.Path(exists=True))
 @click.option("--name", type=str, default="synthetic.csv")
-@click.option("--verbose", isflag=True)
+@click.option("--verbose", is_flag=True)
 @click.option("--head", type=int, default=10)
 def report(
     observed_path: click.Path,
