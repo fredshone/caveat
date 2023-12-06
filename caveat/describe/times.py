@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from matplotlib import pyplot as plt
 from matplotlib.figure import Axes, Figure
@@ -6,7 +6,7 @@ from pandas import DataFrame
 
 
 def times_distributions_plot(
-    observed: DataFrame, ys: Optional[dict[DataFrame]], **kwargs
+    observed: DataFrame, ys: Optional[dict[str, DataFrame]], **kwargs
 ) -> Figure:
     fig, axs = plt.subplots(
         3,
@@ -34,7 +34,7 @@ def _times_plot(
     xmax: int = 1440,
     step: int = 30,
     **kwargs,
-) -> (Figure, Axes):
+) -> Tuple[Figure, Axes]:
     starts = population.groupby("act", observed=False).start
     ends = population.groupby("act", observed=False).end
     durations = population.groupby("act", observed=False).duration

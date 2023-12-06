@@ -1,5 +1,4 @@
 import numpy as np
-from pandas import Series
 
 
 def ape(
@@ -21,10 +20,6 @@ def ape(
 
 def mape_scalar(a, b):
     return np.abs((a - b) / a).mean()
-
-
-def actual(features: dict[str, float]) -> Series:
-    return Series(features)
 
 
 def mse(

@@ -385,24 +385,24 @@ def weighted_av(report: DataFrame, weight_col: str = "feature count") -> Series:
     return scores.sum()
 
 
-def report_diff(
-    observed: DataFrame,
-    ys: dict[str, DataFrame],
-    feature: Callable,
-    head: Optional[int] = None,
-) -> DataFrame:
-    x_report = feature(observed)
-    x_report.name = "observed"
-    report = DataFrame(x_report)
-    for name, y in ys.items():
-        y_report = feature(y)
-        y_report.name = name
-        report = concat([report, y_report], axis=1)
-        report = report.fillna(0)
-        report[f"{name} delta"] = report[name] - report.observed
-    if head is not None:
-        report = report.head(head)
-    return report
+# def report_diff(
+#     observed: DataFrame,
+#     ys: dict[str, DataFrame],
+#     feature: Callable,
+#     head: Optional[int] = None,
+# ) -> DataFrame:
+#     x_report = feature(observed)
+#     x_report.name = "observed"
+#     report = DataFrame(x_report)
+#     for name, y in ys.items():
+#         y_report = feature(y)
+#         y_report.name = name
+#         report = concat([report, y_report], axis=1)
+#         report = report.fillna(0)
+#         report[f"{name} delta"] = report[name] - report.observed
+#     if head is not None:
+#         report = report.head(head)
+#     return report
 
 
 def describe(

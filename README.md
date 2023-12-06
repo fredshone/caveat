@@ -76,13 +76,13 @@ Models are defined in `models` and should be accessed via `caveat.models.library
 
 The `data_loader`, `experiment` and `trainer` hyper-params are also configured by similarly named groups. These groups use the standard [pytorch-lightning](https://pypi.org/project/pytorch-lightning/) framework.
 
-## Report
+## Evaluate
 
 Each model (with training weights from the best performing validation step) is used to generate a new "sythetic" population.
 
 Sythetic populations are compared to the original "observed" population.
 
-Reporting the quality of generated populations is subjective. The `features` module provides functions for extracting features from populations. Such as "average activity durations". These are then used to make comparison metrics between the observed and sythetic populations.
+Evaluating the quality of generated populations is subjective. The `features` module provides functions for extracting features from populations. Such as "activity durations". These are then used to make descriptive metrics and distance metrics between the observed and sythetic populations.
 
 <!--- --8<-- [end:docs] -->
 
@@ -114,6 +114,10 @@ mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch --file re
 mamba activate caveat
 pip install --no-deps -e .
 ```
+
+### Jupyter Notebooks
+
+To run the example notebooks you will need to add a ipython kernel: `ipython kernel install --user --name=caveat`.
 
 ### Windoes and CUDA
 If you want to get a cuda enabled windows install you can try the following mamba create:

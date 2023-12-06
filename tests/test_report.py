@@ -1,10 +1,13 @@
+from numpy import array
 from pandas import DataFrame, Series
 
-from caveat.features.times import average_start_times
-from caveat.report import describe, report_diff
+from caveat.describe.features import average
+from caveat.distances.scalar import mae
+from caveat.features.times import start_times_by_act
+from caveat.report import describe_feature, extract_default, score_features
 
 
-def test_report_average_start_times():
+def test_describe_feature():
     observed = DataFrame(
         [
             {"pid": 0, "act": "home", "start": 0},
@@ -14,49 +17,51 @@ def test_report_average_start_times():
             {"pid": 1, "act": "work", "start": 1},
         ]
     )
-    ys = {
-        "y1": DataFrame(
-            [
-                {"pid": 0, "act": "home", "start": 0},
-                {"pid": 0, "act": "work", "start": 2},
-                {"pid": 0, "act": "home", "start": 6},
-                {"pid": 1, "act": "home", "start": 0},
-                {"pid": 1, "act": "work", "start": 1},
-            ]
-        ),
-        "y2": DataFrame(
-            [
-                {"pid": 0, "act": "home", "start": 0},
-                {"pid": 0, "act": "work", "start": 2},
-                {"pid": 0, "act": "home", "start": 6},
-                {"pid": 1, "act": "home", "start": 0},
-                {"pid": 1, "act": "work", "start": 3},
-            ]
-        ),
-    }
-    data = {
-        "observed": {"home": 2.0, "work": 1.5},
-        "y1": {"home": 2.0, "work": 1.5},
-        "y1 delta": {"home": 0.0, "work": 0.0},
-        "y2": {"home": 2.0, "work": 2.5},
-        "y2 delta": {"home": 0.0, "work": 1.0},
-    }
-    expected = DataFrame(
-        {
-            key: Series(
-                {
-                    ("average start time", act): value
-                    for act, value in values.items()
-                }
-            )
-            for key, values in data.items()
-        }
-    )
-    result = report_diff(observed, ys, average_start_times)
+    # ys = {
+    #     "y1": DataFrame(
+    #         [
+    #             {"pid": 0, "act": "home", "start": 0},
+    #             {"pid": 0, "act": "work", "start": 2},
+    #             {"pid": 0, "act": "home", "start": 6},
+    #             {"pid": 1, "act": "home", "start": 0},
+    #             {"pid": 1, "act": "work", "start": 1},
+    #         ]
+    #     ),
+    #     "y2": DataFrame(
+    #         [
+    #             {"pid": 0, "act": "home", "start": 0},
+    #             {"pid": 0, "act": "work", "start": 2},
+    #             {"pid": 0, "act": "home", "start": 6},
+    #             {"pid": 1, "act": "home", "start": 0},
+    #             {"pid": 1, "act": "work", "start": 3},
+    #         ]
+    #     ),
+    # }
+    # data = {
+    #     "observed": {"home": 2.0, "work": 1.5},
+    #     "y1": {"home": 2.0, "work": 1.5},
+    #     "y1 delta": {"home": 0.0, "work": 0.0},
+    #     "y2": {"home": 2.0, "work": 2.5},
+    #     "y2 delta": {"home": 0.0, "work": 1.0},
+    # }
+    expected = Series({"home": 2.0, "work": 1.5}, name="test")
+    start_times = start_times_by_act(observed)
+    result = describe_feature("test", start_times, average)
     assert result.equals(expected)
 
 
-def test_describe():
+def test_create_default():
+    feature = {"home": (array([0, 1, 2, 3]), array([10, 0, 2, 3]))}
+    default = extract_default(feature)
+    assert (default[0] == array([0])).all()
+    assert (default[1] == array([1])).all()
+    feature = {"home": (array([[0, 0], [10, 10]]), array([10, 3]))}
+    default = extract_default(feature)
+    assert (default[0] == array([[0, 0]])).all()
+    assert (default[1] == array([1])).all()
+
+
+def test_score_features():
     observed = DataFrame(
         [
             {"pid": 0, "act": "home", "start": 0},
@@ -66,54 +71,45 @@ def test_describe():
             {"pid": 1, "act": "work", "start": 1},
         ]
     )
-    ys = {
-        "y0": DataFrame(
-            [
-                {"pid": 0, "act": "home", "start": 0},
-                {"pid": 0, "act": "work", "start": 2},
-                {"pid": 0, "act": "home", "start": 6},
-                {"pid": 1, "act": "home", "start": 0},
-                {"pid": 1, "act": "work", "start": 1},
-            ]
-        ),
-        "y1": DataFrame(
-            [
-                {"pid": 0, "act": "home", "start": 0},
-                {"pid": 0, "act": "work", "start": 0},
-                {"pid": 0, "act": "home", "start": 6},
-                {"pid": 1, "act": "home", "start": 0},
-                {"pid": 1, "act": "work", "start": 1},
-            ]
-        ),
-        "y2": DataFrame(
-            [
-                {"pid": 0, "act": "home", "start": 0},
-                {"pid": 0, "act": "work", "start": 2},
-                {"pid": 0, "act": "home", "start": 6},
-                {"pid": 1, "act": "home", "start": 0},
-                {"pid": 1, "act": "work", "start": 3},
-            ]
-        ),
-    }
-    data = {
-        "observed": {"home": 2.0, "work": 1.5},
-        "y0": {"home": 2.0, "work": 1.5},
-        "y1": {"home": 2.0, "work": 0.5},
-        "y2": {"home": 2.0, "work": 2.5},
-        "mean": {"home": 2.0, "work": 1.5},
-        "mean delta": {"home": 0.0, "work": 0.0},
-        "std": {"home": 0.0, "work": 1},
-    }
-    expected = DataFrame(
-        {
-            key: Series(
-                {
-                    ("average start time", act): value
-                    for act, value in values.items()
-                }
-            )
-            for key, values in data.items()
-        }
+    y = DataFrame(
+        [
+            {"pid": 0, "act": "home", "start": 0},
+            {"pid": 0, "act": "work", "start": 2},
+            {"pid": 0, "act": "home", "start": 6},
+            {"pid": 1, "act": "home", "start": 0},
+            {"pid": 1, "act": "work", "start": 1},
+        ]
     )
-    result = describe(observed, ys, average_start_times)
+    expected = Series({"home": 0.0, "work": 0.0}, name="test").sort_index()
+    x = start_times_by_act(observed)
+    y = start_times_by_act(y)
+    result = score_features(
+        "test", x, y, mae, (array([0]), array([1]))
+    ).sort_index()
+    assert result.equals(expected)
+
+
+def test_score_features_with_default():
+    observed = DataFrame(
+        [
+            {"pid": 0, "act": "home", "start": 0},
+            {"pid": 0, "act": "work", "start": 1},
+            {"pid": 0, "act": "home", "start": 6},
+            {"pid": 1, "act": "home", "start": 0},
+            {"pid": 1, "act": "work", "start": 1},
+        ]
+    )
+    y = DataFrame(
+        [
+            {"pid": 0, "act": "home", "start": 0},
+            {"pid": 0, "act": "home", "start": 6},
+            {"pid": 1, "act": "home", "start": 0},
+        ]
+    )
+    expected = Series({"home": 0.0, "work": 1.0}, name="test").sort_index()
+    x = start_times_by_act(observed)
+    y = start_times_by_act(y)
+    result = score_features(
+        "test", x, y, mae, (array([0]), array([1]))
+    ).sort_index()
     assert result.equals(expected)

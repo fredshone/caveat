@@ -1,4 +1,4 @@
-from pandas import DataFrame, Series
+from pandas import DataFrame, MultiIndex, Series
 
 from caveat.features.utils import weighted_features
 
@@ -99,30 +99,30 @@ def full_sequences(population: DataFrame) -> dict[str, list]:
     return weighted_features(transitions)
 
 
-# def collect_sequence(acts: Series) -> str:
-#     return ">".join(acts)
+def collect_sequence(acts: Series) -> str:
+    return ">".join(acts)
 
 
-# def sequence_probs(population: DataFrame) -> DataFrame:
-#     """
-#     Calculates the sequence probabilities in the given population DataFrame.
+def sequence_probs(population: DataFrame) -> DataFrame:
+    """
+    Calculates the sequence probabilities in the given population DataFrame.
 
-#     Args:
-#         population (DataFrame): A DataFrame containing the population data.
+    Args:
+        population (DataFrame): A DataFrame containing the population data.
 
-#     Returns:
-#         DataFrame: A DataFrame containing the probability of each sequence.
-#     """
-#     metrics = (
-#         population.groupby("pid")
-#         .act.apply(collect_sequence)
-#         .value_counts(normalize=True)
-#     )
-#     metrics = metrics.sort_values(ascending=False)
-#     metrics.index = MultiIndex.from_tuples(
-#         [("sequence rate", acts) for acts in metrics.index]
-#     )
-#     return metrics
+    Returns:
+        DataFrame: A DataFrame containing the probability of each sequence.
+    """
+    metrics = (
+        population.groupby("pid")
+        .act.apply(collect_sequence)
+        .value_counts(normalize=True)
+    )
+    metrics = metrics.sort_values(ascending=False)
+    metrics.index = MultiIndex.from_tuples(
+        [("sequence rate", acts) for acts in metrics.index]
+    )
+    return metrics
 
 
 # def transition_rates(population: DataFrame) -> Series:

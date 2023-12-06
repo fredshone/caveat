@@ -3,6 +3,10 @@ from numpy import ndarray
 from pandas import Series
 
 
+def actual(features: dict[str, float]) -> Series:
+    return Series(features)
+
+
 def feature_length(features: dict[str, ndarray]) -> Series:
     return Series({k: len(v) for k, (v, w) in features.items()})
 
