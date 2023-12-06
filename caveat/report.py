@@ -13,12 +13,12 @@ from caveat.describe.features import (
 )
 from caveat.distances import ape, emd, mae
 from caveat.features import (
+    creativity,
     frequency,
     participation,
     structural,
     times,
     transitions,
-    uniqueness,
 )
 
 structure_jobs = [
@@ -138,33 +138,33 @@ def report(
     report_scores: bool = True,
     head: int = 10,
     verbose: bool = True,
-    creativity: bool = True,
+    report_creativity: bool = True,
 ):
     descriptions = DataFrame()
     scores = DataFrame()
 
-    if creativity:
-        observed_hash = uniqueness.hash_population(observed)
+    if report_creativity:
+        observed_hash = creativity.hash_population(observed)
         uniqueness_descriptions = DataFrame(
             {
                 "feature count": [observed.pid.nunique()],
-                "observed": [uniqueness.internal(observed, observed_hash)],
+                "observed": [creativity.diversity(observed, observed_hash)],
             }
         )
         uniqueness_descriptions.index = MultiIndex.from_tuples(
-            [("creativity", "uniqueness", "NA")],
-            name=["domain", "feature", "segment"],
+            [("creativity", "novelty", "all")],
+            names=["domain", "feature", "segment"],
         )
         uniqueness_scores = uniqueness_descriptions.copy()
 
         for model, y in sampled.items():
-            y_hash = uniqueness.hash_population(y)
-            uniqueness_descriptions[model] = uniqueness.internal(y, y_hash)
-            uniqueness_scores[model] = 1 - uniqueness.external(
-                observed, observed_hash, y, y_hash
+            y_hash = creativity.hash_population(y)
+            uniqueness_descriptions[model] = creativity.diversity(y, y_hash)
+            uniqueness_scores[model] = 1 - creativity.novelty(
+                observed_hash, y, y_hash
             )
         uniqueness_descriptions["description"] = "prob. unique"
-        uniqueness_scores["distance"] = "prob. duplicate"
+        uniqueness_scores["distance"] = "prob. novel"
         descriptions = concat([descriptions, uniqueness_descriptions], axis=0)
         scores = concat([scores, uniqueness_scores], axis=0)
 
