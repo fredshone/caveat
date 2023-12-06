@@ -1,5 +1,5 @@
 from numpy import array
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from caveat.features import transitions
 from caveat.features.utils import equals
@@ -35,4 +35,27 @@ def test_transition_3s():
     )
     expected = {"home>work>home": (array([1]), array([1]))}
     result = transitions.transition_3s_by_act(population)
+    assert equals(result, expected)
+
+
+def test_tour():
+    acts = Series(["home", "work", "home"])
+    assert transitions.tour(acts) == "h>w>h"
+
+
+def test_full_sequence():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home"},
+            {"pid": 0, "act": "work"},
+            {"pid": 0, "act": "home"},
+            {"pid": 1, "act": "home"},
+            {"pid": 1, "act": "work"},
+        ]
+    )
+    expected = {
+        "h>w": (array([0, 1]), array([1, 1])),
+        "h>w>h": (array([0, 1]), array([1, 1])),
+    }
+    result = transitions.full_sequences(population)
     assert equals(result, expected)

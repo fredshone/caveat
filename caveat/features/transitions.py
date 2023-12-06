@@ -1,36 +1,38 @@
+from numpy import ndarray
 from pandas import DataFrame, MultiIndex, Series
 
 from caveat.features.utils import weighted_features
 
+# def extract_transitions(acts: Series) -> list[str]:
+#     """
+#     Extracts the transitions from the given Series of activities.
 
-def extract_transitions(acts: Series) -> list[str]:
-    """
-    Extracts the transitions from the given Series of activities.
+#     Args:
+#         acts (Series): A Series containing the activities.
 
-    Args:
-        acts (Series): A Series containing the activities.
-
-    Returns:
-        list[str]: A list of transitions.
-    """
-    return [f"{a}>{b}" for a, b in zip(acts, acts[1:])]
-
-
-def extract_transition_counts(acts: Series) -> Series:
-    """
-    Extracts counts of transitions from the given Series of activities.
-
-    Args:
-        acts (Series): A Series containing the activities.
-
-    Returns:
-        Series: counts of transitions
-    """
-    transitions = extract_transitions(acts)
-    return Series(transitions).value_counts()
+#     Returns:
+#         list[str]: A list of transitions.
+#     """
+#     return [f"{a}>{b}" for a, b in zip(acts, acts[1:])]
 
 
-def transitions_by_act(population: DataFrame) -> dict[str, list]:
+# def extract_transition_counts(acts: Series) -> Series:
+#     """
+#     Extracts counts of transitions from the given Series of activities.
+
+#     Args:
+#         acts (Series): A Series containing the activities.
+
+#     Returns:
+#         Series: counts of transitions
+#     """
+#     transitions = extract_transitions(acts)
+#     return Series(transitions).value_counts()
+
+
+def transitions_by_act(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
     transitions = population.reset_index()
     transitions = transitions.set_index(["index", "pid"])
     transitions.act = transitions.act.astype(str)
@@ -47,7 +49,9 @@ def transitions_by_act(population: DataFrame) -> dict[str, list]:
     return weighted_features(transitions)
 
 
-def transition_3s_by_act(population: DataFrame) -> dict[str, list]:
+def transition_3s_by_act(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
     transitions = population.reset_index()
     transitions = transitions.set_index(["index", "pid"])
     transitions.act = transitions.act.astype(str)
@@ -83,7 +87,7 @@ def tour(acts: Series) -> str:
     return ">".join(acts.str[0])
 
 
-def full_sequences(population: DataFrame) -> dict[str, list]:
+def full_sequences(population: DataFrame) -> dict[str, tuple[ndarray, ndarray]]:
     transitions = population.reset_index()
     transitions = transitions.set_index(["index", "pid"])
     transitions.act = transitions.act.astype(str)

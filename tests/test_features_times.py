@@ -88,3 +88,75 @@ def test_start_times_by_act_plan_enum():
         "home1": (array([6]), array([1])),
     }
     assert equals(times.start_times_by_act_plan_enum(population), expected)
+
+
+def test_end_times_by_act_plan_seq():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home", "end": 0},
+            {"pid": 0, "act": "work", "end": 2},
+            {"pid": 0, "act": "home", "end": 6},
+            {"pid": 1, "act": "home", "end": 0},
+            {"pid": 1, "act": "work", "end": 1},
+        ]
+    )
+    expected = {
+        "0home": (array([0]), array([2])),
+        "1work": (array([1, 2]), array([1, 1])),
+        "2home": (array([6]), array([1])),
+    }
+    assert equals(times.end_times_by_act_plan_seq(population), expected)
+
+
+def test_end_times_by_act_plan_enum():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home", "end": 0},
+            {"pid": 0, "act": "work", "end": 2},
+            {"pid": 0, "act": "home", "end": 6},
+            {"pid": 1, "act": "home", "end": 0},
+            {"pid": 1, "act": "work", "end": 1},
+        ]
+    )
+    expected = {
+        "home0": (array([0]), array([2])),
+        "work0": (array([1, 2]), array([1, 1])),
+        "home1": (array([6]), array([1])),
+    }
+    assert equals(times.end_times_by_act_plan_enum(population), expected)
+
+
+def test_durations_by_act_plan_seq():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home", "duration": 0},
+            {"pid": 0, "act": "work", "duration": 2},
+            {"pid": 0, "act": "home", "duration": 6},
+            {"pid": 1, "act": "home", "duration": 0},
+            {"pid": 1, "act": "work", "duration": 1},
+        ]
+    )
+    expected = {
+        "0home": (array([0]), array([2])),
+        "1work": (array([1, 2]), array([1, 1])),
+        "2home": (array([6]), array([1])),
+    }
+    assert equals(times.durations_by_act_plan_seq(population), expected)
+
+
+def test_durations_by_act_plan_enum():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home", "duration": 0},
+            {"pid": 0, "act": "work", "duration": 2},
+            {"pid": 0, "act": "home", "duration": 6},
+            {"pid": 1, "act": "home", "duration": 0},
+            {"pid": 1, "act": "work", "duration": 1},
+        ]
+    )
+    expected = {
+        "home0": (array([0]), array([2])),
+        "work0": (array([1, 2]), array([1, 1])),
+        "home1": (array([6]), array([1])),
+    }
+    assert equals(times.durations_by_act_plan_enum(population), expected)
