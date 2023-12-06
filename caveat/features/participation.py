@@ -1,67 +1,62 @@
-from pandas import DataFrame, MultiIndex, Series
+from numpy import array, ndarray
+from pandas import DataFrame
+
+from caveat.features.utils import weighted_features
 
 
-def participation_rates(population: DataFrame) -> Series:
+def participation_prob_by_act(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
     """
-    Calculates the participation rates for each activity in the given population DataFrame.
+    Calculate the participations by activity for a given population.
 
     Args:
-        population (DataFrame): A DataFrame containing the population data.
+        population (DataFrame): The population data.
 
     Returns:
-        Series: A Series containing the participation rates for each activity.
+        dict[str, tuple[array, array]]: A dictionary containing the participation for each activity.
     """
-    metrics = (
-        population.groupby("act", observed=False).pid.count()
-        / population.pid.nunique()
-    )
-    metrics.index = MultiIndex.from_tuples(
-        [("participation rate", act) for act in metrics.index]
-    )
-    metrics = metrics.sort_values(ascending=False)
-    return metrics
+    metrics = population.groupby(["pid", "act"], observed=False).size() > 0
+    metrics = metrics.groupby("act", observed=False).sum().to_dict()
+    n = population.pid.nunique()
+    compressed = {}
+    for k, v in metrics.items():
+        compressed[k] = (array([0, 1]), array([(n - v), v]))
+    return compressed
 
 
-def act_plan_seq_participation_rates(population: DataFrame) -> Series:
-    """
-    Calculates the participation rates for each activity (indexed by sequence enumeration) in the given population DataFrame.
-
-    Args:
-        population (DataFrame): A DataFrame containing the population data.
-
-    Returns:
-        Series: A Series containing the participation rates for each activity.
-    """
-    actseq = population.act.astype(str) + population.groupby(
-        "pid", as_index=False
-    ).cumcount().astype(str)
-    metrics = population.groupby(actseq).pid.count() / population.pid.nunique()
-    metrics.index = MultiIndex.from_tuples(
-        [("act plan seq participation rate", act) for act in metrics.index]
-    )
-    metrics = metrics.sort_values(ascending=False)
-    return metrics
+def participation_rates(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    rates = population.groupby("pid").act.count()
+    return weighted_features({"all": rates.to_list()})
 
 
-def act_seq_participation_rates(population: DataFrame) -> Series:
-    """
-    Calculates the participation rates for each activity (indexed by enumeration) in the given population DataFrame.
+def participation_rates_by_act(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    rates = population.groupby("pid").act.value_counts().unstack().fillna(0)
+    return weighted_features(rates.to_dict(orient="list"))
 
-    Args:
-        population (DataFrame): A DataFrame containing the population data.
 
-    Returns:
-        Series: A Series containing the participation rates for each activity.
-    """
-    actseq = population.act.astype(str) + population.groupby(
+def participation_rates_by_seq_act(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    actseq = population.groupby("pid", as_index=False).cumcount().astype(
+        str
+    ) + population.act.astype(str)
+    rates = actseq.groupby(population.pid).value_counts().unstack().fillna(0)
+    return weighted_features(rates.to_dict(orient="list"))
+
+
+def participation_rates_by_act_enum(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    act_enum = population.act.astype(str) + population.groupby(
         ["pid", "act"], as_index=False, observed=False
     ).cumcount().astype(str)
-    metrics = population.groupby(actseq).pid.count() / population.pid.nunique()
-    metrics.index = MultiIndex.from_tuples(
-        [("act seq participation rate", act) for act in metrics.index]
-    )
-    metrics = metrics.sort_values(ascending=False)
-    return metrics
+    rates = act_enum.groupby(population.pid).value_counts().unstack().fillna(0)
+    return weighted_features(rates.to_dict(orient="list"))
 
 
 def combinations_with_replacement(
@@ -108,7 +103,16 @@ def calc_pair_rate(act_counts: DataFrame, pair: tuple) -> float:
     return ((act_counts[a] > 0) & (act_counts[b] > 0)).mean()
 
 
-def joint_participation_rates(population: DataFrame) -> Series:
+def calc_pair_count(act_counts, pair):
+    a, b = pair
+    if a == b:
+        return (act_counts[a] > 1).sum()
+    return ((act_counts[a] > 0) & (act_counts[b] > 0)).sum()
+
+
+def joint_participation_prob(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
     """
     Calculate the participation rate for all pairs of activities in the given population.
 
@@ -122,11 +126,10 @@ def joint_participation_rates(population: DataFrame) -> Series:
         population.groupby("pid").act.value_counts().unstack(fill_value=0)
     )
     pairs = combinations_with_replacement(list(population.act.unique()), 2)
-    idx = ["+".join(pair) for pair in pairs]
-    p = [calc_pair_rate(act_counts, pair) for pair in pairs]
-    metrics = Series(p, index=idx)
-    metrics = metrics.sort_values(ascending=False)
-    metrics.index = MultiIndex.from_tuples(
-        [("joint participation rate", pair) for pair in metrics.index]
-    )
-    return metrics
+    n = population.pid.nunique()
+    metric = {}
+    for pair in pairs:
+        p = calc_pair_count(act_counts, pair)
+        metric["+".join(pair)] = (array([0, 1]), array([n - p, p]))
+
+    return metric

@@ -1,36 +1,13 @@
 from typing import Optional
 
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.colors import ListedColormap as CMap
-from matplotlib.figure import Axes, Figure
+from matplotlib.figure import Figure
 from matplotlib.patches import Patch
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame
 
-
-def collect_sequence(acts: Series) -> str:
-    return ">".join(acts)
-
-
-def sequence_probs(population: DataFrame) -> DataFrame:
-    """
-    Calculates the sequence probabilities in the given population DataFrame.
-
-    Args:
-        population (DataFrame): A DataFrame containing the population data.
-
-    Returns:
-        DataFrame: A DataFrame containing the probability of each sequence.
-    """
-    metrics = (
-        population.groupby("pid")
-        .act.apply(collect_sequence)
-        .value_counts(normalize=True)
-    )
-    metrics = metrics.sort_values(ascending=False)
-    metrics.index = MultiIndex.from_tuples(
-        [("sequence rate", acts) for acts in metrics.index]
-    )
-    return metrics
+from caveat.features.transitions import sequence_probs
 
 
 def _probs_plot(
@@ -98,3 +75,6 @@ def sequence_prob_plot(
     axs[-1].legend(handles=elements, loc="center left", frameon=False)
 
     return fig
+
+
+#

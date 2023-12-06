@@ -7,3 +7,4 @@ tabulate
 torchvision
 tensorboard
 cml-pam
+pot
