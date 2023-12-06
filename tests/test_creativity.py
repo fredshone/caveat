@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from caveat.features.uniqueness import external, hash_population, internal
+from caveat.features.creativity import diversity, hash_population, novelty
 
 
 def test_hash_population():
@@ -27,7 +27,7 @@ def test_internal_uniqueness_full():
         ]
     )
     hashed = hash_population(population)
-    assert internal(population, hashed) == 1
+    assert diversity(population, hashed) == 1
 
 
 def test_internal_uniqueness_half():
@@ -42,10 +42,10 @@ def test_internal_uniqueness_half():
         ]
     )
     hashed = hash_population(population)
-    assert internal(population, hashed) == 0.5
+    assert diversity(population, hashed) == 0.5
 
 
-def test_external_uniqueness_full():
+def test_novelty_full():
     a = DataFrame(
         [
             {"pid": 0, "act": "home", "duration": 10},
@@ -65,10 +65,10 @@ def test_external_uniqueness_full():
             {"pid": 3, "act": "shop", "duration": 10},
         ]
     )
-    assert external(a, hash_population(a), b, hash_population(b)) == 1
+    assert novelty(hash_population(a), b, hash_population(b)) == 1
 
 
-def test_external_uniqueness_partial():
+def test_novelty_partial():
     a = DataFrame(
         [
             {"pid": 0, "act": "home", "duration": 10},
@@ -88,4 +88,4 @@ def test_external_uniqueness_partial():
             {"pid": 3, "act": "shop", "duration": 10},
         ]
     )
-    assert external(a, hash_population(a), b, hash_population(b)) == 0.75
+    assert novelty(hash_population(a), b, hash_population(b)) == 0.5
