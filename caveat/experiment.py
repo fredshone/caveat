@@ -82,7 +82,7 @@ class Experiment(pl.LightningModule):
     def regenerate_batch(self, x: Tensor, name: str):
         reconstructed = self.model.generate(x, self.curr_device)
         vutils.save_image(
-            reconstructed.data,
+            pre_process(reconstructed.data),
             Path(
                 self.logger.log_dir,
                 name,
@@ -97,7 +97,7 @@ class Experiment(pl.LightningModule):
         z = torch.randn(num_samples, self.model.latent_dim)
         samples = self.model.predict_step(z, self.curr_device)
         vutils.save_image(
-            samples.cpu().data,
+            pre_process(samples.cpu().data),
             Path(
                 self.logger.log_dir,
                 name,
@@ -125,3 +125,14 @@ class Experiment(pl.LightningModule):
 
     def predict_step(self, batch):
         return self.model.predict_step(batch, self.curr_device)
+
+
+def pre_process(images):
+    # hack for dealing with outputs encoded as [N, h, w]
+    # need to add channel dim and rearrange to [N, C, h, w]
+    # todo remove C/3d encoder
+    s = images.shape
+    if len(s) == 3:
+        # need to add dim and move channel to front
+        return images.reshape(s[0], s[1], s[2], 1).permute(0, 3, 1, 2)
+    return images

@@ -164,6 +164,8 @@ def train_sample_and_report(
     datamodule = data.DataModule(data=encoded, **data_loader_params)
     datamodule.setup()
 
+    print("Endcoded DataLoader Shape: ", encoded.shape())
+
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     model = model(in_shape=encoded.shape(), **config["model_params"])
@@ -181,7 +183,7 @@ def train_sample_and_report(
         callbacks=[
             EarlyStopping(
                 monitor="val_reconstruction_loss",
-                patience=3,
+                patience=5,
                 stopping_threshold=0.0,
             ),
             LearningRateMonitor(),
