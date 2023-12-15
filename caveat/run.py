@@ -17,7 +17,7 @@ from caveat import cuda_available, data, encoders, features, models, report
 from caveat.experiment import Experiment
 
 
-def run_command(config: Dict) -> None:
+def run_command(config: dict) -> None:
     """
     Runs the training and reporting process using the provided configuration.
 
@@ -29,9 +29,9 @@ def run_command(config: Dict) -> None:
     """
     logger_params = config.get("logging_params", {})
     log_dir = Path(logger_params.get("log_dir", "logs"))
-    name = logger_params.get(
+    name = str(logger_params.get(
         "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    )
+    ))
     write_path = log_dir / name
 
     seed = config.pop("seed", seeder())
@@ -40,10 +40,10 @@ def run_command(config: Dict) -> None:
     observed = data.load_and_validate(data_path)
 
     sampled = {
-        name: train_sample_and_report(name, observed, config, log_dir, seed)
+        name: train_and_sample(name, observed, config, log_dir, seed)
     }
 
-    report_results(observed, sampled, write_path)
+    report.report(observed, sampled, write_path)
 
 
 def batch_command(batch_config: dict[dict]):
@@ -58,9 +58,9 @@ def batch_command(batch_config: dict[dict]):
     """
     global_config = batch_config.pop("global")
     logger_params = global_config.get("logging_params", {})
-    name = logger_params.get(
+    name = str(logger_params.get(
         "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    )
+    ))
     log_dir = Path(logger_params.get("log_dir", "logs"), name)
 
     seed = batch_config.pop("seed", seeder())
@@ -68,12 +68,14 @@ def batch_command(batch_config: dict[dict]):
     data_path = global_config["data_path"]
     observed = data.load_and_validate(data_path)
 
-    sampled = {
-        name: train_sample_and_report(name, observed, config, log_dir, seed)
-        for name, config in batch_config.items()
-    }
+    sampled = {}
+    for name, config in batch_config.items():
+        name = str(name)
+        combined_config = global_config.copy()
+        combined_config.update(config)
+        sampled[name] = train_and_sample(name, observed, combined_config, log_dir, seed)
 
-    report_results(observed, sampled, log_dir)
+    report.report(observed, sampled, log_dir)
 
 
 def nrun_command(config: Dict, n: int = 5):
@@ -86,22 +88,22 @@ def nrun_command(config: Dict, n: int = 5):
     """
     logger_params = config.get("logging_params", {})
     log_dir = Path(logger_params.get("log_dir", "logs"))
-    name = logger_params.get(
+    name = str(logger_params.get(
         "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    )
+    ))
     write_path = log_dir / name
 
     data_path = Path(config["data_path"])
     observed = data.load_and_validate(data_path)
 
     sampled = {
-        f"{name}_{i}": train_sample_and_report(
+        f"{name}_{i}": train_and_sample(
             f"{name}_{i}", observed, config, log_dir
         )
         for i in range(n)
     }
 
-    describe_results(observed, sampled, write_path)
+    report.report(observed, sampled, write_path)
 
 
 def report_command(
@@ -119,14 +121,14 @@ def report_command(
     for experiment in paths:
         # get most recent version
         version = sorted([d for d in experiment.iterdir() if d.is_dir()])[-1]
-        path = experiment / version / name
+        path = experiment / version.name / name
         sampled[experiment.name] = data.load_and_validate(path)
         print("Loaded: ", experiment.name)
     print("Loaded all data")
     report.report(observed, sampled, log_dir, verbose, head)
 
 
-def train_sample_and_report(
+def train_and_sample(
     name: str,
     observed: DataFrame,
     config: dict,
@@ -153,7 +155,7 @@ def train_sample_and_report(
     if seed is None:
         seed = seeder()
     torch.manual_seed(seed)
-    print(f"======= Training {name.title()} =======")
+    print(f"\n======= Training {name} =======")
     logger = initiate_logger(log_dir, name)
 
     encoder_name = config["encoder_params"]["name"]
@@ -173,8 +175,8 @@ def train_sample_and_report(
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=Path(logger.log_dir, "checkpoints"),
-        monitor="val_loss",
-        save_top_k=1,
+        monitor="val_reconstruction_loss",
+        save_top_k=2,
         save_weights_only=True,
     )
 
@@ -194,7 +196,7 @@ def train_sample_and_report(
 
     runner.fit(experiment, datamodule=datamodule)
 
-    print(f"======= Sampling {name.title()} =======")
+    print(f"\n======= Sampling {name} =======")
     predict_loader = data.predict_dataloader(
         len(encoded), config["model_params"]["latent_dim"], 256
     )
@@ -205,76 +207,6 @@ def train_sample_and_report(
     synthesis_path = Path(experiment.logger.log_dir, "synthetic.csv")
     synthetic.to_csv(synthesis_path)
     return synthetic
-
-
-def report_results(
-    observed: DataFrame,
-    sampled: dict[str, DataFrame],
-    log_dir: Path,
-    n: int = 10,
-):
-    """
-    Generate a report of the differences between the observed and sampled dataframes.
-
-    Args:
-        observed (DataFrame): The observed population.
-        sampled (dict[str, DataFrame]): A dictionary of sampled populations.
-        log_dir (Path): The directory to save the report CSV file.
-        n (int, optional): The number of rows to include in the report for each feature. Defaults to 10.
-    """
-    df = concat(
-        [
-            report.report_diff(
-                observed, sampled, features.structural.start_and_end_acts
-            ).head(n),
-            report.report_diff(
-                observed, sampled, features.participation.participation_rates
-            ).head(n),
-            report.report_diff(
-                observed,
-                sampled,
-                features.participation.act_plan_seq_participation_rates,
-            ).head(n),
-            report.report_diff(
-                observed,
-                sampled,
-                features.participation.act_seq_participation_rates,
-            ).head(n),
-            report.report_diff(
-                observed,
-                sampled,
-                features.participation.joint_participation_rates,
-            ).head(n),
-            report.report_diff(
-                observed, sampled, features.transitions.transition_rates
-            ).head(n),
-            report.report_diff(
-                observed, sampled, features.sequence.sequence_probs
-            ).head(n),
-            report.report_diff(
-                observed, sampled, features.durations.average_activity_durations
-            ).head(n),
-            report.report_diff(
-                observed,
-                sampled,
-                features.durations.average_activity_plan_seq_durations,
-            ).head(n),
-            report.report_diff(
-                observed,
-                sampled,
-                features.durations.average_activity_seq_durations,
-            ).head(n),
-            report.report_diff(
-                observed, sampled, features.times.average_start_times
-            ).head(n),
-            report.report_diff(
-                observed, sampled, features.times.average_end_times
-            ).head(n),
-        ]
-    )
-    set_option("display.precision", 2)
-    df.to_csv(Path(log_dir, "report.csv"))
-    print(df.to_markdown())
 
 
 def describe_results(

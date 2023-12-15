@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from caveat.features.creativity import diversity, hash_population, novelty
+from caveat.features.creativity import diversity, hash_population, novelty, conservatism
 
 
 def test_hash_population():
@@ -66,6 +66,7 @@ def test_novelty_full():
         ]
     )
     assert novelty(hash_population(a), b, hash_population(b)) == 1
+    assert conservatism(hash_population(a), b, hash_population(b)) == 0
 
 
 def test_novelty_partial():
@@ -89,3 +90,4 @@ def test_novelty_partial():
         ]
     )
     assert novelty(hash_population(a), b, hash_population(b)) == 0.5
+    assert conservatism(hash_population(a), b, hash_population(b)) == 0.5

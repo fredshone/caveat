@@ -145,34 +145,40 @@ def report(
 
     if report_creativity:
         observed_hash = creativity.hash_population(observed)
+        observed_diversity = creativity.diversity(observed, observed_hash)
         uniqueness_descriptions = DataFrame(
             {
-                "feature count": [observed.pid.nunique()],
-                "observed": [creativity.diversity(observed, observed_hash)],
-            }
-        )
-        uniqueness_descriptions.index = MultiIndex.from_tuples(
-            [("creativity", "novelty", "all")],
-            names=["domain", "feature", "segment"],
+                "feature count": [observed.pid.nunique()]*2,
+                "observed": [observed_diversity, 1],
+            },
+            index=MultiIndex.from_tuples(
+                [("creativity", "diversity", "all"), ("creativity", "conservatism", "all")],
+                names=["domain", "feature", "segment"],
+            )
         )
         uniqueness_scores = uniqueness_descriptions.copy()
 
         for model, y in sampled.items():
             y_hash = creativity.hash_population(y)
-            uniqueness_descriptions[model] = creativity.diversity(y, y_hash)
-            uniqueness_scores[model] = 1 - creativity.novelty(
-                observed_hash, y, y_hash
-            )
-        uniqueness_descriptions["description"] = "prob. unique"
-        uniqueness_scores["distance"] = "prob. novel"
+            y_diversity = creativity.diversity(y, y_hash)
+            uniqueness_descriptions[model] = [
+                y_diversity,
+                creativity.novelty(observed_hash, y, y_hash)
+                ]
+            uniqueness_scores[model] = [
+                abs(y_diversity - observed_diversity),
+                creativity.conservatism(observed_hash, y, y_hash)
+            ]
+        uniqueness_descriptions["description"] = ["diversity", "novelty"]
+        uniqueness_scores["distance"] = ["abs error", "conservatism"]
         descriptions = concat([descriptions, uniqueness_descriptions], axis=0)
         scores = concat([scores, uniqueness_scores], axis=0)
 
     for domain, jobs in [
         ("structure", structure_jobs),
         ("frequency", frequency_jobs),
-        ("participation_prob_jobs", participation_prob_jobs),
-        ("participation_rate_jobs", participation_rate_jobs),
+        ("participation_probs", participation_prob_jobs),
+        ("participation_rates", participation_rate_jobs),
         ("transitions", transition_jobs),
         ("scheduling", time_jobs),
     ]:

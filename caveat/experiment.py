@@ -36,7 +36,7 @@ class Experiment(pl.LightningModule):
         results = self.forward(batch)
         train_loss = self.model.loss_function(
             *results,
-            M_N=self.kld_weight,  # al_img.shape[0]/ self.num_train_imgs,
+            kld_weight=self.kld_weight,
             batch_idx=batch_idx,
         )
 
@@ -52,7 +52,7 @@ class Experiment(pl.LightningModule):
         results = self.forward(batch)
         val_loss = self.model.loss_function(
             *results,
-            M_N=1.0,  # real_img.shape[0]/ self.num_val_imgs,
+            kld_weight=self.kld_weight,
             optimizer_idx=optimizer_idx,
             batch_idx=batch_idx,
         )

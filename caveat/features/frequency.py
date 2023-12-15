@@ -12,9 +12,8 @@ def activity_bins(
             population, duration=duration, step_size=step, class_map=class_map
         )
         .sum(0)
-        .squeeze()
         .numpy()
-    )
+    )[0,:,:]
 
 
 def activity_frequencies(
@@ -27,8 +26,8 @@ def activity_frequencies(
             population, duration=duration, step_size=step, class_map=class_map
         )
         .mean(0)
-        .squeeze()
         .numpy()
-    )
+    )[0,:,:]
+
     support = array([i for i in range(0, duration, step)])
     return {act: (support, bins[:, i]) for act, i in class_map.items()}
