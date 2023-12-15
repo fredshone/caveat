@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import torch
 
-from caveat.encoders import descrete
+from caveat.encoders import descrete3d
 
 
 @pytest.mark.parametrize(
@@ -14,7 +14,7 @@ from caveat.encoders import descrete
     ],
 )
 def test_one_hot(target, num_classes, expected):
-    result = descrete.one_hot(target, num_classes)
+    result = descrete3d.one_hot(target, num_classes)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -30,7 +30,7 @@ def test_one_hot(target, num_classes, expected):
     ],
 )
 def test_down_sample(target, step, expected):
-    result = descrete.down_sample(target, step)
+    result = descrete3d.down_sample(target, step)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -50,7 +50,7 @@ def test_down_sample(target, step, expected):
 )
 def test_descretise_trace(acts, starts, ends, length, expected):
     class_map = {"a": 0, "b": 1}
-    result = descrete.descretise_trace(acts, starts, ends, length, class_map)
+    result = descrete3d.descretise_trace(acts, starts, ends, length, class_map)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -72,7 +72,7 @@ def test_descretise_population():
         [[[[1, 0], [0, 1], [0, 1]]], [[[1, 0], [1, 0], [0, 1]]]], dtype=np.int8
     )
     class_map = {"a": 0, "b": 1}
-    result = descrete.descretise_population(traces, length, step, class_map)
+    result = descrete3d.descretise_population(traces, length, step, class_map)
     expected = torch.from_numpy(expected)
     assert torch.equal(result, expected)
 
@@ -89,6 +89,6 @@ def test_large_downsample_descretise_population():
         dtype=np.int8,
     )
     class_map = {"a": 0, "b": 1}
-    result = descrete.descretise_population(traces, length, step, class_map)
+    result = descrete3d.descretise_population(traces, length, step, class_map)
     expected = torch.from_numpy(expected)
     assert torch.equal(result, expected)

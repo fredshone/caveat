@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from caveat.encoders import BaseEncoder
 
 
-class DescreteEncoder(BaseEncoder):
+class DescreteEncoder3D(BaseEncoder):
     def __init__(self, duration: int = 1440, step_size: int = 10, **kwargs):
         self.duration = duration
         self.step_size = step_size

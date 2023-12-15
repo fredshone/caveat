@@ -1,7 +1,7 @@
 from numpy import array, ndarray
 from pandas import DataFrame
 
-from caveat.encoders.descrete import descretise_population
+from caveat.encoders.descrete3d import descretise_population
 
 
 def activity_bins(

@@ -148,13 +148,16 @@ def report(
         observed_diversity = creativity.diversity(observed, observed_hash)
         uniqueness_descriptions = DataFrame(
             {
-                "feature count": [observed.pid.nunique()]*2,
+                "feature count": [observed.pid.nunique()] * 2,
                 "observed": [observed_diversity, 1],
             },
             index=MultiIndex.from_tuples(
-                [("creativity", "diversity", "all"), ("creativity", "conservatism", "all")],
+                [
+                    ("creativity", "diversity", "all"),
+                    ("creativity", "conservatism", "all"),
+                ],
                 names=["domain", "feature", "segment"],
-            )
+            ),
         )
         uniqueness_scores = uniqueness_descriptions.copy()
 
@@ -163,11 +166,11 @@ def report(
             y_diversity = creativity.diversity(y, y_hash)
             uniqueness_descriptions[model] = [
                 y_diversity,
-                creativity.novelty(observed_hash, y, y_hash)
-                ]
+                creativity.novelty(observed_hash, y, y_hash),
+            ]
             uniqueness_scores[model] = [
                 abs(y_diversity - observed_diversity),
-                creativity.conservatism(observed_hash, y, y_hash)
+                creativity.conservatism(observed_hash, y, y_hash),
             ]
         uniqueness_descriptions["description"] = ["diversity", "novelty"]
         uniqueness_scores["distance"] = ["abs error", "conservatism"]
@@ -311,10 +314,12 @@ def report(
         descriptions_short = descriptions.groupby(["domain", "feature"]).head(
             head
         )
-        descriptions_short.to_csv(Path(log_dir, "descriptions_short.csv"))
         scores_short = scores.groupby(["domain", "feature"]).head(head)
-        scores_short.to_csv(Path(log_dir, "scores_short.csv"))
+        if log_dir is not None:
+            descriptions_short.to_csv(Path(log_dir, "descriptions_short.csv"))
+            scores_short.to_csv(Path(log_dir, "scores_short.csv"))
     else:
+        descriptions_short = descriptions
         scores_short = scores
 
     if verbose:
