@@ -770,6 +770,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#caveat.experiment.pre_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      pre_process()
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1205,6 +1214,8 @@
       
         
       
+        
+      
     
     
     
@@ -1263,11 +1274,32 @@
   
   
     <li class="md-nav__item">
-      <a href="../encoders/descrete/" class="md-nav__link">
+      <a href="../encoders/descrete2d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.descrete
+    caveat.encoders.descrete2d
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../encoders/descrete3d/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoders.descrete3d
   </span>
   
 
@@ -1508,6 +1540,8 @@
       
         
       
+        
+      
     
     
     
@@ -1550,6 +1584,27 @@
   
   <span class="md-ellipsis">
     caveat.models.base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/image_lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.image_lstm
   </span>
   
 
@@ -1804,6 +1859,15 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat.experiment.pre_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      pre_process()
+    </span>
+  </a>
   
 </li>
       
@@ -2191,7 +2255,7 @@
 <span class="normal"><a href="#__codelineno-0-94">94</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="k">def</span> <span class="nf">regenerate_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 </span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>    <span class="n">reconstructed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_device</span><span class="p">)</span>
 </span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="n">vutils</span><span class="o">.</span><span class="n">save_image</span><span class="p">(</span>
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="n">reconstructed</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="n">pre_process</span><span class="p">(</span><span class="n">reconstructed</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
 </span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="n">Path</span><span class="p">(</span>
 </span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">log_dir</span><span class="p">,</span>
 </span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a>            <span class="n">name</span><span class="p">,</span>
@@ -2297,7 +2361,7 @@
 </span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">latent_dim</span><span class="p">)</span>
 </span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict_step</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_device</span><span class="p">)</span>
 </span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="n">vutils</span><span class="o">.</span><span class="n">save_image</span><span class="p">(</span>
-</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="n">samples</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="n">pre_process</span><span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>        <span class="n">Path</span><span class="p">(</span>
 </span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">log_dir</span><span class="p">,</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>            <span class="n">name</span><span class="p">,</span>
@@ -2428,6 +2492,45 @@
 
 </div>
 
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h2 id="caveat.experiment.pre_process" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">pre_process</span><span class="p">(</span><span class="n">images</span><span class="p">)</span></code>
+
+<a href="#caveat.experiment.pre_process" class="headerlink" title="Permanent link">#</a></h2>
+
+
+  <div class="doc doc-contents ">
+
+          <details class="quote">
+            <summary>Source code in <code>caveat/experiment.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-130">130</a></span>
+<span class="normal"><a href="#__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-130"><a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="k">def</span> <span class="nf">pre_process</span><span class="p">(</span><span class="n">images</span><span class="p">):</span>
+</span><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="c1"># hack for dealing with outputs encoded as [N, h, w]</span>
+</span><span id="__span-0-132"><a id="__codelineno-0-132" name="__codelineno-0-132"></a>    <span class="c1"># need to add channel dim and rearrange to [N, C, h, w]</span>
+</span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="c1"># todo remove C/3d encoder</span>
+</span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="n">s</span> <span class="o">=</span> <span class="n">images</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+</span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a>        <span class="c1"># need to add dim and move channel to front</span>
+</span><span id="__span-0-137"><a id="__codelineno-0-137" name="__codelineno-0-137"></a>        <span class="k">return</span> <span class="n">images</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-0-138"><a id="__codelineno-0-138" name="__codelineno-0-138"></a>    <span class="k">return</span> <span class="n">images</span>
+</span></code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
 
 
 
