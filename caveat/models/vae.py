@@ -37,11 +37,12 @@ class VAE2D(BaseVAE):
         self.hamming = MulticlassHammingDistance(
             num_classes=in_shape[-1], average="micro"
         )
-        modules = []
-        target_shapes = []
-        channels, h, w = in_shape
 
         # Build Encoder
+        modules = []
+        channels, h, w = in_shape
+        target_shapes = [(channels, h, w)]
+
         for hidden_channels in hidden_dims:
             modules.append(
                 nn.Sequential(
@@ -56,14 +57,15 @@ class VAE2D(BaseVAE):
                     nn.LeakyReLU(),
                 )
             )
-            target_shapes.append((h, w))
             h, w = conv_size(
                 (h, w), kernel_size=kernel_size, padding=padding, stride=stride
             )
+            target_shapes.append((hidden_channels, h, w))
             channels = hidden_channels
 
         self.shape_before_flattening = (-1, channels, h, w)
         self.encoder = nn.Sequential(*modules)
+
         flat_size = int(channels * h * w)
         self.fc_mu = nn.Linear(flat_size, latent_dim)
         self.fc_var = nn.Linear(flat_size, latent_dim)
@@ -72,40 +74,41 @@ class VAE2D(BaseVAE):
         modules = []
         self.decoder_input = nn.Linear(latent_dim, flat_size)
 
-        hidden_dims.reverse()
+        target_shapes.reverse()
 
-        _, channels, h, w = self.shape_before_flattening
-
-        for i in range(len(hidden_dims) - 1):
+        for i in range(len(hidden_dims)-1):
             modules.append(
                 nn.Sequential(
                     nn.ConvTranspose2d(
-                        in_channels=channels,
-                        out_channels=hidden_dims[i],
+                        in_channels=target_shapes[i][0],
+                        out_channels=target_shapes[i+1][0],
                         kernel_size=kernel_size,
                         stride=stride,
                         padding=padding,
-                        output_padding=calc_output_padding(target_shapes[i]),
+                        output_padding=calc_output_padding(target_shapes[i+1]),
                     ),
-                    nn.BatchNorm2d(hidden_dims[i + 1]),
+                    nn.BatchNorm2d(target_shapes[i+1][0]),
                     nn.LeakyReLU(),
                 )
             )
+        
+        # Final layer with Tanh activation
+        modules.append(
+            nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels=target_shapes[-2][0],
+                    out_channels=target_shapes[-1][0],
+                    kernel_size=kernel_size,
+                    stride=stride,
+                    padding=padding,
+                    output_padding=calc_output_padding(target_shapes[-1]),
+                ),
+                nn.BatchNorm2d(target_shapes[-1][0]),
+                nn.Tanh(),
+            )
+        )
 
         self.decoder = nn.Sequential(*modules)
-
-        self.final_layer = nn.Sequential(
-            nn.ConvTranspose2d(
-                in_channels=hidden_dims[-1],
-                out_channels=in_shape[0],
-                kernel_size=kernel_size,
-                stride=stride,
-                padding=padding,
-                output_padding=calc_output_padding(target_shapes[-1]),
-            ),
-            nn.BatchNorm2d(in_shape[0]),
-            nn.Tanh(),
-        )
 
     def encode(self, input: tensor) -> list[tensor]:
         """Encodes the input by passing through the encoder network.
@@ -138,7 +141,6 @@ class VAE2D(BaseVAE):
         result = self.decoder_input(z)
         result = result.view(self.shape_before_flattening)
         result = self.decoder(result)
-        result = self.final_layer(result)
         return result
 
     def reparameterize(self, mu: tensor, logvar: tensor) -> tensor:
@@ -168,7 +170,7 @@ class VAE2D(BaseVAE):
         z = self.reparameterize(mu, log_var)
         return [self.decode(z), input, mu, log_var]
 
-    def loss_function(self, recons, input, mu, log_var, **kwargs) -> dict:
+    def loss_function(self, recons, input, mu, log_var, kld_weight, **kwargs) -> dict:
         r"""Computes the VAE loss function.
         KL(N(\mu, \sigma), N(0, 1))
         = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
@@ -177,10 +179,6 @@ class VAE2D(BaseVAE):
             dict: _description_
         """
 
-        kld_weight = kwargs[
-            "M_N"
-        ]  # Account for the minibatch samples from the dataset
-        # recons_loss = F.mse_loss(recons, input)
         recons_mse_loss = self.MSE(recons, input)
         recon_argmax = torch.argmax(recons, dim=-1)
         input_argmax = torch.argmax(input, dim=-1)
@@ -197,7 +195,7 @@ class VAE2D(BaseVAE):
             "loss": loss,
             "reconstruction_loss": recons_mse_loss.detach(),
             "recons_ham_loss": recons_ham_loss.detach(),
-            "KLD": -kld_loss.detach(),
+            "KLD": kld_loss.detach(),
         }
 
     def predict_step(self, z: tensor, current_device: int, **kwargs) -> tensor:

@@ -37,3 +37,17 @@ def test_activity_frequencies():
         "work": (array([0, 1, 2]), array([0, 1, 0.5])),
     }
     assert equals(binned, expected)
+
+
+def test_activity_frequencies_single_act():
+    population = DataFrame(
+        [
+            {"pid": 0, "act": "home", "start": 0, "end": 3, "duration": 3},
+            {"pid": 1, "act": "home", "start": 0, "end": 3, "duration": 3},
+        ]
+    )
+    binned = activity_frequencies(population, 3, 1)
+    expected = {
+        "home": (array([0, 1, 2]), array([1, 1, 1])),
+    }
+    assert equals(binned, expected)

@@ -104,18 +104,18 @@ def transconv_size(
     )
 
 
-def calc_output_padding(size: Union[tuple[int, int], int]) -> np.array:
+def calc_output_padding(size: Union[tuple[int, int, int], int]) -> np.array:
     """Calculate output padding for a transposed convolution such that output dims will
     match dimensions of inputs to a convolution of given size.
     For each dimension, padding is set to 1 if even size, otherwise 0.
 
     Args:
-        size (Union[tuple[int, int], int]): input size (h, w)
+        size (Union[tuple[int, int, int], int]): input size (h, w)
 
     Returns:
         np.array: required padding
     """
     if isinstance(size, int):
-        size = (size, size)
-    h, w = size
+        size = (0, size, size)
+    _, h, w = size
     return (int(h % 2 == 0), int(w % 2 == 0))
