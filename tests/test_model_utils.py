@@ -37,6 +37,7 @@ from caveat.models import utils
 )
 def test_argmax_on_axis(target, axis, expected):
     result = utils.hot_argmax(target, axis)
+    result = result.to(device='cpu')
     equal(result, expected)
 
 
@@ -81,11 +82,11 @@ def test_transconv_size(
     "size,expected",
     [
         (2, np.array([1, 1])),
-        ((2, 2), np.array([1, 1])),
+        ((2, 2, 2), np.array([1, 1])),
         (1, np.array([0, 0])),
-        ((1, 1), np.array([0, 0])),
+        ((1, 1, 1), np.array([0, 0])),
         (4, np.array([1, 1])),
-        ((4, 3), np.array([1, 0])),
+        ((1, 4, 3), np.array([1, 0])),
     ],
 )
 def test_specify_output_padding(size, expected):

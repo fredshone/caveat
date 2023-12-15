@@ -46,3 +46,19 @@ def novelty(
     """
     unique = len(synthetic_hashed - observed_hashed)
     return unique / synthetic.pid.nunique()
+
+
+def conservatism(
+    observed_hashed: set[str], synthetic: DataFrame, synthetic_hashed: set[str]
+) -> float:
+    """Measure the conservatism of a population as 1-novelty.
+
+    Args:
+        observed_hashed (set[str]): Hashed observed population.
+        synthetic (DataFrame): Synthetic population.
+        synthetic_hashed (set[str]): Hashed synthetic population.
+
+    Returns:
+        float: Conservatism of the synthetic population.
+    """
+    return 1 - novelty(observed_hashed, synthetic, synthetic_hashed)
