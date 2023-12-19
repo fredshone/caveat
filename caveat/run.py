@@ -29,9 +29,11 @@ def run_command(config: dict) -> None:
     """
     logger_params = config.get("logging_params", {})
     log_dir = Path(logger_params.get("log_dir", "logs"))
-    name = str(logger_params.get(
-        "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    ))
+    name = str(
+        logger_params.get(
+            "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        )
+    )
     write_path = log_dir / name
 
     seed = config.pop("seed", seeder())
@@ -39,9 +41,7 @@ def run_command(config: dict) -> None:
     data_path = Path(config["data_path"])
     observed = data.load_and_validate(data_path)
 
-    sampled = {
-        name: train_and_sample(name, observed, config, log_dir, seed)
-    }
+    sampled = {name: train_and_sample(name, observed, config, log_dir, seed)}
 
     report.report(observed, sampled, write_path)
 
@@ -58,9 +58,11 @@ def batch_command(batch_config: dict[dict]):
     """
     global_config = batch_config.pop("global")
     logger_params = global_config.get("logging_params", {})
-    name = str(logger_params.get(
-        "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    ))
+    name = str(
+        logger_params.get(
+            "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        )
+    )
     log_dir = Path(logger_params.get("log_dir", "logs"), name)
 
     seed = batch_config.pop("seed", seeder())
@@ -73,7 +75,9 @@ def batch_command(batch_config: dict[dict]):
         name = str(name)
         combined_config = global_config.copy()
         combined_config.update(config)
-        sampled[name] = train_and_sample(name, observed, combined_config, log_dir, seed)
+        sampled[name] = train_and_sample(
+            name, observed, combined_config, log_dir, seed
+        )
 
     report.report(observed, sampled, log_dir)
 
@@ -88,9 +92,11 @@ def nrun_command(config: Dict, n: int = 5):
     """
     logger_params = config.get("logging_params", {})
     log_dir = Path(logger_params.get("log_dir", "logs"))
-    name = str(logger_params.get(
-        "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    ))
+    name = str(
+        logger_params.get(
+            "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        )
+    )
     write_path = log_dir / name
 
     data_path = Path(config["data_path"])
@@ -112,19 +118,22 @@ def report_command(
     name: str = "synthetic.csv",
     verbose: bool = False,
     head: int = 10,
+    batch: bool = False,
 ):
     observed_path = Path(observed_path)
     log_dir = Path(log_dir)
     observed = data.load_and_validate(observed_path)
     sampled = {}
-    paths = [p for p in log_dir.iterdir() if p.is_dir()]
+    if batch:
+        paths = [p for p in log_dir.iterdir() if p.is_dir()]
+    else:
+        paths = [log_dir]
+
     for experiment in paths:
         # get most recent version
         version = sorted([d for d in experiment.iterdir() if d.is_dir()])[-1]
         path = experiment / version.name / name
         sampled[experiment.name] = data.load_and_validate(path)
-        print("Loaded: ", experiment.name)
-    print("Loaded all data")
     report.report(observed, sampled, log_dir, verbose, head)
 
 
@@ -279,7 +288,6 @@ def describe_results(
     )
     set_option("display.precision", 2)
     write_path = log_dir / "describe.csv"
-    print(write_path)
     df.to_csv(write_path)
     print(df.to_markdown())
 
