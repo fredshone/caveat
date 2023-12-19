@@ -47,12 +47,14 @@ def nrun(config_path: click.Path, n: int):
 @click.option("--name", type=str, default="synthetic.csv")
 @click.option("--verbose", is_flag=True)
 @click.option("--head", type=int, default=10)
+@click.option("--batch", "-b", is_flag=True)
 def report(
     observed_path: click.Path,
     logs_dir: click.Path,
     name: str,
     verbose: bool,
     head: int,
+    batch: bool,
 ):
     """Report on the given observed population and logs directory."""
-    report_command(observed_path, logs_dir, name, verbose, head)
+    report_command(observed_path, logs_dir, name, verbose, head, batch)

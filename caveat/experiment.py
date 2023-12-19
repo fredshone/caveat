@@ -17,6 +17,7 @@ class Experiment(pl.LightningModule):
         weight_decay: float = 0.0,
         scheduler_gamma: float = 0.95,
         kld_weight: float = 0.00025,
+        duration_weight: float = 1.0,
     ) -> None:
         super(Experiment, self).__init__()
         self.model = model
@@ -24,6 +25,7 @@ class Experiment(pl.LightningModule):
         self.weight_decay = weight_decay
         self.scheduler_gamma = scheduler_gamma
         self.kld_weight = kld_weight
+        self.duration_weight = duration_weight
         self.curr_device = None
         self.save_hyperparameters(ignore=["model"])
 
@@ -33,13 +35,13 @@ class Experiment(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         self.curr_device = batch.device
 
-        results = self.forward(batch)
+        results = self.forward(batch, target=batch)
         train_loss = self.model.loss_function(
             *results,
             kld_weight=self.kld_weight,
+            duration_weight=self.duration_weight,
             batch_idx=batch_idx,
         )
-
         self.log_dict(
             {key: val.item() for key, val in train_loss.items()}, sync_dist=True
         )
@@ -53,6 +55,7 @@ class Experiment(pl.LightningModule):
         val_loss = self.model.loss_function(
             *results,
             kld_weight=self.kld_weight,
+            duration_weight=self.duration_weight,
             optimizer_idx=optimizer_idx,
             batch_idx=batch_idx,
         )

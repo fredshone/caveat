@@ -14,8 +14,6 @@ class DescreteEncoder3D(BaseEncoder):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
-        self.index_to_acts = None
-        self.acts_to_index = None
 
     def encode(self, data: pd.DataFrame) -> Dataset:
         self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
@@ -44,7 +42,7 @@ class DescreteEncoder3D(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        encoded = torch.argmax(encoded, axis=-1)
+        encoded = torch.argmax(encoded, dim=-1)
         decoded = []
 
         for pid in range(len(encoded)):
