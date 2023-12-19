@@ -166,6 +166,8 @@ def train_and_sample(
     datamodule = data.DataModule(data=encoded, **data_loader_params)
     datamodule.setup()
 
+    print("Endcoded DataLoader Shape: ", encoded.shape())
+
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     model = model(in_shape=encoded.shape(), **config["model_params"])

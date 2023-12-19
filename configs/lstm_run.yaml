@@ -1,0 +1,32 @@
+data_path: "examples/tmp/nts_toy_population.csv"
+
+logging_params:
+  save_dir: "lstm_test"
+
+model_params:
+  name: "ImageLSTMVAE"
+  hidden_layers: 16
+  hidden_size: 16
+  latent_dim: 2
+
+encoder_params:
+  name: "2d"
+  duration: 1440
+  step_size: 10
+
+loader_params:
+  train_batch_size: 16
+  val_batch_size:  16
+  num_workers: 4
+
+experiment_params:
+  LR: 0.005
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.00025
+
+trainer_params:
+  max_epochs: 40
+
+seed: 1234
+  

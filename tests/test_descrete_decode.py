@@ -3,7 +3,7 @@ import pytest
 from pandas.testing import assert_frame_equal
 from torch import Tensor
 
-from caveat.encoders import descrete
+from caveat.encoders import descrete3d
 
 
 @pytest.mark.parametrize(
@@ -41,7 +41,7 @@ from caveat.encoders import descrete
     ],
 )
 def test_decode_descretised(encoded, length, step_size, expected):
-    encoder = descrete.DescreteEncoder(duration=length, step_size=step_size)
+    encoder = descrete3d.DescreteEncoder3D(duration=length, step_size=step_size)
     encoder.index_to_acts = {0: "a", 1: "b", 2: "c"}
     result = encoder.decode(encoded)
     assert_frame_equal(expected, result)

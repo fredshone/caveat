@@ -148,7 +148,7 @@ def report(
         observed_diversity = creativity.diversity(observed, observed_hash)
         creativity_descriptions = DataFrame(
             {
-                "feature count": [observed.pid.nunique()]*2,
+                "feature count": [observed.pid.nunique()] * 2,
                 "observed": [observed_diversity, 1],
             },
             
@@ -319,10 +319,12 @@ def report(
         descriptions_short = descriptions.groupby(["domain", "feature"]).head(
             head
         )
-        descriptions_short.to_csv(Path(log_dir, "descriptions_short.csv"))
         scores_short = scores.groupby(["domain", "feature"]).head(head)
-        scores_short.to_csv(Path(log_dir, "scores_short.csv"))
+        if log_dir is not None:
+            descriptions_short.to_csv(Path(log_dir, "descriptions_short.csv"))
+            scores_short.to_csv(Path(log_dir, "scores_short.csv"))
     else:
+        descriptions_short = descriptions
         scores_short = scores
 
     if verbose:
