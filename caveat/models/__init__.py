@@ -1,5 +1,5 @@
-from .seq.lstm import SEQVAE
-from .seq.lstm_2 import SEQVAESEQ
+from .seq.base import SEQVAE
+from .seq.lstm import SEQVAESEQ
 from .vae import VAE2D
 
 library = {

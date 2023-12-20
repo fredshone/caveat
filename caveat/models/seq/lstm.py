@@ -3,7 +3,7 @@ from torch import nn, tensor
 from torchmetrics.classification import MulticlassHammingDistance
 from torchmetrics.regression import MeanSquaredError
 
-from caveat.models.base import BaseVAE
+from caveat import current_device
 from caveat.models.utils import hot_argmax
 
 
@@ -33,16 +33,24 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers):
-        """LSTM Decoder.
+    def __init__(
+        self, input_size, hidden_size, output_size, num_layers, max_length
+    ):
+        """LSTM Decoder with teacher forcings.
 
         Args:
             input_size (int): lstm input size.
             hidden_size (int): lstm hidden size.
             num_layers (int): number of lstm layers.
+            max_length (int): max length of sequences.
         """
         super(Decoder, self).__init__()
+        self.current_device = current_device()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
         self.output_size = output_size
+        self.max_length = max_length
+
         self.lstm = nn.LSTM(
             input_size,
             hidden_size,
@@ -54,7 +62,42 @@ class Decoder(nn.Module):
         self.activity_activation = nn.Softmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
 
-    def forward(self, x, hidden):
+    def forward(self, batch_size, hidden, target=None):
+        decoder_input = torch.zeros(batch_size, 1, self.input_size).to(
+            device=self.current_device
+        )
+        decoder_input[:, :, -3] = 1  # set as SOS
+        hidden, cell = hidden
+        # hidden = hidden[
+        #     :, -1, :
+        # ]  # todo reduce hidden size input (remove from latent space)
+        # cell = cell[:, -1, :]
+
+        decoder_hidden = (hidden, cell)
+        outputs = []
+
+        if target is not None:
+            print("Forcing this step")
+        else:
+            print("No forcing this step")
+
+        for i in range(self.max_length):
+            decoder_output, decoder_hidden = self.forward_step(
+                decoder_input, decoder_hidden
+            )
+            outputs.append(decoder_output.squeeze())
+
+            if target is not None:
+                # teacher forcing for next step
+                decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
+            else:
+                # no teacher forcing
+                decoder_input = decoder_output
+
+        outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
+        return outputs, decoder_hidden, None
+
+    def forward_step(self, x, hidden):
         output, hidden = self.lstm(x, hidden)
         prediction = self.fc(output)
         acts, durations = torch.split(
@@ -65,16 +108,17 @@ class Decoder(nn.Module):
         return torch.cat((acts, durations), dim=-1), hidden
 
 
-class SEQVAE(BaseVAE):
+class SEQVAESEQ(nn.Module):
     def __init__(
         self,
         in_shape: tuple[int, int],
         latent_dim: int,
         hidden_layers: int,
         hidden_size: int,
+        teacher_forcing_ratio: float,
         **kwargs,
     ) -> None:
-        """Image LSTM VAE model.
+        """Seq to seq via VAE model.
 
         Args:
             in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
@@ -82,19 +126,18 @@ class SEQVAE(BaseVAE):
             hidden_layers (int): Lstm  layers in encoder and decoder.
             hidden_size (int): Size of lstm layers.
         """
-        super(SEQVAE, self).__init__()
+        super(SEQVAESEQ, self).__init__()
 
         self.MSE = MeanSquaredError()
         self.hamming = MulticlassHammingDistance(
             num_classes=in_shape[-1], average="micro"
         )
-        if len(in_shape) > 2:
-            raise UserWarning(f"{self} only supports 2d encodings.")
 
         self.steps, self.width = in_shape
         self.hidden_layers = hidden_layers
         self.hidden_size = hidden_size
         self.latent_dim = latent_dim
+        self.teacher_forcing_ratio = teacher_forcing_ratio
 
         self.lstm_enc = Encoder(
             input_size=self.width,
@@ -102,15 +145,16 @@ class SEQVAE(BaseVAE):
             num_layers=hidden_layers,
         )
         self.lstm_dec = Decoder(
-            input_size=self.hidden_size,
+            input_size=self.width,
             hidden_size=self.hidden_size,
             output_size=self.width,
             num_layers=hidden_layers,
+            max_length=self.steps,
         )
-        flat_size = self.hidden_layers * self.hidden_size * 2
-        self.fc_mu = nn.Linear(flat_size, latent_dim)
-        self.fc_var = nn.Linear(flat_size, latent_dim)
-        self.fc_hidden = nn.Linear(latent_dim, flat_size)
+        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        self.fc_mu = nn.Linear(flat_size_encode, latent_dim)
+        self.fc_var = nn.Linear(flat_size_encode, latent_dim)
+        self.fc_hidden = nn.Linear(latent_dim, flat_size_encode)
 
     def encode(self, input: tensor) -> list[tensor]:
         """Encodes the input by passing through the encoder network.
@@ -133,7 +177,7 @@ class SEQVAE(BaseVAE):
 
         return [mu, log_var]
 
-    def decode(self, z: tensor) -> tensor:
+    def decode(self, z: tensor, target=None) -> tensor:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -146,16 +190,28 @@ class SEQVAE(BaseVAE):
         h = self.fc_hidden(z)
 
         # initialize hidden state
-        hidden = (
-            h.unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-            .permute(1, 0, 2)
-            .split(self.hidden_layers)
-        )
+        hidden = h.unflatten(
+            1, (2 * self.hidden_layers, self.hidden_size)
+        ).permute(
+            1, 0, 2
+        )  # ([2xhidden, N, layers])
+        print("hidden unflattened: ", hidden.shape)
+        hidden = hidden.split(self.hidden_layers)  # ([hidden, N, layers])
+        print("hidden split: ", len(hidden), hidden[0].shape)
         # decode latent space to input space
-        reps = int(self.steps * self.hidden_size / self.latent_dim)
-        z = z.repeat(1, reps).reshape((-1, self.steps, self.hidden_size))
+        # reps = int(self.steps * self.hidden_size / self.latent_dim)
+        # z = z.repeat(1, reps).reshape((-1, self.steps, self.hidden_size))
+        batch_size = z.shape[0]
 
-        reconstruct_output, hidden = self.lstm_dec(z, hidden)
+        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
+            # use teacher forcing
+            reconstruct_output, hidden, _ = self.lstm_dec(
+                batch_size, hidden, target=target
+            )
+        else:
+            reconstruct_output, hidden, _ = self.lstm_dec(
+                batch_size, hidden, target=None
+            )
 
         return reconstruct_output
 
@@ -173,7 +229,7 @@ class SEQVAE(BaseVAE):
         eps = torch.randn_like(std)
         return eps * std + mu
 
-    def forward(self, input: tensor, **kwargs) -> list[tensor]:
+    def forward(self, input: tensor, target=None, **kwargs) -> list[tensor]:
         """Forward pass, also return latent parameterization.
 
         Args:
@@ -184,7 +240,7 @@ class SEQVAE(BaseVAE):
         """
         mu, log_var = self.encode(input)
         z = self.reparameterize(mu, log_var)
-        y = self.decode(z)
+        y = self.decode(z, target=target)
         return [y, input, mu, log_var]
 
     def unpack_encoding(self, input: tensor) -> tuple[tensor, tensor]:
