@@ -17,6 +17,8 @@ class Sequence(BaseEncoder):
     def encode(self, data: pd.DataFrame) -> Dataset:
         self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
+        print(self.acts_to_index)
+        print(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceDataset(
             data, self.max_length, self.acts_to_index, self.norm_duration
@@ -35,12 +37,17 @@ class Sequence(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
+        print("decode")
+        print(encoded.shape)
         encoded, durations = torch.split(
             encoded, [len(self.acts_to_index) + 2, 1], dim=-1
         )
+        print(encoded.shape, durations.shape)
         encoded = torch.argmax(encoded, dim=-1)
-        eos_idx = len(self.acts_to_index)
-        sos_idx = eos_idx - 1
+        sos_idx = len(self.acts_to_index)
+        eos_idx = sos_idx + 1
+        print("EOS", eos_idx)
+        print("SOS", sos_idx)
         decoded = []
 
         for pid in range(len(encoded)):
@@ -82,6 +89,7 @@ class SequenceDataset(Dataset):
         self.encoded = self.encode(
             data, max_length, acts_to_index, norm_duration
         )
+        print(self.encoded.shape)
         self.size = len(self.encoded)
 
     def encode(

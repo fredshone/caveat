@@ -3,28 +3,46 @@ from torch import nn, tensor
 from torchmetrics.classification import MulticlassHammingDistance
 from torchmetrics.regression import MeanSquaredError
 
-from caveat.models.seq.lstm import SEQVAE, Encoder
+from caveat.models.base import BaseVAE
 from caveat.models.utils import hot_argmax
 
 
+class Encoder(nn.Module):
+    def __init__(self, input_size: int, hidden_size: int, num_layers: int):
+        """LSTM Encoder.
+
+        Args:
+            input_size (int): lstm input size.
+            hidden_size (int): lstm hidden size.
+            num_layers (int): number of lstm layers.
+        """
+        super(Encoder, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(
+            input_size,
+            hidden_size,
+            num_layers,
+            batch_first=True,
+            bidirectional=False,
+        )
+
+    def forward(self, x):
+        _, (hidden, cell) = self.lstm(x)
+        return (hidden, cell)
+
+
 class Decoder(nn.Module):
-    def __init__(
-        self, input_size, hidden_size, output_size, num_layers, max_length
-    ):
+    def __init__(self, input_size, hidden_size, output_size, num_layers):
         """LSTM Decoder.
 
         Args:
             input_size (int): lstm input size.
             hidden_size (int): lstm hidden size.
             num_layers (int): number of lstm layers.
-            max_length (int): max length of sequences.
         """
         super(Decoder, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
         self.output_size = output_size
-        self.max_length = max_length
-
         self.lstm = nn.LSTM(
             input_size,
             hidden_size,
@@ -36,36 +54,7 @@ class Decoder(nn.Module):
         self.activity_activation = nn.Softmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
 
-    def forward(self, x, hidden, target=None):
-        batch_size = x.size(0)
-        decoder_input = torch.empty(batch_size, self.input_size)
-        decoder_input[:, -3] = 1  # SOS
-        hidden, cell = hidden
-        hidden = hidden[
-            :, -1, :
-        ]  # todo reduce hidden size input (remove from latent space)
-        cell = cell[:, -1, :]
-        decoder_hidden = (hidden, cell)
-        decoder_outputs = []
-
-        for i in range(self.max_length):
-            decoder_output, decoder_hidden = self.forward_step(
-                decoder_input, decoder_hidden
-            )
-            decoder_outputs.append(decoder_output)
-
-            if target is not None:
-                print("Forcing")
-                # teacher forcing
-                decoder_input = target[:, i, :].unsqueeze(1)
-            else:
-                # no teacher forcing
-                decoder_input = decoder_output
-
-        decoder_outputs = torch.stack(decoder_outputs).permute(1, 0, 2)
-        return decoder_outputs, decoder_hidden, None
-
-    def forward_step(self, x, hidden):
+    def forward(self, x, hidden):
         output, hidden = self.lstm(x, hidden)
         prediction = self.fc(output)
         acts, durations = torch.split(
@@ -76,14 +65,13 @@ class Decoder(nn.Module):
         return torch.cat((acts, durations), dim=-1), hidden
 
 
-class SEQVAESEQ(SEQVAE):
+class SEQVAE(BaseVAE):
     def __init__(
         self,
         in_shape: tuple[int, int],
         latent_dim: int,
         hidden_layers: int,
         hidden_size: int,
-        teacher_forcing_ratio: float,
         **kwargs,
     ) -> None:
         """Image LSTM VAE model.
@@ -100,12 +88,13 @@ class SEQVAESEQ(SEQVAE):
         self.hamming = MulticlassHammingDistance(
             num_classes=in_shape[-1], average="micro"
         )
+        if len(in_shape) > 2:
+            raise UserWarning(f"{self} only supports 2d encodings.")
 
         self.steps, self.width = in_shape
         self.hidden_layers = hidden_layers
         self.hidden_size = hidden_size
         self.latent_dim = latent_dim
-        self.teacher_forcing_ratio = teacher_forcing_ratio
 
         self.lstm_enc = Encoder(
             input_size=self.width,
@@ -113,11 +102,10 @@ class SEQVAESEQ(SEQVAE):
             num_layers=hidden_layers,
         )
         self.lstm_dec = Decoder(
-            input_size=self.width,
+            input_size=self.hidden_size,
             hidden_size=self.hidden_size,
             output_size=self.width,
             num_layers=hidden_layers,
-            max_length=self.steps,
         )
         flat_size = self.hidden_layers * self.hidden_size * 2
         self.fc_mu = nn.Linear(flat_size, latent_dim)
@@ -167,7 +155,7 @@ class SEQVAESEQ(SEQVAE):
         reps = int(self.steps * self.hidden_size / self.latent_dim)
         z = z.repeat(1, reps).reshape((-1, self.steps, self.hidden_size))
 
-        reconstruct_output, hidden, _ = self.lstm_dec(z, hidden)
+        reconstruct_output, hidden = self.lstm_dec(z, hidden)
 
         return reconstruct_output
 
