@@ -29,15 +29,17 @@ class Experiment(pl.LightningModule):
         self.curr_device = None
         self.save_hyperparameters(ignore=["model"])
 
-    def forward(self, input: Tensor, **kwargs) -> Tensor:
-        return self.model(input, **kwargs)
+    def forward(self, batch: Tensor, **kwargs) -> Tensor:
+        return self.model(batch, **kwargs)
 
     def training_step(self, batch, batch_idx):
+        batch, mask = batch
         self.curr_device = batch.device
 
         results = self.forward(batch, target=batch)
         train_loss = self.model.loss_function(
             *results,
+            mask=mask,
             kld_weight=self.kld_weight,
             duration_weight=self.duration_weight,
             batch_idx=batch_idx,
@@ -49,11 +51,13 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
+        batch, mask = batch
         self.curr_device = batch.device
 
         results = self.forward(batch)
         val_loss = self.model.loss_function(
             *results,
+            mask=mask,
             kld_weight=self.kld_weight,
             duration_weight=self.duration_weight,
             optimizer_idx=optimizer_idx,
@@ -73,27 +77,28 @@ class Experiment(pl.LightningModule):
         self.sample_sequences(100)
 
     def regenerate_test_batch(self):
-        x = next(iter(self.trainer.datamodule.test_dataloader()))
+        x, _ = next(iter(self.trainer.datamodule.test_dataloader()))
         x = x.to(self.curr_device)
         self.regenerate_batch(x, name="test_reconstructions")
 
     def regenerate_val_batch(self):
-        x = next(iter(self.trainer.datamodule.val_dataloader()))
+        x, _ = next(iter(self.trainer.datamodule.val_dataloader()))
         x = x.to(self.curr_device)
         self.regenerate_batch(x, name="reconstructions")
 
     def regenerate_batch(self, x: Tensor, name: str):
-        reconstructed = self.model.generate(x, self.curr_device)
+        y = self.model.generate(x, self.curr_device)
+        images = torch.cat(x, y, dim=-1)
         vutils.save_image(
-            pre_process(reconstructed.data),
+            pre_process(images.data),
             Path(
                 self.logger.log_dir,
                 name,
                 f"recons_{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
-            normalize=True,
-            nrow=10,
-            pad_value=0.5,
+            normalize=False,
+            nrow=1,
+            pad_value=1,
         )
 
     def sample_sequences(self, num_samples: int, name: str = "samples") -> None:
@@ -106,8 +111,8 @@ class Experiment(pl.LightningModule):
                 name,
                 f"{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
-            normalize=True,
-            nrow=10,
+            normalize=False,
+            nrow=1,
         )
 
     def configure_optimizers(self):

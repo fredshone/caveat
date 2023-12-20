@@ -17,8 +17,6 @@ class Sequence(BaseEncoder):
     def encode(self, data: pd.DataFrame) -> Dataset:
         self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-        print(self.acts_to_index)
-        print(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceDataset(
             data, self.max_length, self.acts_to_index, self.norm_duration
@@ -37,17 +35,12 @@ class Sequence(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        print("decode")
-        print(encoded.shape)
         encoded, durations = torch.split(
             encoded, [len(self.acts_to_index) + 2, 1], dim=-1
         )
-        print(encoded.shape, durations.shape)
         encoded = torch.argmax(encoded, dim=-1)
         sos_idx = len(self.acts_to_index)
         eos_idx = sos_idx + 1
-        print("EOS", eos_idx)
-        print("SOS", sos_idx)
         decoded = []
 
         for pid in range(len(encoded)):
@@ -86,10 +79,10 @@ class SequenceDataset(Dataset):
             max_length (int): Max length of sequences.
             acts_to_index (dict): Mapping of activity to index.
         """
-        self.encoded = self.encode(
+        self.max_length = max_length
+        self.encoded, self.masks = self.encode(
             data, max_length, acts_to_index, norm_duration
         )
-        print(self.encoded.shape)
         self.size = len(self.encoded)
 
     def encode(
@@ -106,19 +99,24 @@ class SequenceDataset(Dataset):
         encoding_width = (
             len(acts_to_index) + 3
         )  # one-hot act encoding plus SOS & EOS & duration
+
         encoded = np.zeros(
             (persons, max_length, encoding_width), dtype=np.float32
         )
+        masks = np.zeros((persons, max_length), dtype=np.float32)
+
         for pid, (_, trace) in enumerate(data.groupby("pid")):
-            encoded[pid] = encode_sequence(
+            encoding, mask = encode_sequence(
                 acts=list(trace.act),
                 durations=list(trace.duration),
                 max_length=max_length,
                 encoding_width=encoding_width,
             )
+            encoded[pid] = encoding
+            masks[pid] = mask
             # [N, L, W]
 
-        return torch.from_numpy(encoded)
+        return torch.from_numpy(encoded), torch.from_numpy(masks)
 
     def shape(self):
         return self.encoded[0].shape
@@ -127,7 +125,7 @@ class SequenceDataset(Dataset):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx]
+        return self.encoded[idx], self.masks[idx]
 
 
 def encode_sequence(
@@ -145,14 +143,19 @@ def encode_sequence(
         np.array: _description_
     """
     encoding = np.zeros((max_length, encoding_width), dtype=np.int8)
+    mask = np.zeros((max_length))
     # SOS
     encoding[0][-3] = 1
+    mask[0] = 1
     for i in range(1, max_length):
         if i < len(acts):
             act = acts[i]
             duration = durations[i]
             encoding[i][act] = 1
             encoding[i][-1] = duration
+            mask[i] = 1
+        elif i < len(acts) + 1:
+            mask[i] = 1
         else:
             encoding[i][-2] = 1
-    return encoding
+    return encoding, mask

@@ -62,24 +62,16 @@ class Decoder(nn.Module):
         self.activity_activation = nn.Softmax(dim=-1)
         self.duration_activation = nn.Sigmoid()
 
-    def forward(self, batch_size, hidden, target=None):
+    def forward(self, batch_size, hidden, target=None, **kwargs):
         decoder_input = torch.zeros(batch_size, 1, self.input_size).to(
             device=self.current_device
         )
         decoder_input[:, :, -3] = 1  # set as SOS
         hidden, cell = hidden
-        # hidden = hidden[
-        #     :, -1, :
-        # ]  # todo reduce hidden size input (remove from latent space)
-        # cell = cell[:, -1, :]
-
+        hidden = hidden.contiguous()
+        cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
         outputs = []
-
-        if target is not None:
-            print("Forcing this step")
-        else:
-            print("No forcing this step")
 
         for i in range(self.max_length):
             decoder_output, decoder_hidden = self.forward_step(
@@ -108,7 +100,7 @@ class Decoder(nn.Module):
         return torch.cat((acts, durations), dim=-1), hidden
 
 
-class SEQVAESEQ(nn.Module):
+class LSTM(nn.Module):
     def __init__(
         self,
         in_shape: tuple[int, int],
@@ -126,9 +118,10 @@ class SEQVAESEQ(nn.Module):
             hidden_layers (int): Lstm  layers in encoder and decoder.
             hidden_size (int): Size of lstm layers.
         """
-        super(SEQVAESEQ, self).__init__()
+        super(LSTM, self).__init__()
 
         self.MSE = MeanSquaredError()
+        self.masked_MSE = nn.MSELoss(reduction="none")
         self.hamming = MulticlassHammingDistance(
             num_classes=in_shape[-1], average="micro"
         )
@@ -177,7 +170,7 @@ class SEQVAESEQ(nn.Module):
 
         return [mu, log_var]
 
-    def decode(self, z: tensor, target=None) -> tensor:
+    def decode(self, z: tensor, target=None, **kwargs) -> tensor:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -195,22 +188,17 @@ class SEQVAESEQ(nn.Module):
         ).permute(
             1, 0, 2
         )  # ([2xhidden, N, layers])
-        print("hidden unflattened: ", hidden.shape)
-        hidden = hidden.split(self.hidden_layers)  # ([hidden, N, layers])
-        print("hidden split: ", len(hidden), hidden[0].shape)
-        # decode latent space to input space
-        # reps = int(self.steps * self.hidden_size / self.latent_dim)
-        # z = z.repeat(1, reps).reshape((-1, self.steps, self.hidden_size))
+        hidden = hidden.split(self.hidden_layers)  # ([hidden, N, layers, [hidden, N, layers]])
         batch_size = z.shape[0]
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
             reconstruct_output, hidden, _ = self.lstm_dec(
-                batch_size, hidden, target=target
+                batch_size=batch_size, hidden=hidden, target=target
             )
         else:
             reconstruct_output, hidden, _ = self.lstm_dec(
-                batch_size, hidden, target=None
+                batch_size=batch_size, hidden=hidden, target=None
             )
 
         return reconstruct_output
@@ -229,19 +217,19 @@ class SEQVAESEQ(nn.Module):
         eps = torch.randn_like(std)
         return eps * std + mu
 
-    def forward(self, input: tensor, target=None, **kwargs) -> list[tensor]:
+    def forward(self, x: tensor, target=None, **kwargs) -> list[tensor]:
         """Forward pass, also return latent parameterization.
 
         Args:
-            input (tensor): Input sequences [N, steps, acts].
+            x (tensor): Input sequences [N, steps, acts].
 
         Returns:
             list[tensor]: [Output [N, steps, acts], Input [N, steps, acts], mu [N, latent_dims], var [N, latent_dims]].
         """
-        mu, log_var = self.encode(input)
+        mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
         y = self.decode(z, target=target)
-        return [y, input, mu, log_var]
+        return [y, x, mu, log_var]
 
     def unpack_encoding(self, input: tensor) -> tuple[tensor, tensor]:
         """Split the input into activity and duration.
@@ -268,7 +256,7 @@ class SEQVAESEQ(nn.Module):
         """
         return torch.cat((acts, durations), dim=-1)
 
-    def loss_function(self, recons, input, mu, log_var, **kwargs) -> dict:
+    def loss_function(self, recons, input, mu, log_var, mask, **kwargs) -> dict:
         r"""Computes the VAE loss function.
 
         Splits the input into activity and duration, and the recons into activity and duration.
@@ -281,10 +269,15 @@ class SEQVAESEQ(nn.Module):
         duration_weight = kwargs["duration_weight"]
         acts_x, durations_x = self.unpack_encoding(input)
         acts_y, durations_y = self.unpack_encoding(recons)
+
         # activity encodng
-        activity_recons_mse_loss = self.MSE(acts_y, acts_x)
+        activity_recons_mse_loss = self.masked_MSE(acts_y, acts_x)
+        activity_recons_mse_loss = (activity_recons_mse_loss.squeeze() * mask.unsqueeze(1).float()).sum() / mask.sum()
+
         # duration encodng
-        duration_recons_mse_loss = self.MSE(durations_y, durations_x)
+        duration_recons_mse_loss = self.masked_MSE(durations_y, durations_x)
+        duration_recons_mse_loss = (duration_recons_mse_loss.squeeze() * mask.float()).sum() / mask.sum()
+
         # combined
         recons_mse_loss = (
             activity_recons_mse_loss
@@ -311,7 +304,7 @@ class SEQVAESEQ(nn.Module):
             "KLD": -kld_loss.detach(),
         }
 
-    def predict_step(self, z: tensor, current_device: int, **kwargs) -> tensor:
+    def predict_step(self, z: tensor, current_device: int, decode: bool = False, **kwargs) -> tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -323,11 +316,13 @@ class SEQVAESEQ(nn.Module):
         """
         z = z.to(current_device)
         samples = self.decode(z)
-        acts, durations = self.unpack_encoding(samples)
-        acts = hot_argmax(acts, -1)
-        return self.pack_encoding(acts, durations)
+        if decode:
+            acts, durations = self.unpack_encoding(samples)
+            acts = hot_argmax(acts, -1)
+            samples = self.pack_encoding(acts, durations)
+        return samples
 
-    def generate(self, x: tensor, current_device: int, **kwargs) -> tensor:
+    def generate(self, x: tensor, current_device: int, decode: bool = False, **kwargs) -> tensor:
         """Given an encoder input, return reconstructed output.
 
         Args:
@@ -338,6 +333,8 @@ class SEQVAESEQ(nn.Module):
         """
         samples = self.forward(x)[0]
         samples = samples.to(current_device)
-        acts, durations = self.unpack_encoding(samples)
-        acts = hot_argmax(acts, -1)
-        return self.pack_encoding(acts, durations)
+        if decode:
+            acts, durations = self.unpack_encoding(samples)
+            acts = hot_argmax(acts, -1)
+            samples = self.pack_encoding(acts, durations)
+        return samples
