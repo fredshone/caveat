@@ -1012,6 +1012,8 @@
       
         
       
+        
+      
     
     
     
@@ -1096,6 +1098,27 @@
   
   <span class="md-ellipsis">
     caveat.encoders.descrete3d
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../encoders/seq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoders.seq
   </span>
   
 
@@ -1457,6 +1480,8 @@
       
         
       
+        
+      
     
     
     
@@ -1515,11 +1540,32 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/image_lstm/" class="md-nav__link">
+      <a href="../../models/seq/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.image_lstm
+    caveat.models.seq.base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/seq/lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.lstm
   </span>
   
 
@@ -2084,7 +2130,8 @@ where each combination has a length of tuple_length.</p>
 <span class="normal"><a href="#__codelineno-0-132">132</a></span>
 <span class="normal"><a href="#__codelineno-0-133">133</a></span>
 <span class="normal"><a href="#__codelineno-0-134">134</a></span>
-<span class="normal"><a href="#__codelineno-0-135">135</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a><span class="k">def</span> <span class="nf">joint_participation_prob</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a><span class="k">def</span> <span class="nf">joint_participation_prob</span><span class="p">(</span>
 </span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="n">population</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
 </span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">]]:</span>
 </span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -2099,14 +2146,15 @@ where each combination has a length of tuple_length.</p>
 </span><span id="__span-0-125"><a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="n">act_counts</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a>        <span class="n">population</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;pid&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">act</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </span><span id="__span-0-127"><a id="__codelineno-0-127" name="__codelineno-0-127"></a>    <span class="p">)</span>
-</span><span id="__span-0-128"><a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="n">pairs</span> <span class="o">=</span> <span class="n">combinations_with_replacement</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">population</span><span class="o">.</span><span class="n">act</span><span class="o">.</span><span class="n">unique</span><span class="p">()),</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-0-129"><a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">population</span><span class="o">.</span><span class="n">pid</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
-</span><span id="__span-0-130"><a id="__codelineno-0-130" name="__codelineno-0-130"></a>    <span class="n">metric</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
-</span><span id="__span-0-132"><a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="n">p</span> <span class="o">=</span> <span class="n">calc_pair_count</span><span class="p">(</span><span class="n">act_counts</span><span class="p">,</span> <span class="n">pair</span><span class="p">)</span>
-</span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="n">metric</span><span class="p">[</span><span class="s2">&quot;+&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pair</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">array</span><span class="p">([</span><span class="n">n</span> <span class="o">-</span> <span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">]))</span>
-</span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a>
-</span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="k">return</span> <span class="n">metric</span>
+</span><span id="__span-0-128"><a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="n">acts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">population</span><span class="o">.</span><span class="n">act</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+</span><span id="__span-0-129"><a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="n">pairs</span> <span class="o">=</span> <span class="n">combinations_with_replacement</span><span class="p">(</span><span class="n">acts</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-0-130"><a id="__codelineno-0-130" name="__codelineno-0-130"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">population</span><span class="o">.</span><span class="n">pid</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+</span><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="n">metric</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-0-132"><a id="__codelineno-0-132" name="__codelineno-0-132"></a>    <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
+</span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="n">p</span> <span class="o">=</span> <span class="n">calc_pair_count</span><span class="p">(</span><span class="n">act_counts</span><span class="p">,</span> <span class="n">pair</span><span class="p">)</span>
+</span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a>        <span class="n">metric</span><span class="p">[</span><span class="s2">&quot;+&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pair</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">array</span><span class="p">([</span><span class="n">n</span> <span class="o">-</span> <span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="p">]))</span>
+</span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>
+</span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="k">return</span> <span class="n">metric</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
