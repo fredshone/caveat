@@ -125,7 +125,8 @@ def joint_participation_prob(
     act_counts = (
         population.groupby("pid").act.value_counts().unstack(fill_value=0)
     )
-    pairs = combinations_with_replacement(list(population.act.unique()), 2)
+    acts = list(population.act.unique())
+    pairs = combinations_with_replacement(acts, 2)
     n = population.pid.nunique()
     metric = {}
     for pair in pairs:

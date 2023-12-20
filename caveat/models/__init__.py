@@ -1,4 +1,10 @@
-from .image_lstm import IMAGE_LSTM_VAE
+from .seq.base import SEQVAE
+from .seq.lstm import SEQVAESEQ
 from .vae import VAE2D
 
-library = {"VAE": VAE2D, "VAE2D": VAE2D, "ImageLSTMVAE": IMAGE_LSTM_VAE}
+library = {
+    "VAE": VAE2D,
+    "VAE2D": VAE2D,
+    "SEQVAE": SEQVAE,
+    "SEQVAESEQ": SEQVAESEQ,
+}

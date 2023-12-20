@@ -42,6 +42,7 @@ class Decoder(nn.Module):
             num_layers (int): number of lstm layers.
         """
         super(Decoder, self).__init__()
+        self.output_size = output_size
         self.lstm = nn.LSTM(
             input_size,
             hidden_size,
@@ -50,14 +51,21 @@ class Decoder(nn.Module):
             bidirectional=False,
         )
         self.fc = nn.Linear(hidden_size, output_size)
+        self.activity_activation = nn.Softmax(dim=-1)
+        self.duration_activation = nn.Sigmoid()
 
     def forward(self, x, hidden):
-        output, (hidden, cell) = self.lstm(x, hidden)
+        output, hidden = self.lstm(x, hidden)
         prediction = self.fc(output)
-        return prediction, (hidden, cell)
+        acts, durations = torch.split(
+            prediction, [self.output_size - 1, 1], dim=-1
+        )
+        acts = self.activity_activation(acts)
+        durations = self.duration_activation(durations)
+        return torch.cat((acts, durations), dim=-1), hidden
 
 
-class IMAGE_LSTM_VAE(BaseVAE):
+class SEQVAE(BaseVAE):
     def __init__(
         self,
         in_shape: tuple[int, int],
@@ -74,7 +82,7 @@ class IMAGE_LSTM_VAE(BaseVAE):
             hidden_layers (int): Lstm  layers in encoder and decoder.
             hidden_size (int): Size of lstm layers.
         """
-        super(IMAGE_LSTM_VAE, self).__init__()
+        super(SEQVAE, self).__init__()
 
         self.MSE = MeanSquaredError()
         self.hamming = MulticlassHammingDistance(
@@ -83,20 +91,20 @@ class IMAGE_LSTM_VAE(BaseVAE):
         if len(in_shape) > 2:
             raise UserWarning(f"{self} only supports 2d encodings.")
 
-        self.steps, self.acts = in_shape
+        self.steps, self.width = in_shape
         self.hidden_layers = hidden_layers
         self.hidden_size = hidden_size
         self.latent_dim = latent_dim
 
         self.lstm_enc = Encoder(
-            input_size=self.acts,
+            input_size=self.width,
             hidden_size=self.hidden_size,
             num_layers=hidden_layers,
         )
         self.lstm_dec = Decoder(
             input_size=self.hidden_size,
             hidden_size=self.hidden_size,
-            output_size=self.acts,
+            output_size=self.width,
             num_layers=hidden_layers,
         )
         flat_size = self.hidden_layers * self.hidden_size * 2
@@ -176,22 +184,59 @@ class IMAGE_LSTM_VAE(BaseVAE):
         """
         mu, log_var = self.encode(input)
         z = self.reparameterize(mu, log_var)
-        return [self.decode(z), input, mu, log_var]
+        y = self.decode(z)
+        return [y, input, mu, log_var]
+
+    def unpack_encoding(self, input: tensor) -> tuple[tensor, tensor]:
+        """Split the input into activity and duration.
+
+        Args:
+            input (tensor): Input sequences [N, steps, acts].
+
+        Returns:
+            tuple[tensor, tensor]: [activity [N, steps, acts], duration [N, steps, 1]].
+        """
+        acts = input[:, :, :-1].contiguous()
+        durations = input[:, :, -1:].contiguous()
+        return acts, durations
+
+    def pack_encoding(self, acts: tensor, durations: tensor) -> tensor:
+        """Pack the activity and duration into input.
+
+        Args:
+            acts (tensor): Activity [N, steps, acts].
+            durations (tensor): Duration [N, steps, 1].
+
+        Returns:
+            tensor: Input sequences [N, steps, acts].
+        """
+        return torch.cat((acts, durations), dim=-1)
 
     def loss_function(self, recons, input, mu, log_var, **kwargs) -> dict:
         r"""Computes the VAE loss function.
+
+        Splits the input into activity and duration, and the recons into activity and duration.
 
         Returns:
             dict: Losses.
         """
 
-        kld_weight = kwargs[
-            "M_N"
-        ]  # Account for the minibatch samples from the dataset
-        # recons_loss = F.mse_loss(recons, input)
-        recons_mse_loss = self.MSE(recons, input)
-        recon_argmax = torch.argmax(recons, dim=-1)
-        input_argmax = torch.argmax(input, dim=-1)
+        kld_weight = kwargs["kld_weight"]
+        duration_weight = kwargs["duration_weight"]
+        acts_x, durations_x = self.unpack_encoding(input)
+        acts_y, durations_y = self.unpack_encoding(recons)
+        # activity encodng
+        activity_recons_mse_loss = self.MSE(acts_y, acts_x)
+        # duration encodng
+        duration_recons_mse_loss = self.MSE(durations_y, durations_x)
+        # combined
+        recons_mse_loss = (
+            activity_recons_mse_loss
+            + duration_weight * duration_recons_mse_loss
+        )
+
+        recon_argmax = torch.argmax(acts_y, dim=-1)
+        input_argmax = torch.argmax(acts_x, dim=-1)
 
         recons_ham_loss = self.hamming(recon_argmax, input_argmax)
 
@@ -204,12 +249,14 @@ class IMAGE_LSTM_VAE(BaseVAE):
         return {
             "loss": loss,
             "reconstruction_loss": recons_mse_loss.detach(),
+            "recons_act_loss": activity_recons_mse_loss.detach(),
+            "recons_dur_loss": duration_recons_mse_loss.detach(),
             "recons_ham_loss": recons_ham_loss.detach(),
             "KLD": -kld_loss.detach(),
         }
 
     def predict_step(self, z: tensor, current_device: int, **kwargs) -> tensor:
-        """Sample from the latent space and return the corresponding decoder space map.
+        """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
             z (tensor): [N, latent_dims].
@@ -218,11 +265,11 @@ class IMAGE_LSTM_VAE(BaseVAE):
         Returns:
             tensor: [N, steps, acts].
         """
-
         z = z.to(current_device)
         samples = self.decode(z)
-        samples = hot_argmax(samples, -1)
-        return samples
+        acts, durations = self.unpack_encoding(samples)
+        acts = hot_argmax(acts, -1)
+        return self.pack_encoding(acts, durations)
 
     def generate(self, x: tensor, current_device: int, **kwargs) -> tensor:
         """Given an encoder input, return reconstructed output.
@@ -235,5 +282,6 @@ class IMAGE_LSTM_VAE(BaseVAE):
         """
         samples = self.forward(x)[0]
         samples = samples.to(current_device)
-        samples = hot_argmax(samples, -1)
-        return samples
+        acts, durations = self.unpack_encoding(samples)
+        acts = hot_argmax(acts, -1)
+        return self.pack_encoding(acts, durations)
