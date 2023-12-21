@@ -23,8 +23,8 @@ global:
 
 small:
   model_params:
-    name: "SEQVAESEQ"
-    hidden_layers: 16
+    name: "LSTM"
+    hidden_layers: 2
     hidden_size: 16
     latent_dim: 2
     teacher_forcing_ratio: .5
@@ -36,7 +36,7 @@ small:
 
 mid:
   model_params:
-    name: "SEQVAESEQ"
+    name: "LSTM"
     hidden_layers: 32
     hidden_size: 32
     latent_dim: 4
@@ -49,7 +49,7 @@ mid:
 
 large:
   model_params:
-    name: "SEQVAESEQ"
+    name: "LSTM"
     hidden_layers: 64
     hidden_size: 64
     latent_dim: 8

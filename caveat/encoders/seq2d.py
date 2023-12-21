@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from caveat.encoders import BaseEncoder
 
 
-class Sequence(BaseEncoder):
+class Sequence2D(BaseEncoder):
     def __init__(
         self, max_length: int = 12, norm_duration: int = 1440, **kwargs
     ):
@@ -17,13 +17,8 @@ class Sequence(BaseEncoder):
         self.norm_duration = norm_duration
 
     def encode(self, data: pd.DataFrame) -> Dataset:
-        self.sos = 0
-        self.eos = 1
-        self.index_to_acts = {i + 2: a for i, a in enumerate(data.act.unique())}
-        self.index_to_acts[0] = "<SOS>"
-        self.index_to_acts[1] = "<EOS>"
+        self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-        self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceDataset(
             data, self.max_length, self.acts_to_index, self.norm_duration
@@ -42,16 +37,20 @@ class Sequence(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        encoded, durations = torch.split(encoded, [self.encodings, 1], dim=-1)
-        encoded = encoded.argmax(dim=-1).numpy()
+        encoded, durations = torch.split(
+            encoded, [len(self.acts_to_index) + 2, 1], dim=-1
+        )
+        encoded = torch.argmax(encoded, dim=-1)
+        sos_idx = len(self.acts_to_index)
+        eos_idx = sos_idx + 1
         decoded = []
 
         for pid in range(len(encoded)):
             act_start = 0
             for act_idx, duration in zip(encoded[pid], durations[pid]):
-                if int(act_idx) == self.sos:
+                if int(act_idx) == sos_idx:
                     continue
-                if int(act_idx) == self.eos:
+                if int(act_idx) == eos_idx:
                     break
                 duration = int(duration * self.norm_duration)
                 decoded.append(
@@ -74,8 +73,6 @@ class SequenceDataset(Dataset):
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
-        sos: int = 0,
-        eos: int = 1,
     ):
         """Torch Dataset for sequence data.
 
@@ -85,8 +82,6 @@ class SequenceDataset(Dataset):
             acts_to_index (dict): Mapping of activity to index.
         """
         self.max_length = max_length
-        self.sos = sos
-        self.eos = eos
         self.encoded, self.masks = self.encode(
             data, max_length, acts_to_index, norm_duration
         )
@@ -103,7 +98,9 @@ class SequenceDataset(Dataset):
         data.act = data.act.map(acts_to_index)
         data.duration = data.duration / norm_duration
         persons = data.pid.nunique()
-        encoding_width = 2  # cat act encoding plus duration
+        encoding_width = (
+            len(acts_to_index) + 3
+        )  # one-hot act encoding plus SOS & EOS & duration
 
         encoded = np.zeros(
             (persons, max_length, encoding_width), dtype=np.float32
@@ -116,8 +113,6 @@ class SequenceDataset(Dataset):
                 durations=list(trace.duration),
                 max_length=max_length,
                 encoding_width=encoding_width,
-                sos=self.sos,
-                eos=self.eos,
             )
             encoded[pid] = encoding
             masks[pid] = mask
@@ -136,12 +131,7 @@ class SequenceDataset(Dataset):
 
 
 def encode_sequence(
-    acts: list[int],
-    durations: list[int],
-    max_length: int,
-    encoding_width: int,
-    sos: int,
-    eos: int,
+    acts: list[int], durations: list[int], max_length: int, encoding_width: int
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Create sequence encoding from ranges.
 
@@ -157,18 +147,18 @@ def encode_sequence(
     encoding = np.zeros((max_length, encoding_width), dtype=np.int8)
     mask = np.zeros((max_length))
     # SOS
-    encoding[0][0] = sos
-    # mask includes sos
+    encoding[0][-3] = 1
     mask[0] = 1
     for i in range(1, max_length):
         if i < len(acts):
-            encoding[i][0] = acts[i]
-            encoding[i][1] = durations[i]
+            act = acts[i]
+            duration = durations[i]
+            encoding[i][act] = 1
+            encoding[i][-1] = duration
             mask[i] = 1
         elif i < len(acts) + 1:
-            encoding[i][0] = eos
-            # mask includes first eos
+            encoding[i][-2] = 1
             mask[i] = 1
         else:
-            encoding[i][0] = eos
+            encoding[i][-2] = 1
     return encoding, mask

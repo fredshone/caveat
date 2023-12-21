@@ -7,6 +7,7 @@ from torch import tensor
 class BaseEncoder(ABC):
     def __init__(self) -> None:
         super(BaseEncoder, self).__init__()
+        self.encodings = None
 
     def encode(self, input: DataFrame) -> tensor:
         raise NotImplementedError

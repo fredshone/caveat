@@ -1,5 +1,5 @@
 import torch
-from torch import Tensor, nn
+from torch import nn, tensor
 from torchmetrics.classification import MulticlassHammingDistance
 from torchmetrics.regression import MeanSquaredError
 
@@ -8,13 +8,7 @@ from caveat.models.utils import hot_argmax
 
 
 class Encoder(nn.Module):
-    def __init__(
-        self,
-        input_size: int,
-        hidden_size: int,
-        num_layers: int,
-        dropout: float = 0.1,
-    ):
+    def __init__(self, input_size: int, hidden_size: int, num_layers: int):
         """LSTM Encoder.
 
         Args:
@@ -25,33 +19,22 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = nn.Embedding(input_size, hidden_size - 1)
         self.lstm = nn.LSTM(
-            hidden_size,
+            input_size,
             hidden_size,
             num_layers,
             batch_first=True,
             bidirectional=False,
         )
-        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        embedded, durations = torch.split(x, [1, 1], dim=-1)
-        embedded = self.dropout(self.embedding(embedded.int())).squeeze()
-        embedded = torch.cat((embedded, durations), dim=-1)
-        _, hidden = self.lstm(embedded)
-        return hidden
+        _, (hidden, cell) = self.lstm(x)
+        return (hidden, cell)
 
 
 class Decoder(nn.Module):
     def __init__(
-        self,
-        input_size,
-        hidden_size,
-        output_size,
-        num_layers,
-        max_length,
-        sos: int = 0,
+        self, input_size, hidden_size, output_size, num_layers, max_length
     ):
         """LSTM Decoder with teacher forcings.
 
@@ -67,12 +50,9 @@ class Decoder(nn.Module):
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.max_length = max_length
-        self.sos = sos
 
-        self.embedding = nn.Embedding(input_size, hidden_size - 1)
-        self.activate = nn.ReLU()
         self.lstm = nn.LSTM(
-            hidden_size,
+            input_size,
             hidden_size,
             num_layers,
             batch_first=True,
@@ -83,10 +63,10 @@ class Decoder(nn.Module):
         self.duration_activation = nn.Sigmoid()
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
-        decoder_input = torch.zeros(batch_size, 1, 2).to(
+        decoder_input = torch.zeros(batch_size, 1, self.input_size).to(
             device=self.current_device
         )
-        decoder_input[:, :, 0] = self.sos  # set as SOS
+        decoder_input[:, :, -3] = 1  # set as SOS
         hidden, cell = hidden
         hidden = hidden.contiguous()
         cell = cell.contiguous()
@@ -103,44 +83,24 @@ class Decoder(nn.Module):
                 # teacher forcing for next step
                 decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
             else:
-                # no teacher forcing use decoder output
-                decoder_input = self.pack(decoder_output)
+                # no teacher forcing
+                decoder_input = decoder_output
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
-
-        acts, durations = torch.split(
-            outputs, [self.output_size - 1, 1], dim=-1
-        )
-        acts = self.activity_activation(acts)
-        durations = self.duration_activation(durations)
-        outputs = torch.cat((acts, durations), dim=-1)
-
         return outputs, decoder_hidden, None
 
     def forward_step(self, x, hidden):
-        # [N, 1, 2]
-        embedded, durations = torch.split(x, [1, 1], dim=-1)
-        embedded = self.activate(self.embedding(embedded.int())).squeeze(-2)
-        embedded = torch.cat((embedded, durations), dim=-1)
-        output, hidden = self.lstm(embedded, hidden)
+        output, hidden = self.lstm(x, hidden)
         prediction = self.fc(output)
-        # [N, 1, encodings+1]
-        return prediction, hidden
-
-    def pack(self, x):
-        # [N, 1, encodings+1]
-        acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        _, topi = acts.topk(1)
-        act = (
-            topi.squeeze(-1).detach().unsqueeze(-1)
-        )  # detach from history as input
-        duration = self.duration_activation(duration)
-        outputs = torch.cat((act, duration), dim=-1)
-        # [N, 1, 2]
-        return outputs
+        acts, durations = torch.split(
+            prediction, [self.output_size - 1, 1], dim=-1
+        )
+        acts = self.activity_activation(acts)
+        durations = self.duration_activation(durations)
+        return torch.cat((acts, durations), dim=-1), hidden
 
 
-class LSTM(nn.Module):
+class LSTM2d(nn.Module):
     def __init__(
         self,
         in_shape: tuple[int, int],
@@ -148,7 +108,6 @@ class LSTM(nn.Module):
         hidden_layers: int,
         hidden_size: int,
         teacher_forcing_ratio: float,
-        encodings: int,
         **kwargs,
     ) -> None:
         """Seq to seq via VAE model.
@@ -159,13 +118,12 @@ class LSTM(nn.Module):
             hidden_layers (int): Lstm  layers in encoder and decoder.
             hidden_size (int): Size of lstm layers.
         """
-        super(LSTM, self).__init__()
+        super(LSTM2d, self).__init__()
 
         self.MSE = MeanSquaredError()
-        self.NLLL = nn.NLLLoss()
         self.masked_MSE = nn.MSELoss(reduction="none")
         self.hamming = MulticlassHammingDistance(
-            num_classes=encodings, average="micro"
+            num_classes=in_shape[-1], average="micro"
         )
 
         self.steps, self.width = in_shape
@@ -173,27 +131,25 @@ class LSTM(nn.Module):
         self.hidden_size = hidden_size
         self.latent_dim = latent_dim
         self.teacher_forcing_ratio = teacher_forcing_ratio
-        self.encodings = encodings
 
         self.lstm_enc = Encoder(
-            input_size=encodings,
+            input_size=self.width,
             hidden_size=self.hidden_size,
             num_layers=hidden_layers,
         )
         self.lstm_dec = Decoder(
-            input_size=encodings,
+            input_size=self.width,
             hidden_size=self.hidden_size,
-            output_size=encodings + 1,
+            output_size=self.width,
             num_layers=hidden_layers,
             max_length=self.steps,
-            sos=0,
         )
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
         self.fc_mu = nn.Linear(flat_size_encode, latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, latent_dim)
         self.fc_hidden = nn.Linear(latent_dim, flat_size_encode)
 
-    def encode(self, input: Tensor) -> list[Tensor]:
+    def encode(self, input: tensor) -> list[tensor]:
         """Encodes the input by passing through the encoder network.
 
         Args:
@@ -214,7 +170,7 @@ class LSTM(nn.Module):
 
         return [mu, log_var]
 
-    def decode(self, z: Tensor, target=None, **kwargs) -> Tensor:
+    def decode(self, z: tensor, target=None, **kwargs) -> tensor:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -249,7 +205,7 @@ class LSTM(nn.Module):
 
         return reconstruct_output
 
-    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
+    def reparameterize(self, mu: tensor, logvar: tensor) -> tensor:
         """Reparameterization trick to sample from N(mu, var) from N(0,1).
 
         Args:
@@ -263,7 +219,7 @@ class LSTM(nn.Module):
         eps = torch.randn_like(std)
         return eps * std + mu
 
-    def forward(self, x: Tensor, target=None, **kwargs) -> list[Tensor]:
+    def forward(self, x: tensor, target=None, **kwargs) -> list[tensor]:
         """Forward pass, also return latent parameterization.
 
         Args:
@@ -277,7 +233,7 @@ class LSTM(nn.Module):
         y = self.decode(z, target=target)
         return [y, x, mu, log_var]
 
-    def unpack_encoding(self, input: Tensor) -> tuple[Tensor, Tensor]:
+    def unpack_encoding(self, input: tensor) -> tuple[tensor, tensor]:
         """Split the input into activity and duration.
 
         Args:
@@ -290,7 +246,7 @@ class LSTM(nn.Module):
         durations = input[:, :, -1:].contiguous()
         return acts, durations
 
-    def pack_encoding(self, acts: Tensor, durations: Tensor) -> Tensor:
+    def pack_encoding(self, acts: tensor, durations: tensor) -> tensor:
         """Pack the activity and duration into input.
 
         Args:
@@ -313,52 +269,50 @@ class LSTM(nn.Module):
 
         kld_weight = kwargs["kld_weight"]
         duration_weight = kwargs["duration_weight"]
-        flat_mask = mask.view(-1).bool()
-
-        target_acts, target_durations = self.unpack_encoding(input)
-        pred_acts, pred_durations = self.unpack_encoding(recons)
+        acts_x, durations_x = self.unpack_encoding(input)
+        acts_y, durations_y = self.unpack_encoding(recons)
 
         # activity encodng
-        recon_acts_nlll = self.NLLL(
-            pred_acts.view(-1, self.encodings)[flat_mask],
-            target_acts.view(-1).long()[flat_mask],
-        )
-        # todo mask
+        activity_recons_mse_loss = self.masked_MSE(acts_y, acts_x)
+        activity_recons_mse_loss = (
+            activity_recons_mse_loss.squeeze() * mask.unsqueeze(1).float()
+        ).sum() / mask.sum()
 
         # duration encodng
-        recon_dur_mse = self.masked_MSE(pred_durations, target_durations)
-        recon_dur_mse = (
-            duration_weight
-            * (recon_dur_mse.squeeze() * mask.float()).sum()
-            / mask.sum()
-        )
+        duration_recons_mse_loss = self.masked_MSE(durations_y, durations_x)
+        duration_recons_mse_loss = (
+            duration_recons_mse_loss.squeeze() * mask.float()
+        ).sum() / mask.sum()
 
         # combined
-        recons_loss = recon_acts_nlll + recon_dur_mse
-
-        recon_argmax = torch.argmax(pred_acts, dim=-1)
-        recons_ham_loss = self.hamming(
-            recon_argmax, target_acts.squeeze().long()
+        recons_mse_loss = (
+            activity_recons_mse_loss
+            + duration_weight * duration_recons_mse_loss
         )
 
-        kld_loss = kld_weight * torch.mean(
+        recon_argmax = torch.argmax(acts_y, dim=-1)
+        input_argmax = torch.argmax(acts_x, dim=-1)
+
+        recons_ham_loss = self.hamming(recon_argmax, input_argmax)
+
+        kld_loss = torch.mean(
             -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
             dim=0,
         )
 
-        loss = recons_loss + kld_loss
+        loss = recons_mse_loss + kld_weight * kld_loss
         return {
             "loss": loss,
-            "recon_loss": recons_loss.detach(),
-            "recon_act_loss": recon_acts_nlll.detach(),
-            "recon_dur_loss": recon_dur_mse.detach(),
+            "reconstruction_loss": recons_mse_loss.detach(),
+            "recons_act_loss": activity_recons_mse_loss.detach(),
+            "recons_dur_loss": duration_recons_mse_loss.detach(),
             "recons_ham_loss": recons_ham_loss.detach(),
-            "KLD": kld_loss.detach(),
+            "KLD": -kld_loss.detach(),
         }
 
     def predict_step(
-        self, z: Tensor, current_device: int, decode: bool = False, **kwargs
-    ) -> Tensor:
+        self, z: tensor, current_device: int, decode: bool = False, **kwargs
+    ) -> tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -377,8 +331,8 @@ class LSTM(nn.Module):
         return samples
 
     def generate(
-        self, x: Tensor, current_device: int, decode: bool = False, **kwargs
-    ) -> Tensor:
+        self, x: tensor, current_device: int, decode: bool = False, **kwargs
+    ) -> tensor:
         """Given an encoder input, return reconstructed output.
 
         Args:

@@ -179,12 +179,16 @@ def train_and_sample(
 
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
-    model = model(in_shape=encoded.shape(), **config["model_params"])
+    model = model(
+        in_shape=encoded.shape(),
+        encodings=data_encoder.encodings,
+        **config["model_params"],
+    )
     experiment = Experiment(model, **config["experiment_params"])
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=Path(logger.log_dir, "checkpoints"),
-        monitor="val_reconstruction_loss",
+        monitor="val_recon_loss",
         save_top_k=2,
         save_weights_only=True,
     )
@@ -193,9 +197,7 @@ def train_and_sample(
         logger=logger,
         callbacks=[
             EarlyStopping(
-                monitor="val_reconstruction_loss",
-                patience=5,
-                stopping_threshold=0.0,
+                monitor="val_recon_loss", patience=5, stopping_threshold=0.0
             ),
             LearningRateMonitor(),
             checkpoint_callback,
