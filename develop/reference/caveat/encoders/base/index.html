@@ -16,11 +16,11 @@
         <link rel="prev" href="../../distances/wasserstein/">
       
       
-        <link rel="next" href="../descrete2d/">
+        <link rel="next" href="../descrete/">
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.3">
     
     
       
@@ -70,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#caveat.encoders.base.BaseEncoder" class="md-skip">
+        <a href="#caveat.encoders.base.BaseEncodedPlans" class="md-skip">
           Skip to content
         </a>
       
@@ -1095,6 +1095,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans" class="md-nav__link">
+    <span class="md-ellipsis">
+      BaseEncodedPlans
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseEncodedPlans">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.encoding_weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      encoding_weights
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.encodings" class="md-nav__link">
+    <span class="md-ellipsis">
+      encodings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      masks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      shape()
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#caveat.encoders.base.BaseEncoder" class="md-nav__link">
     <span class="md-ellipsis">
       BaseEncoder
@@ -1103,6 +1154,15 @@
   
     <nav class="md-nav" aria-label="BaseEncoder">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder.encodings" class="md-nav__link">
+    <span class="md-ellipsis">
+      encodings
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#caveat.encoders.base.BaseEncoder.decode" class="md-nav__link">
@@ -1143,11 +1203,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../descrete2d/" class="md-nav__link">
+      <a href="../descrete/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.descrete2d
+    caveat.encoders.descrete
   </span>
   
 
@@ -1164,11 +1224,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../descrete3d/" class="md-nav__link">
+      <a href="../descrete_one_hot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.descrete3d
+    caveat.encoders.descrete_one_hot
   </span>
   
 
@@ -1434,6 +1494,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1492,11 +1556,53 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/seq/base/" class="md-nav__link">
+      <a href="../../models/conv/conv2d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.seq.base
+    caveat.models.conv.conv2d
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/conv/embed_conv/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.conv.embed_conv
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/seq/gru/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.gru
   </span>
   
 
@@ -1534,11 +1640,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/utils/" class="md-nav__link">
+      <a href="../../models/seq/transformer/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.utils
+    caveat.models.seq.transformer
   </span>
   
 
@@ -1555,11 +1661,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/vae/" class="md-nav__link">
+      <a href="../../models/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.vae
+    caveat.models.utils
   </span>
   
 
@@ -1617,6 +1723,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans" class="md-nav__link">
+    <span class="md-ellipsis">
+      BaseEncodedPlans
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseEncodedPlans">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.encoding_weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      encoding_weights
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.encodings" class="md-nav__link">
+    <span class="md-ellipsis">
+      encodings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      masks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncodedPlans.shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      shape()
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#caveat.encoders.base.BaseEncoder" class="md-nav__link">
     <span class="md-ellipsis">
       BaseEncoder
@@ -1625,6 +1782,15 @@
   
     <nav class="md-nav" aria-label="BaseEncoder">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caveat.encoders.base.BaseEncoder.encodings" class="md-nav__link">
+    <span class="md-ellipsis">
+      encodings
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#caveat.encoders.base.BaseEncoder.decode" class="md-nav__link">
@@ -1695,22 +1861,34 @@
 
 
 
-<h2 id="caveat.encoders.base.BaseEncoder" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">BaseEncoder</span><span class="p">()</span></code>
+<h2 id="caveat.encoders.base.BaseEncodedPlans" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">BaseEncodedPlans</span><span class="p">()</span></code>
 
-<a href="#caveat.encoders.base.BaseEncoder" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#caveat.encoders.base.BaseEncodedPlans" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
           <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-external" title="abc.ABC" href="https://docs.python.org/3/library/abc.html#abc.ABC">ABC</a></code></p>
+            Bases: <code><span title="torch.utils.data.Dataset">Dataset</span></code></p>
 
+  
+      <p>Base encoded sequence Dataset.</p>
 
                 <details class="quote">
                   <summary>Source code in <code>caveat/encoders/base.py</code></summary>
-                  <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-8">8</a></span>
-<span class="normal"><a href="#__codelineno-0-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="nb">super</span><span class="p">(</span><span class="n">BaseEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+                  <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Base encoded sequence Dataset.&quot;&quot;&quot;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a>    <span class="nb">super</span><span class="p">(</span><span class="n">BaseEncodedPlans</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">encodings</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">encoding_weights</span><span class="p">:</span> <span class="n">Tensor</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">:</span> <span class="n">Tensor</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 </span></code></pre></div></td></tr></table></div>
                 </details>
 
@@ -1724,6 +1902,157 @@
 
 
 
+<div class="doc doc-object doc-attribute">
+
+
+
+
+<h3 id="caveat.encoders.base.BaseEncodedPlans.encoding_weights" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">encoding_weights</span><span class="p">:</span> <span class="n">Tensor</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#caveat.encoders.base.BaseEncodedPlans.encoding_weights" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+
+<h3 id="caveat.encoders.base.BaseEncodedPlans.encodings" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">encodings</span><span class="p">:</span> <span class="nb">int</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#caveat.encoders.base.BaseEncodedPlans.encodings" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+
+<h3 id="caveat.encoders.base.BaseEncodedPlans.masks" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">masks</span><span class="p">:</span> <span class="n">Tensor</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#caveat.encoders.base.BaseEncodedPlans.masks" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+  </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h3 id="caveat.encoders.base.BaseEncodedPlans.shape" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">shape</span><span class="p">()</span></code>
+
+<a href="#caveat.encoders.base.BaseEncodedPlans.shape" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+
+          <details class="quote">
+            <summary>Source code in <code>caveat/encoders/base.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</span></code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+
+  </div>
+
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+
+<h2 id="caveat.encoders.base.BaseEncoder" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">BaseEncoder</span><span class="p">()</span></code>
+
+<a href="#caveat.encoders.base.BaseEncoder" class="headerlink" title="Permanent link">#</a></h2>
+
+
+  <div class="doc doc-contents ">
+          <p class="doc doc-class-bases">
+            Bases: <code><a class="autorefs autorefs-external" title="abc.ABC" href="https://docs.python.org/3/library/abc.html#abc.ABC">ABC</a></code></p>
+
+
+                <details class="quote">
+                  <summary>Source code in <code>caveat/encoders/base.py</code></summary>
+                  <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="nb">super</span><span class="p">(</span><span class="n">BaseEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">encodings</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div></td></tr></table></div>
+                </details>
+
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+
+<h3 id="caveat.encoders.base.BaseEncoder.encodings" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">encodings</span> <span class="o">=</span> <span class="kc">None</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#caveat.encoders.base.BaseEncoder.encodings" class="headerlink" title="Permanent link">#</a></h3>
+
+
+  <div class="doc doc-contents ">
+  </div>
+
+</div>
+
 
 
 
@@ -1733,7 +2062,7 @@
 
 
 <h3 id="caveat.encoders.base.BaseEncoder.decode" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">decode</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></code>
+          <code class="highlight language-python"><span class="n">decode</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span></code>
 
 <a href="#caveat.encoders.base.BaseEncoder.decode" class="headerlink" title="Permanent link">#</a></h3>
 
@@ -1742,9 +2071,9 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/encoders/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoded</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -1767,9 +2096,9 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/encoders/base.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
-<span class="normal"><a href="#__codelineno-0-12">12</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tensor</span><span class="p">:</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseEncodedPlans</span><span class="p">:</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>

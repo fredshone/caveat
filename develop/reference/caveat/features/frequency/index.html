@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.3">
     
     
       
@@ -1072,11 +1072,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../encoders/descrete2d/" class="md-nav__link">
+      <a href="../../encoders/descrete/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.descrete2d
+    caveat.encoders.descrete
   </span>
   
 
@@ -1093,11 +1093,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../encoders/descrete3d/" class="md-nav__link">
+      <a href="../../encoders/descrete_one_hot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.descrete3d
+    caveat.encoders.descrete_one_hot
   </span>
   
 
@@ -1419,6 +1419,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1477,11 +1481,53 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/seq/base/" class="md-nav__link">
+      <a href="../../models/conv/conv2d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.seq.base
+    caveat.models.conv.conv2d
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/conv/embed_conv/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.conv.embed_conv
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/seq/gru/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.gru
   </span>
   
 
@@ -1519,11 +1565,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/utils/" class="md-nav__link">
+      <a href="../../models/seq/transformer/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.utils
+    caveat.models.seq.transformer
   </span>
   
 
@@ -1540,11 +1586,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/vae/" class="md-nav__link">
+      <a href="../../models/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.vae
+    caveat.models.utils
   </span>
   
 
@@ -1695,7 +1741,7 @@
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a>        <span class="p">)</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>        <span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>        <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="p">)[</span><span class="mi">0</span><span class="p">,:,:]</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -1743,7 +1789,7 @@
 </span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>        <span class="p">)</span>
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>        <span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>        <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="p">)[</span><span class="mi">0</span><span class="p">,:,:]</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
 </span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>
 </span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="n">support</span> <span class="o">=</span> <span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">step</span><span class="p">)])</span>
 </span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="k">return</span> <span class="p">{</span><span class="n">act</span><span class="p">:</span> <span class="p">(</span><span class="n">support</span><span class="p">,</span> <span class="n">bins</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">act</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">class_map</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>

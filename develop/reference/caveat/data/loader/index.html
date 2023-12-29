@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.3">
     
     
       
@@ -1242,11 +1242,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../encoders/descrete2d/" class="md-nav__link">
+      <a href="../../encoders/descrete/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.descrete2d
+    caveat.encoders.descrete
   </span>
   
 
@@ -1263,11 +1263,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../encoders/descrete3d/" class="md-nav__link">
+      <a href="../../encoders/descrete_one_hot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.descrete3d
+    caveat.encoders.descrete_one_hot
   </span>
   
 
@@ -1533,6 +1533,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1591,11 +1595,53 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/seq/base/" class="md-nav__link">
+      <a href="../../models/conv/conv2d/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.seq.base
+    caveat.models.conv.conv2d
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/conv/embed_conv/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.conv.embed_conv
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/seq/gru/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.gru
   </span>
   
 
@@ -1633,11 +1679,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/utils/" class="md-nav__link">
+      <a href="../../models/seq/transformer/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.utils
+    caveat.models.seq.transformer
   </span>
   
 
@@ -1654,11 +1700,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/vae/" class="md-nav__link">
+      <a href="../../models/utils/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.vae
+    caveat.models.utils
   </span>
   
 
@@ -2454,9 +2500,23 @@
             <summary>Source code in <code>caveat/data/loader.py</code></summary>
             <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-78">78</a></span>
 <span class="normal"><a href="#__codelineno-0-79">79</a></span>
-<span class="normal"><a href="#__codelineno-0-80">80</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="k">def</span> <span class="nf">predict_dataloader</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span> <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">):</span>
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
-</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span> <span class="n">persistent_workers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="k">def</span> <span class="nf">predict_dataloader</span><span class="p">(</span>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">num_samples</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span> <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a><span class="p">):</span>
+</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
+</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span>
+</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>        <span class="n">z</span><span class="p">,</span>
+</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="n">persistent_workers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
           </details>
   </div>
