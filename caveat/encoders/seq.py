@@ -1,26 +1,30 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
 
-from caveat.encoders import BaseEncoder
+from caveat.encoders import BaseEncodedPlans, BaseEncoder
 
 
-class Sequence(BaseEncoder):
+class SequenceEncoder(BaseEncoder):
     def __init__(
         self, max_length: int = 12, norm_duration: int = 1440, **kwargs
     ):
         self.max_length = max_length
         self.norm_duration = norm_duration
 
-    def encode(self, data: pd.DataFrame) -> Dataset:
-        self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
+    def encode(self, data: pd.DataFrame) -> BaseEncodedPlans:
+        self.sos = 0
+        self.eos = 1
+        self.index_to_acts = {i + 2: a for i, a in enumerate(data.act.unique())}
+        self.index_to_acts[0] = "<SOS>"
+        self.index_to_acts[1] = "<EOS>"
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-        print(self.acts_to_index)
-        print(self.index_to_acts)
+        self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
-        return SequenceDataset(
+        return SequenceEncodedPlans(
             data, self.max_length, self.acts_to_index, self.norm_duration
         )
 
@@ -37,25 +41,16 @@ class Sequence(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        print("decode")
-        print(encoded.shape)
-        encoded, durations = torch.split(
-            encoded, [len(self.acts_to_index) + 2, 1], dim=-1
-        )
-        print(encoded.shape, durations.shape)
-        encoded = torch.argmax(encoded, dim=-1)
-        sos_idx = len(self.acts_to_index)
-        eos_idx = sos_idx + 1
-        print("EOS", eos_idx)
-        print("SOS", sos_idx)
+        encoded, durations = torch.split(encoded, [self.encodings, 1], dim=-1)
+        encoded = encoded.argmax(dim=-1).numpy()
         decoded = []
 
         for pid in range(len(encoded)):
             act_start = 0
             for act_idx, duration in zip(encoded[pid], durations[pid]):
-                if int(act_idx) == sos_idx:
+                if int(act_idx) == self.sos:
                     continue
-                if int(act_idx) == eos_idx:
+                if int(act_idx) == self.eos:
                     break
                 duration = int(duration * self.norm_duration)
                 decoded.append(
@@ -71,13 +66,15 @@ class Sequence(BaseEncoder):
         return pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
 
 
-class SequenceDataset(Dataset):
+class SequenceEncodedPlans(BaseEncodedPlans):
     def __init__(
         self,
         data: pd.DataFrame,
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
+        sos: int = 0,
+        eos: int = 1,
     ):
         """Torch Dataset for sequence data.
 
@@ -86,39 +83,61 @@ class SequenceDataset(Dataset):
             max_length (int): Max length of sequences.
             acts_to_index (dict): Mapping of activity to index.
         """
-        self.encoded = self.encode(
+        self.max_length = max_length
+        self.sos = sos
+        self.eos = eos
+        self.encodings = len(acts_to_index)
+        self.encoded, self.masks, self.encoding_weights = self._encode(
             data, max_length, acts_to_index, norm_duration
         )
-        print(self.encoded.shape)
         self.size = len(self.encoded)
 
-    def encode(
+    def _encode(
         self,
         data: pd.DataFrame,
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         data = data.copy()
         data.act = data.act.map(acts_to_index)
+
+        # calc weightings
+        weights = data.groupby("act", observed=True).duration.sum().to_dict()
+        n = (
+            data.pid.nunique() * 60
+        )  # sos and eos weight is equal to 1 hour per sequence
+        weights.update({self.sos: n, self.eos: n})
+        weights = np.array([weights[k] for k in range(len(weights))])
+        weights = 1 / weights
+
         data.duration = data.duration / norm_duration
         persons = data.pid.nunique()
-        encoding_width = (
-            len(acts_to_index) + 3
-        )  # one-hot act encoding plus SOS & EOS & duration
+        encoding_width = 2  # cat act encoding plus duration
+
         encoded = np.zeros(
             (persons, max_length, encoding_width), dtype=np.float32
         )
+        masks = np.zeros((persons, max_length), dtype=np.int8)
+
         for pid, (_, trace) in enumerate(data.groupby("pid")):
-            encoded[pid] = encode_sequence(
+            encoding, mask = encode_sequence(
                 acts=list(trace.act),
                 durations=list(trace.duration),
                 max_length=max_length,
                 encoding_width=encoding_width,
+                sos=self.sos,
+                eos=self.eos,
             )
+            encoded[pid] = encoding
+            masks[pid] = mask
             # [N, L, W]
 
-        return torch.from_numpy(encoded)
+        return (
+            torch.from_numpy(encoded),
+            torch.from_numpy(masks),
+            torch.from_numpy(weights).float(),
+        )
 
     def shape(self):
         return self.encoded[0].shape
@@ -127,32 +146,43 @@ class SequenceDataset(Dataset):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx]
+        return self.encoded[idx], self.masks[idx]
 
 
 def encode_sequence(
-    acts: list[int], durations: list[int], max_length: int, encoding_width: int
-) -> np.ndarray:
+    acts: list[int],
+    durations: list[float],
+    max_length: int,
+    encoding_width: int,
+    sos: int,
+    eos: int,
+) -> Tuple[np.ndarray, np.ndarray]:
     """Create sequence encoding from ranges.
 
     Args:
         acts (Iterable[int]): _description_
-        durations (Iterable[int]): _description_
+        durations (Iterable[float]): _description_
         max_length (int): _description_
         encoding_width (dict): _description_
 
     Returns:
         np.array: _description_
     """
-    encoding = np.zeros((max_length, encoding_width), dtype=np.int8)
+    encoding = np.zeros((max_length, encoding_width), dtype=np.float32)
+    mask = np.zeros((max_length))
     # SOS
-    encoding[0][-3] = 1
+    encoding[0][0] = sos
+    # mask includes sos
+    mask[0] = 1
     for i in range(1, max_length):
-        if i < len(acts):
-            act = acts[i]
-            duration = durations[i]
-            encoding[i][act] = 1
-            encoding[i][-1] = duration
+        if i < len(acts) + 1:
+            encoding[i][0] = acts[i - 1]
+            encoding[i][1] = durations[i - 1]
+            mask[i] = 1
+        elif i < len(acts) + 2:
+            encoding[i][0] = eos
+            # mask includes first eos
+            mask[i] = 1
         else:
-            encoding[i][-2] = 1
-    return encoding
+            encoding[i][0] = eos
+    return encoding, mask

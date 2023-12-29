@@ -1,7 +1,7 @@
 from numpy import array, ndarray
 from pandas import DataFrame
 
-from caveat.encoders.descrete3d import descretise_population
+from caveat.encoders.descrete_one_hot import descretise_population
 
 
 def activity_bins(
@@ -13,7 +13,7 @@ def activity_bins(
         )
         .sum(0)
         .numpy()
-    )[0,:,:]
+    )[0, :, :]
 
 
 def activity_frequencies(
@@ -27,7 +27,7 @@ def activity_frequencies(
         )
         .mean(0)
         .numpy()
-    )[0,:,:]
+    )[0, :, :]
 
     support = array([i for i in range(0, duration, step)])
     return {act: (support, bins[:, i]) for act, i in class_map.items()}

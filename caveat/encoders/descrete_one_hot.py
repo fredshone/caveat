@@ -4,27 +4,24 @@ import numpy as np
 import pandas as pd
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
 
-from caveat.encoders import BaseEncoder
+from caveat.encoders import BaseEncodedPlans, BaseEncoder
 
 
-class DescreteEncoder3D(BaseEncoder):
+class DescreteEncoderOneHot(BaseEncoder):
     def __init__(self, duration: int = 1440, step_size: int = 10, **kwargs):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
 
-    def encode(self, data: pd.DataFrame) -> Dataset:
+    def encode(self, data: pd.DataFrame) -> BaseEncodedPlans:
         self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-        return DescreteSequenceDataset(
-            descretise_population(
-                data,
-                duration=self.duration,
-                step_size=self.step_size,
-                class_map=self.acts_to_index,
-            )
+        return DescreteOneHotEncodedPlans(
+            data,
+            duration=self.duration,
+            step_size=self.step_size,
+            acts_to_index=self.acts_to_index,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -73,15 +70,32 @@ class DescreteEncoder3D(BaseEncoder):
         return pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
 
 
-class DescreteSequenceDataset(Dataset):
-    def __init__(self, encoded: Tensor):
+class DescreteOneHotEncodedPlans(BaseEncodedPlans):
+    def __init__(
+        self,
+        data: pd.DataFrame,
+        duration: int,
+        step_size: int,
+        acts_to_index: dict,
+    ):
         """Torch Dataset for descretised sequence data.
 
         Args:
             data (Tensor): Population of sequences.
         """
-        self.encoded = encoded
-        self.size = len(encoded)
+        self.encodings = data.act.nunique()
+        # calc weightings based on durations
+        weights = data.groupby("act", observed=True).duration.sum().to_dict()
+        weights = np.array([weights[k] for k in acts_to_index.keys()])
+        self.encoding_weights = torch.from_numpy(1 / weights).float()
+        self.encoded = descretise_population(
+            data,
+            duration=duration,
+            step_size=step_size,
+            class_map=acts_to_index,
+        )
+        self.masks = torch.ones((1, self.encoded.shape[2]))
+        self.size = len(self.encoded)
 
     def shape(self):
         return self.encoded[0].shape
@@ -90,12 +104,12 @@ class DescreteSequenceDataset(Dataset):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx]
+        return self.encoded[idx], self.masks
 
 
 def descretise_population(
     data: pd.DataFrame, duration: int, step_size: int, class_map: dict
-) -> torch.tensor:
+) -> torch.Tensor:
     """Convert given population of activity traces into vector [P, C, H, W].
     P is the population size.
     C (channel) is length 1.
@@ -138,7 +152,7 @@ def descretise_trace(
     ends: Iterable[int],
     length: int,
     class_map: dict,
-) -> np.array:
+) -> np.ndarray:
     """Create categorical encoding from ranges with step of 1.
 
     Args:
@@ -157,7 +171,7 @@ def descretise_trace(
     return encoding
 
 
-def down_sample(array: np.array, step: int) -> np.array:
+def down_sample(array: np.ndarray, step: int) -> np.ndarray:
     """Down-sample by steppiong through given array.
     todo:
     Methodology will down sample based on first classification.
@@ -174,7 +188,7 @@ def down_sample(array: np.array, step: int) -> np.array:
     return array[::step]
 
 
-def one_hot(target: np.array, num_classes: int) -> np.array:
+def one_hot(target: np.ndarray, num_classes: int) -> np.ndarray:
     """One hot encoding of given categorical array.
 
     Args:

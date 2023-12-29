@@ -1,10 +1,10 @@
 from pathlib import Path
+from typing import List
 
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
-from torch import optim
-from torch import tensor as Tensor
+from torch import Tensor, optim
 
 from caveat.models.base import BaseVAE
 
@@ -29,15 +29,17 @@ class Experiment(pl.LightningModule):
         self.curr_device = None
         self.save_hyperparameters(ignore=["model"])
 
-    def forward(self, input: Tensor, **kwargs) -> Tensor:
-        return self.model(input, **kwargs)
+    def forward(self, batch: Tensor, **kwargs) -> List[Tensor]:
+        return self.model(batch, **kwargs)
 
     def training_step(self, batch, batch_idx):
+        batch, mask = batch
         self.curr_device = batch.device
 
         results = self.forward(batch, target=batch)
         train_loss = self.model.loss_function(
             *results,
+            mask=mask,
             kld_weight=self.kld_weight,
             duration_weight=self.duration_weight,
             batch_idx=batch_idx,
@@ -49,11 +51,13 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
+        batch, mask = batch
         self.curr_device = batch.device
 
         results = self.forward(batch)
         val_loss = self.model.loss_function(
             *results,
+            mask=mask,
             kld_weight=self.kld_weight,
             duration_weight=self.duration_weight,
             optimizer_idx=optimizer_idx,
@@ -73,41 +77,45 @@ class Experiment(pl.LightningModule):
         self.sample_sequences(100)
 
     def regenerate_test_batch(self):
-        x = next(iter(self.trainer.datamodule.test_dataloader()))
+        x, _ = next(iter(self.trainer.datamodule.test_dataloader()))
         x = x.to(self.curr_device)
         self.regenerate_batch(x, name="test_reconstructions")
 
     def regenerate_val_batch(self):
-        x = next(iter(self.trainer.datamodule.val_dataloader()))
+        x, _ = next(iter(self.trainer.datamodule.val_dataloader()))
         x = x.to(self.curr_device)
         self.regenerate_batch(x, name="reconstructions")
 
     def regenerate_batch(self, x: Tensor, name: str):
-        reconstructed = self.model.generate(x, self.curr_device)
+        y_probs = self.model.generate(x, self.curr_device).squeeze()
+        image = unpack(x, y_probs, self.curr_device)
+        div = torch.ones(y_probs.shape)
+        images = torch.cat((image.squeeze(), div, y_probs), dim=-1)
         vutils.save_image(
-            pre_process(reconstructed.data),
+            pre_process(images.data),
             Path(
                 self.logger.log_dir,
                 name,
                 f"recons_{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
-            normalize=True,
-            nrow=10,
-            pad_value=0.5,
+            normalize=False,
+            nrow=1,
+            pad_value=1,
         )
 
     def sample_sequences(self, num_samples: int, name: str = "samples") -> None:
         z = torch.randn(num_samples, self.model.latent_dim)
-        samples = self.model.predict_step(z, self.curr_device)
+        y_probs = self.model.predict_step(z, self.curr_device)
         vutils.save_image(
-            pre_process(samples.cpu().data),
+            pre_process(y_probs.cpu().data),
             Path(
                 self.logger.log_dir,
                 name,
                 f"{self.logger.name}_epoch_{self.current_epoch}.png",
             ),
-            normalize=True,
-            nrow=10,
+            normalize=False,
+            nrow=1,
+            pad_value=1,
         )
 
     def configure_optimizers(self):
@@ -128,6 +136,27 @@ class Experiment(pl.LightningModule):
 
     def predict_step(self, batch):
         return self.model.predict_step(batch, self.curr_device)
+
+
+def unpack(x, y, current_device):
+    if x.dim() == 2:
+        # assume cat encoding and unpack into image
+        channels = y.shape[-1]
+        eye = torch.eye(channels)
+        eye = eye.to(current_device)
+        ximage = eye[x.long()].squeeze()
+        return ximage
+
+    elif x.shape[-1] == 2:
+        # assume cat encoding and unpack into image
+        channels = y.shape[-1] - 1
+        acts, durations = x.split([1, 1], dim=-1)
+        eye = torch.eye(channels)
+        eye = eye.to(current_device)
+        ximage = eye[acts.long()].squeeze()
+        ximage = torch.cat((ximage, durations), dim=-1)
+        return ximage
+    return x
 
 
 def pre_process(images):

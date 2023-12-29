@@ -1,10 +1,6 @@
-from .seq.base import SEQVAE
-from .seq.lstm import SEQVAESEQ
-from .vae import VAE2D
+from .conv.conv2d import Conv2d
+from .conv.embed_conv import EmbedConv
+from .seq.gru import GRU
+from .seq.lstm import LSTM
 
-library = {
-    "VAE": VAE2D,
-    "VAE2D": VAE2D,
-    "SEQVAE": SEQVAE,
-    "SEQVAESEQ": SEQVAESEQ,
-}
+library = {"EmbedConv": EmbedConv, "Conv2d": Conv2d, "LSTM": LSTM, "GRU": GRU}
