@@ -1,11 +1,11 @@
 data_path: "examples/tmp/nts_toy_population.csv"
 
 logging_params:
-  save_dir: "logs"
+  log_dir: "logs"
 
 model_params:
-  name: "VAE"
-  hidden_dims: [64,64]
+  name: "Conv2d"
+  hidden_layers: [16]
   latent_dim: 2
   kernel_size: [3,3]
   stride: [2,2]

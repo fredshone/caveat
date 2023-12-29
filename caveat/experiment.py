@@ -1,10 +1,10 @@
 from pathlib import Path
+from typing import List
 
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
-from torch import optim
-from torch import tensor as Tensor
+from torch import Tensor, optim
 
 from caveat.models.base import BaseVAE
 
@@ -29,7 +29,7 @@ class Experiment(pl.LightningModule):
         self.curr_device = None
         self.save_hyperparameters(ignore=["model"])
 
-    def forward(self, batch: Tensor, **kwargs) -> Tensor:
+    def forward(self, batch: Tensor, **kwargs) -> List[Tensor]:
         return self.model(batch, **kwargs)
 
     def training_step(self, batch, batch_idx):
@@ -87,8 +87,10 @@ class Experiment(pl.LightningModule):
         self.regenerate_batch(x, name="reconstructions")
 
     def regenerate_batch(self, x: Tensor, name: str):
-        y = self.model.generate(x, self.curr_device)
-        images = torch.cat((x, y), dim=-1)
+        y_probs = self.model.generate(x, self.curr_device).squeeze()
+        image = unpack(x, y_probs, self.curr_device)
+        div = torch.ones(y_probs.shape)
+        images = torch.cat((image.squeeze(), div, y_probs), dim=-1)
         vutils.save_image(
             pre_process(images.data),
             Path(
@@ -103,9 +105,9 @@ class Experiment(pl.LightningModule):
 
     def sample_sequences(self, num_samples: int, name: str = "samples") -> None:
         z = torch.randn(num_samples, self.model.latent_dim)
-        samples = self.model.predict_step(z, self.curr_device)
+        y_probs = self.model.predict_step(z, self.curr_device)
         vutils.save_image(
-            pre_process(samples.cpu().data),
+            pre_process(y_probs.cpu().data),
             Path(
                 self.logger.log_dir,
                 name,
@@ -113,6 +115,7 @@ class Experiment(pl.LightningModule):
             ),
             normalize=False,
             nrow=1,
+            pad_value=1,
         )
 
     def configure_optimizers(self):
@@ -133,6 +136,27 @@ class Experiment(pl.LightningModule):
 
     def predict_step(self, batch):
         return self.model.predict_step(batch, self.curr_device)
+
+
+def unpack(x, y, current_device):
+    if x.dim() == 2:
+        # assume cat encoding and unpack into image
+        channels = y.shape[-1]
+        eye = torch.eye(channels)
+        eye = eye.to(current_device)
+        ximage = eye[x.long()].squeeze()
+        return ximage
+
+    elif x.shape[-1] == 2:
+        # assume cat encoding and unpack into image
+        channels = y.shape[-1] - 1
+        acts, durations = x.split([1, 1], dim=-1)
+        eye = torch.eye(channels)
+        eye = eye.to(current_device)
+        ximage = eye[acts.long()].squeeze()
+        ximage = torch.cat((ximage, durations), dim=-1)
+        return ximage
+    return x
 
 
 def pre_process(images):

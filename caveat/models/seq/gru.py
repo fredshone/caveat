@@ -7,7 +7,7 @@ from caveat import current_device
 from caveat.models.base import BaseVAE
 
 
-class LSTM(BaseVAE):
+class GRU(BaseVAE):
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
@@ -29,8 +29,7 @@ class LSTM(BaseVAE):
             max_length=length,
             sos=self.sos,
         )
-        self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        flat_size_encode = self.hidden_layers * self.hidden_size
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
@@ -42,24 +41,18 @@ class LSTM(BaseVAE):
             z (tensor): Latent space batch [N, latent_dims].
 
         Returns:
-            tensor: Output sequence batch [N, steps, acts].
+            tensor: Output batch as tuple of log probs and probs ([N, L, C]).
         """
-        # initialize hidden state as inputs
-        h = self.fc_hidden(z)
-
-        # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
+        hidden = self.fc_hidden(z)
+        hidden = hidden.unflatten(
+            1, (self.hidden_layers, self.hidden_size)
         ).permute(
             1, 0, 2
-        )  # ([2xhidden, N, layers])
-        hidden = hidden.split(
-            self.hidden_layers
-        )  # ([hidden, N, layers, [hidden, N, layers]])
+        )  # ([hidden, N, layers])
         batch_size = z.shape[0]
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
-            # use teacher forcing
+            # attempt to use teacher forcing by passing target
             log_probs, probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
@@ -79,7 +72,7 @@ class Encoder(nn.Module):
         num_layers: int,
         dropout: float = 0.1,
     ):
-        """LSTM Encoder.
+        """Sequence Encoder Template.
 
         Args:
             input_size (int): lstm input size.
@@ -91,7 +84,7 @@ class Encoder(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.embedding = nn.Embedding(input_size, hidden_size - 1)
-        self.lstm = nn.LSTM(
+        self.rnn = nn.GRU(
             hidden_size,
             hidden_size,
             num_layers,
@@ -104,9 +97,9 @@ class Encoder(nn.Module):
         embedded, durations = torch.split(x, [1, 1], dim=-1)
         embedded = self.dropout(self.embedding(embedded.int())).squeeze()
         embedded = torch.cat((embedded, durations), dim=-1)
-        _, hidden = self.lstm(embedded)
-        # ([L, N, C], [L, N, C])
-        hidden = torch.cat(hidden).permute(1, 0, 2).flatten(start_dim=1)
+        _, hidden = self.rnn(embedded)
+        # [L, N, C])
+        hidden = hidden.permute(1, 0, 2).flatten(start_dim=1)
         # [N, flatsize]
         return hidden
 
@@ -128,6 +121,7 @@ class Decoder(nn.Module):
             hidden_size (int): lstm hidden size.
             num_layers (int): number of lstm layers.
             max_length (int): max length of sequences.
+            sos (int): start of sequence encoding index. Defaults to 0.
         """
         super(Decoder, self).__init__()
         self.current_device = current_device()
@@ -139,7 +133,7 @@ class Decoder(nn.Module):
 
         self.embedding = nn.Embedding(input_size, hidden_size - 1)
         self.activate = nn.ReLU()
-        self.lstm = nn.LSTM(
+        self.rnn = nn.GRU(
             hidden_size,
             hidden_size,
             num_layers,
@@ -152,12 +146,10 @@ class Decoder(nn.Module):
         self.duration_activation = nn.Softmax(dim=1)
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
-        hidden, cell = hidden
         decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
         decoder_input[:, :, 0] = self.sos  # set as SOS
         hidden = hidden.contiguous()
-        cell = cell.contiguous()
-        decoder_hidden = (hidden, cell)
+        decoder_hidden = hidden
         outputs = []
 
         for i in range(self.max_length):
@@ -191,7 +183,7 @@ class Decoder(nn.Module):
         embedded, durations = torch.split(x, [1, 1], dim=-1)
         embedded = self.activate(self.embedding(embedded.int())).squeeze(-2)
         embedded = torch.cat((embedded, durations), dim=-1)
-        output, hidden = self.lstm(embedded, hidden)
+        output, hidden = self.rnn(embedded, hidden)
         prediction = self.fc(output)
         # [N, 1, encodings+1]
         return prediction, hidden

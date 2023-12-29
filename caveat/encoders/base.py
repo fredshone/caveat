@@ -1,7 +1,27 @@
 from abc import ABC
 
 from pandas import DataFrame
-from torch import tensor
+from torch import Tensor
+from torch.utils.data import Dataset
+
+
+class BaseEncodedPlans(Dataset):
+    def __init__(self):
+        """Base encoded sequence Dataset."""
+        super(BaseEncodedPlans, self).__init__()
+        self.encodings: int
+        self.encoding_weights: Tensor
+        self.masks: Tensor
+        raise NotImplementedError
+
+    def shape(self):
+        raise NotImplementedError
+
+    def __len__(self):
+        raise NotImplementedError
+
+    def __getitem__(self, idx):
+        raise NotImplementedError
 
 
 class BaseEncoder(ABC):
@@ -9,8 +29,8 @@ class BaseEncoder(ABC):
         super(BaseEncoder, self).__init__()
         self.encodings = None
 
-    def encode(self, input: DataFrame) -> tensor:
+    def encode(self, input: DataFrame) -> BaseEncodedPlans:
         raise NotImplementedError
 
-    def decode(self, input: tensor) -> DataFrame:
+    def decode(self, encoded: Tensor) -> DataFrame:
         raise NotImplementedError
