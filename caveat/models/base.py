@@ -15,6 +15,52 @@ class BaseDecoder(nn.Module):
         raise NotImplementedError
 
 
+class OneHotEmbedding(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout: float = 0.1):
+        """Embedding that combines activity onehot embedding and duration."""
+        super().__init__()
+        self.classes = input_size
+        self.fc = nn.Linear(hidden_size, hidden_size)
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self, x):
+        embedded, durations = torch.split(x, [1, 1], dim=-1)
+        embedded = self.dropout(nn.functional.one_hot(embedded.int(), self.classes))
+        embedded = torch.cat((embedded, durations), dim=-1)
+        embedded = self.fc(embedded)
+        return embedded
+    
+
+class CustomEmbedding(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout: float = 0.1):
+        """Embedding that combines activity embedding layer."""
+        super().__init__()
+        self.embedding = nn.Embedding(input_size, hidden_size - 1)
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self, x):
+        embedded, durations = torch.split(x, [1, 1], dim=-1)
+        embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
+        embedded = torch.cat((embedded, durations), dim=-1)
+        return embedded
+
+
+class CustomLinearEmbedding(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout: float = 0.1):
+        """Embedding that combines activity embedding layer and duration using a linear layer."""
+        super().__init__()
+        self.embedding = nn.Embedding(input_size, hidden_size - 1)
+        self.fc = nn.Linear(hidden_size, hidden_size)
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self, x):
+        embedded, durations = torch.split(x, [1, 1], dim=-1)
+        embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
+        embedded = torch.cat((embedded, durations), dim=-1)
+        embedded = self.fc(embedded)
+        return embedded
+
+
 class BaseVAE(nn.Module):
     def __init__(
         self,
@@ -252,7 +298,7 @@ class BaseVAE(nn.Module):
         Returns:
             tensor: [N, steps, acts].
         """
-        # z = z.to(current_device)
+        z = z.to(current_device)
         prob_samples = self.decode(z)[1]
         return prob_samples
 
@@ -266,5 +312,5 @@ class BaseVAE(nn.Module):
             tensor: [N, steps, acts].
         """
         prob_samples = self.forward(x)[1]
-        # prob_samples = prob_samples.to(current_device)
+        prob_samples = prob_samples.to(current_device)
         return prob_samples

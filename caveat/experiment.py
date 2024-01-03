@@ -89,7 +89,7 @@ class Experiment(pl.LightningModule):
     def regenerate_batch(self, x: Tensor, name: str):
         y_probs = self.model.generate(x, self.curr_device).squeeze()
         image = unpack(x, y_probs, self.curr_device)
-        div = torch.ones(y_probs.shape)
+        div = torch.ones_like(y_probs)
         images = torch.cat((image.squeeze(), div, y_probs), dim=-1)
         vutils.save_image(
             pre_process(images.data),
