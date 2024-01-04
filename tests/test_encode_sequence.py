@@ -71,7 +71,7 @@ def test_encoded_weights():
     expected_weights = torch.tensor([1 / 120, 1 / 120, 1 / 15, 1 / 5])
     expected_mask = torch.tensor([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
 
-    encoder = seq.SequenceEncoder(max_length=10, norm_duration=10)
+    encoder = seq.SequenceEncoder(max_length=10, duration=10)
     encoded = encoder.encode(traces)
     assert torch.equal(encoded.encoding_weights, expected_weights)
     assert torch.equal(encoded[0][1], expected_mask)
@@ -116,7 +116,7 @@ def test_encoded_weights():
 )
 def test_decode_descretised(encoded, length, norm_duration, expected):
     encoder = seq.SequenceEncoder(
-        max_length=length, norm_duration=norm_duration
+        max_length=length, duration=norm_duration
     )
     _ = encoder.encode(expected)
     result = encoder.decode(encoded)

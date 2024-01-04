@@ -10,10 +10,10 @@ from caveat.encoders import BaseEncodedPlans, BaseEncoder
 
 class SequenceEncoder(BaseEncoder):
     def __init__(
-        self, max_length: int = 12, norm_duration: int = 1440, **kwargs
+        self, max_length: int = 12, duration: int = 1440, **kwargs
     ):
         self.max_length = max_length
-        self.norm_duration = norm_duration
+        self.duration = duration
 
     def encode(self, data: pd.DataFrame) -> BaseEncodedPlans:
         self.sos = 0
@@ -25,7 +25,7 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceEncodedPlans(
-            data, self.max_length, self.acts_to_index, self.norm_duration
+            data, self.max_length, self.acts_to_index, self.duration
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -52,7 +52,7 @@ class SequenceEncoder(BaseEncoder):
                     continue
                 if int(act_idx) == self.eos:
                     break
-                duration = int(duration * self.norm_duration)
+                duration = int(duration * self.duration)
                 decoded.append(
                     [
                         pid,

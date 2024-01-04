@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models.base import BaseVAE
+from caveat.models.base import BaseVAE, CustomEmbedding
 
 
 class GRU(BaseVAE):
@@ -27,6 +27,7 @@ class GRU(BaseVAE):
             output_size=self.encodings + 1,
             num_layers=self.hidden_layers,
             max_length=length,
+            dropout=self.dropout,
             sos=self.sos,
         )
         flat_size_encode = self.hidden_layers * self.hidden_size
@@ -70,7 +71,7 @@ class Encoder(nn.Module):
         input_size: int,
         hidden_size: int,
         num_layers: int,
-        dropout: float = 0.1,
+        dropout: float = 0.0,
     ):
         """Sequence Encoder Template.
 
@@ -78,12 +79,12 @@ class Encoder(nn.Module):
             input_size (int): lstm input size.
             hidden_size (int): lstm hidden size.
             num_layers (int): number of lstm layers.
-            dropout (float): dropout. Defaults to 0.1.
+            dropout (float): dropout. Defaults to 0.0.
         """
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = nn.Embedding(input_size, hidden_size - 1)
+        self.embedding = CustomEmbedding(input_size, hidden_size, dropout=dropout)
         self.rnn = nn.GRU(
             hidden_size,
             hidden_size,
@@ -94,9 +95,7 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        embedded, durations = torch.split(x, [1, 1], dim=-1)
-        embedded = self.dropout(self.embedding(embedded.int())).squeeze()
-        embedded = torch.cat((embedded, durations), dim=-1)
+        embedded = self.embedding(x)
         _, hidden = self.rnn(embedded)
         # [L, N, C])
         hidden = hidden.permute(1, 0, 2).flatten(start_dim=1)
@@ -112,6 +111,7 @@ class Decoder(nn.Module):
         output_size,
         num_layers,
         max_length,
+        dropout: float = 0.0,
         sos: int = 0,
     ):
         """LSTM Decoder with teacher forcings.
@@ -121,6 +121,7 @@ class Decoder(nn.Module):
             hidden_size (int): lstm hidden size.
             num_layers (int): number of lstm layers.
             max_length (int): max length of sequences.
+            dropout (float): dropout probability. Defaults to 0.
             sos (int): start of sequence encoding index. Defaults to 0.
         """
         super(Decoder, self).__init__()
@@ -131,7 +132,7 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = nn.Embedding(input_size, hidden_size - 1)
+        self.embedding = CustomEmbedding(input_size, hidden_size, dropout=dropout)
         self.activate = nn.ReLU()
         self.rnn = nn.GRU(
             hidden_size,
@@ -180,9 +181,7 @@ class Decoder(nn.Module):
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]
-        embedded, durations = torch.split(x, [1, 1], dim=-1)
-        embedded = self.activate(self.embedding(embedded.int())).squeeze(-2)
-        embedded = torch.cat((embedded, durations), dim=-1)
+        embedded = self.embedding(x)
         output, hidden = self.rnn(embedded, hidden)
         prediction = self.fc(output)
         # [N, 1, encodings+1]
