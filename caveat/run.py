@@ -41,6 +41,8 @@ def run_command(config: dict) -> None:
     data_path = Path(config["data_path"])
     observed = data.load_and_validate(data_path)
 
+    print(f"Loaded {len(observed)} sequences from {data_path}")
+
     sampled = {name: build_trainer(name, observed, config, log_dir, seed)}
 
     report.report(observed, sampled, write_path)
@@ -69,6 +71,7 @@ def batch_command(batch_config: dict):
 
     data_path = global_config["data_path"]
     observed = data.load_and_validate(data_path)
+    print(f"Loaded {len(observed)} sequences from {data_path}")
 
     sampled = {}
     for name, config in batch_config.items():

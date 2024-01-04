@@ -1,7 +1,7 @@
 from numpy import array
 from pandas import DataFrame, Series
 
-from caveat.distances.scalar import mae
+from caveat.distance.scalar import mae
 from caveat.features.times import start_times_by_act
 from caveat.report import extract_default, report, score_features
 

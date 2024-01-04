@@ -2,7 +2,7 @@ import pytest
 from scipy.stats import wasserstein_distance
 from torch import tensor
 
-from caveat.distances.wasserstein import SinkhornDistance
+from caveat.distance.wasserstein import SinkhornDistance
 
 
 @pytest.mark.parametrize(
