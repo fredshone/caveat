@@ -941,7 +941,7 @@
             
   
   <span class="md-ellipsis">
-    caveat.distances
+    caveat.distance
   </span>
   
 
@@ -951,7 +951,7 @@
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6_2_6">
             <span class="md-nav__icon md-icon"></span>
-            caveat.distances
+            caveat.distance
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -962,11 +962,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/caveat/distances/scalar/" class="md-nav__link">
+      <a href="../../reference/caveat/distance/scalar/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.distances.scalar
+    caveat.distance.scalar
   </span>
   
 
@@ -983,11 +983,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/caveat/distances/wasserstein/" class="md-nav__link">
+      <a href="../../reference/caveat/distance/wasserstein/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.distances.wasserstein
+    caveat.distance.wasserstein
   </span>
   
 
@@ -2029,8 +2029,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2071,38 +2071,6 @@ from caveat.describe.times import (
     times_distributions_plot,
 )
 from caveat.describe.transitions import sequence_prob_plot</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
-<span class="ansi-green-intense-fg ansi-bold">/Users/fredshone/Projects/caveat/examples/1_synthetic_population_generation.ipynb Cell 2</span> line <span class="ansi-cyan-fg">1
-</span><span class="ansi-green-intense-fg ansi-bold">      &lt;a href='vscode-notebook-cell:/Users/fredshone/Projects/caveat/examples/1_synthetic_population_generation.ipynb#W1sZmlsZQ%3D%3D?line=5'&gt;6&lt;/a&gt;</span> from caveat.data.utils import generate_population, trace_to_pam
-<span class="ansi-green-intense-fg ansi-bold">      &lt;a href='vscode-notebook-cell:/Users/fredshone/Projects/caveat/examples/1_synthetic_population_generation.ipynb#W1sZmlsZQ%3D%3D?line=6'&gt;7&lt;/a&gt;</span> from caveat.describe.times import (
-<span class="ansi-green-intense-fg ansi-bold">      &lt;a href='vscode-notebook-cell:/Users/fredshone/Projects/caveat/examples/1_synthetic_population_generation.ipynb#W1sZmlsZQ%3D%3D?line=7'&gt;8&lt;/a&gt;</span>     joint_time_distributions_plot,
-<span class="ansi-green-intense-fg ansi-bold">      &lt;a href='vscode-notebook-cell:/Users/fredshone/Projects/caveat/examples/1_synthetic_population_generation.ipynb#W1sZmlsZQ%3D%3D?line=8'&gt;9&lt;/a&gt;</span>     times_distributions_plot,
-<span class="ansi-green-intense-fg ansi-bold">     &lt;a href='vscode-notebook-cell:/Users/fredshone/Projects/caveat/examples/1_synthetic_population_generation.ipynb#W1sZmlsZQ%3D%3D?line=9'&gt;10&lt;/a&gt;</span> )
-<span class="ansi-green-fg">---&gt; &lt;a href='vscode-notebook-cell:/Users/fredshone/Projects/caveat/examples/1_synthetic_population_generation.ipynb#W1sZmlsZQ%3D%3D?line=10'&gt;11&lt;/a&gt;</span> from caveat.describe.transitions import sequence_prob_plot
-
-File <span class="ansi-green-fg">~/Projects/caveat/caveat/describe/transitions.py:10</span>
-<span class="ansi-green-intense-fg ansi-bold">      7</span> from matplotlib.patches import Patch
-<span class="ansi-green-intense-fg ansi-bold">      8</span> from pandas import DataFrame
-<span class="ansi-green-fg">---&gt; 10</span> from caveat.features.transitions import sequence_probs
-<span class="ansi-green-intense-fg ansi-bold">     13</span> def _probs_plot(
-<span class="ansi-green-intense-fg ansi-bold">     14</span>     population: DataFrame, acts: list[str], cmap: Optional[CMap], ax=Axes
-<span class="ansi-green-intense-fg ansi-bold">     15</span> ) -&gt; (Figure, Axes):
-<span class="ansi-green-intense-fg ansi-bold">     16</span>     probs = sequence_probs(population)
-
-<span class="ansi-red-fg">ImportError</span>: cannot import name 'sequence_probs' from 'caveat.features.transitions' (/Users/fredshone/Projects/caveat/caveat/features/transitions.py)</pre>
 </div>
 </div>
 </div>
