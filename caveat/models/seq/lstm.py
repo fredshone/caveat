@@ -8,6 +8,10 @@ from caveat.models.base import BaseVAE, CustomEmbedding
 
 
 class LSTM(BaseVAE):
+    def __init__(self, *args, **kwargs):
+        """RNN based encoder and decoder with encoder embedding layer."""
+        super().__init__(*args, **kwargs)
+
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
@@ -94,7 +98,9 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = CustomEmbedding(input_size, hidden_size, dropout=dropout)
+        self.embedding = CustomEmbedding(
+            input_size, hidden_size, dropout=dropout
+        )
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
@@ -141,7 +147,9 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = CustomEmbedding(input_size, hidden_size, dropout=dropout)
+        self.embedding = CustomEmbedding(
+            input_size, hidden_size, dropout=dropout
+        )
         self.activate = nn.ReLU()
         self.lstm = nn.LSTM(
             hidden_size,

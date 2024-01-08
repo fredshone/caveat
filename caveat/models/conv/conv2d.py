@@ -1,6 +1,5 @@
 from typing import Optional, Tuple, Union
 
-import torch
 from torch import Tensor, nn
 
 from caveat.models.base import BaseVAE
@@ -8,6 +7,10 @@ from caveat.models.utils import calc_output_padding, conv_size
 
 
 class Conv2d(BaseVAE):
+    def __init__(self, *args, **kwargs):
+        """Convolution based encoder and decoder, takes pre-encoded input (eg one-hot)."""
+        super().__init__(*args, **kwargs)
+
     def build(self, **config):
         hidden_layers = list
         latent_dim = int
@@ -62,41 +65,9 @@ class Conv2d(BaseVAE):
     def loss_function(
         self, log_probs, probs, input, mu, log_var, mask, **kwargs
     ) -> dict:
-        r"""Computes the VAE loss function.
-
-        Splits the input into activity and duration, and the recons into activity and duration.
-
-        Returns:
-            dict: Losses.
-        """
-
-        input_argmax = input.squeeze().argmax(dim=-1)
-        recon_argmax = probs.squeeze().argmax(dim=-1)
-
-        # activity encodng
-        recon_act_nlll = self.NLLL(
-            log_probs.squeeze().permute(0, 2, 1), input_argmax.long()
+        return self.discretized_loss_encoded(
+            log_probs, probs, input, mu, log_var, mask, **kwargs
         )
-
-        recon_act_ham = self.hamming(recon_argmax, input_argmax)
-
-        output_size = log_probs.shape[-1] * log_probs.shape[-2]
-        norm_kld_weight = self.kld_weight * self.latent_dim / output_size
-
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
-        )
-
-        loss = recon_act_nlll + kld_loss
-        return {
-            "loss": loss,
-            "recon_loss": recon_act_nlll.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_act_ham_loss": recon_act_ham.detach(),
-            "KLD": kld_loss.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]),
-        }
 
 
 class Encoder(nn.Module):
@@ -135,6 +106,7 @@ class Encoder(nn.Module):
                         kernel_size=kernel_size,
                         stride=stride,
                         padding=padding,
+                        bias=False,
                     ),
                     nn.BatchNorm2d(hidden_channels),
                     nn.LeakyReLU(),
@@ -190,6 +162,7 @@ class Decoder(nn.Module):
                         output_padding=calc_output_padding(
                             target_shapes[i + 1]
                         ),
+                        bias=False,
                     ),
                     nn.BatchNorm2d(target_shapes[i + 1][0]),
                     nn.LeakyReLU(),
@@ -206,6 +179,7 @@ class Decoder(nn.Module):
                     stride=stride,
                     padding=padding,
                     output_padding=calc_output_padding(target_shapes[-1]),
+                    bias=False,
                 ),
                 nn.BatchNorm2d(target_shapes[-1][0]),
                 nn.Tanh(),

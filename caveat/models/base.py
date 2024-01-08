@@ -22,14 +22,16 @@ class OneHotEmbedding(nn.Module):
         self.classes = input_size
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.dropout = nn.Dropout(dropout)
-    
+
     def forward(self, x):
         embedded, durations = torch.split(x, [1, 1], dim=-1)
-        embedded = self.dropout(nn.functional.one_hot(embedded.int(), self.classes))
+        embedded = self.dropout(
+            nn.functional.one_hot(embedded.int(), self.classes)
+        )
         embedded = torch.cat((embedded, durations), dim=-1)
         embedded = self.fc(embedded)
         return embedded
-    
+
 
 class CustomEmbedding(nn.Module):
     def __init__(self, input_size, hidden_size, dropout: float = 0.1):
@@ -37,7 +39,7 @@ class CustomEmbedding(nn.Module):
         super().__init__()
         self.embedding = nn.Embedding(input_size, hidden_size - 1)
         self.dropout = nn.Dropout(dropout)
-    
+
     def forward(self, x):
         embedded, durations = torch.split(x, [1, 1], dim=-1)
         embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
@@ -52,7 +54,7 @@ class CustomLinearEmbedding(nn.Module):
         self.embedding = nn.Embedding(input_size, hidden_size - 1)
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.dropout = nn.Dropout(dropout)
-    
+
     def forward(self, x):
         embedded, durations = torch.split(x, [1, 1], dim=-1)
         embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
@@ -87,7 +89,8 @@ class BaseVAE(nn.Module):
 
         self.sos = sos
         self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0)
-        self.kld_weight = config.get("kld_weight", 0.1)
+        self.kld_weight = config.get("kld_weight", 0.001)
+        print(f"KLD weight: {self.kld_weight}")
         self.duration_weight = config.get("duration_weight", 1)
         self.use_mask = config.get("use_mask", True)  # defaults to True
         self.use_weighted_loss = config.get(
@@ -193,15 +196,43 @@ class BaseVAE(nn.Module):
         return [log_prob_y, prob_y, x, mu, log_var]
 
     def loss_function(
-        self, log_probs, _, input, mu, log_var, mask, **kwargs
+        self,
+        log_probs: Tensor,
+        probs: Tensor,
+        input: Tensor,
+        mu: Tensor,
+        log_var: Tensor,
+        mask: Tensor,
+        **kwargs,
     ) -> dict:
-        r"""Computes the VAE loss function.
+        """Computes the loss function. Different models are expected to need different loss functions
+        depending on the input data structure. Typically it will either be a sequence encoding [N, L, 2],
+        or discretized encoding [N, L, C] or [N, L].
 
-        Splits the input into activity and duration, and the recons into activity and duration.
+        The default is to use the sequence loss function. But child classes can override this method.
+
+        Returns losses as a dictionary. Which must include the keys "loss" and "recon_loss".
+
+        Args:
+            log_probs (Tensor): Log probabilities of the output.
+            probs (Tensor): Probabilities of the output.
+            input (Tensor): Input sequences.
+            mu (Tensor): Latent layer means.
+            log_var (Tensor): Latent layer log variances.
+            mask (Tensor): Input mask.
 
         Returns:
             dict: Losses.
         """
+
+        return self.seq_loss(
+            log_probs, probs, input, mu, log_var, mask, **kwargs
+        )
+
+    def seq_loss(
+        self, log_probs, probs, input, mu, log_var, mask, **kwargs
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
 
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(input)
@@ -212,13 +243,13 @@ class BaseVAE(nn.Module):
         else:
             flat_mask = torch.ones_like(target_acts).view(-1).bool()
 
-        # activity encodng
+        # activity encoding
         recon_act_nlll = self.NLLL(
             pred_acts.view(-1, self.encodings)[flat_mask],
             target_acts.view(-1).long()[flat_mask],
         )
 
-        # duration encodng
+        # duration encoding
         recon_dur_mse = self.duration_weight * self.MSE(
             pred_durations.view(-1)[flat_mask],
             target_durations.view(-1)[flat_mask],
@@ -227,30 +258,74 @@ class BaseVAE(nn.Module):
         # combined
         recons_loss = recon_act_nlll + recon_dur_mse
 
+        # hamming distance
         recon_argmax = torch.argmax(pred_acts, dim=-1)
         recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
 
-        output_size = log_probs.shape[-1] * log_probs.shape[-2]
-        norm_kld_weight = self.kld_weight * self.latent_dim / output_size
+        norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
             -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
             dim=0,
         )
 
-        loss = recons_loss + kld_loss
         return {
-            "loss": loss,
+            "loss": recons_loss + kld_loss,
             "recon_loss": recons_loss.detach(),
             "recon_act_nlll_loss": recon_act_nlll.detach(),
             "recon_dur_mse_loss": recon_dur_mse.detach(),
             "recon_act_ham_loss": recon_act_ham.detach(),
             "KLD": kld_loss.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]),
+            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
+            "recon_act_ratio": recon_act_nlll + recon_dur_mse,
+            "recon_kld_ratio": recons_loss / kld_loss,
         }
 
+    def discretized_loss(
+        self, log_probs, probs, input, mu, log_var, mask, **kwargs
+    ) -> dict:
+        """Loss function for discretized encoding [N, L]."""
+
+        recon_argmax = probs.squeeze().argmax(dim=-1)
+
+        # activity encoding
+        recon_act_nlll = self.NLLL(
+            log_probs.squeeze().permute(0, 2, 1), input.long()
+        )
+
+        recon_act_ham = self.hamming(recon_argmax, input.long())
+
+        norm_kld_weight = self.kld_weight
+
+        kld_loss = norm_kld_weight * torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
+        )
+
+        loss = recon_act_nlll + kld_loss
+
+        return {
+            "loss": loss,
+            "recon_loss": recon_act_nlll,
+            "recon_act_nlll_loss": recon_act_nlll,
+            "recon_act_ham_loss": recon_act_ham,
+            "KLD": kld_loss,
+            "norm_kld_weight": torch.tensor([norm_kld_weight]),
+            "recon_kld_ratio": recon_act_nlll / kld_loss,
+        }
+
+    def discretized_loss_encoded(
+        self, log_probs, probs, input, mu, log_var, mask, **kwargs
+    ) -> dict:
+        """Computes the loss function for discretized encoding [N, L, C]."""
+
+        input_argmax = input.squeeze().argmax(dim=-1)
+        return self.discretized_loss(
+            log_probs, probs, input_argmax, mu, log_var, mask, **kwargs
+        )
+
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
-        """Reparameterization trick to sample from N(mu, var) from N(0,1).
+        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
 
         Args:
             mu (tensor): Mean of the latent Gaussian [N x latent_dims].

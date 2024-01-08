@@ -1,6 +1,8 @@
 from numpy import array, ndarray
 from pandas import DataFrame
 
+from caveat.features.utils import weighted_features
+
 
 def start_and_end_acts(
     population: DataFrame, target: str = "home"
@@ -31,7 +33,14 @@ def time_consistency(
     }
 
 
-def trip_consisteny(
+def duration_consistency(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    durations = population.groupby("pid").duration.sum()
+    return weighted_features({"total duration": durations.array})
+
+
+def trip_consistency(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
     raise NotImplementedError

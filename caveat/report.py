@@ -11,7 +11,7 @@ from caveat.describe.features import (
     feature_length,
     feature_weight,
 )
-from caveat.distances import ape, emd, mae
+from caveat.distance import abs_av_diff, emd, mae, mape
 from caveat.features import (
     creativity,
     frequency,
@@ -23,16 +23,16 @@ from caveat.features import (
 
 structure_jobs = [
     (
-        ("time consistency", structural.time_consistency),
+        ("duration", structural.duration_consistency),
         (feature_weight),
-        ("prob. consistent", average),
-        ("MAE", mae),
+        ("duration", average),
+        ("MAE", abs_av_diff),
     ),
     (
-        ("start and end acts", structural.start_and_end_acts),
+        ("home based", structural.start_and_end_acts),
         (feature_weight),
         ("prob.", average),
-        ("MAE", mae),
+        ("MAE", abs_av_diff),
     ),
 ]
 frequency_jobs = [
@@ -48,13 +48,13 @@ participation_prob_jobs = [
         ("participation", participation.participation_prob_by_act),
         (feature_weight),
         ("prob.", average),
-        ("MAPE", ape),
+        ("MAPE", mape),
     ),
     (
         ("joint participation", participation.joint_participation_prob),
         (feature_weight),
         ("prob.", average),
-        ("MAPE", ape),
+        ("MAPE", mape),
     ),
 ]
 participation_rate_jobs = [
@@ -141,7 +141,7 @@ def report(
     report_creativity: bool = True,
 ):
     descriptions = DataFrame()
-    scores = DataFrame()
+    distances = DataFrame()
 
     if report_creativity:
         observed_hash = creativity.hash_population(observed)
@@ -150,36 +150,53 @@ def report(
             {
                 "feature count": [observed.pid.nunique()] * 2,
                 "observed": [observed_diversity, 1],
-            },
-            
+            }
         )
-        creativity_scores = creativity_descriptions.copy()
+        creativity_distance = creativity_descriptions.copy()
 
         creativity_descs = []
         creativity_scs = []
         for model, y in sampled.items():
             y_hash = creativity.hash_population(y)
             y_diversity = creativity.diversity(y, y_hash)
-            creativity_descs.append(Series([
-                y_diversity,
-                creativity.novelty(observed_hash, y, y_hash)
-                ], name=model))
-            creativity_scs.append(Series([
-                abs(y_diversity - observed_diversity),
-                creativity.conservatism(observed_hash, y, y_hash)
-            ], name=model))
-        creativity_descs.append(Series(["diversity", "novelty"], name="description"))
-        creativity_scs.append(Series(["abs error", "conservatism"], name = "distance"))
+            creativity_descs.append(
+                Series(
+                    [y_diversity, creativity.novelty(observed_hash, y, y_hash)],
+                    name=model,
+                )
+            )
+            creativity_scs.append(
+                Series(
+                    [
+                        abs(y_diversity - observed_diversity),
+                        creativity.conservatism(observed_hash, y, y_hash),
+                    ],
+                    name=model,
+                )
+            )
+        creativity_descs.append(
+            Series(["diversity", "novelty"], name="description")
+        )
+        creativity_scs.append(
+            Series(["abs error", "conservatism"], name="distance")
+        )
 
-        descriptions = concat([creativity_descriptions, concat(creativity_descs, axis=1)], axis=1)
-        scores = concat([creativity_scores, concat(creativity_scs, axis=1)], axis=1)
+        descriptions = concat(
+            [creativity_descriptions, concat(creativity_descs, axis=1)], axis=1
+        )
+        distances = concat(
+            [creativity_distance, concat(creativity_scs, axis=1)], axis=1
+        )
 
         idx = MultiIndex.from_tuples(
-                [("creativity", "diversity", "all"), ("creativity", "conservatism", "all")],
-                names=["domain", "feature", "segment"],
-            )
+            [
+                ("creativity", "diversity", "all"),
+                ("creativity", "conservatism", "all"),
+            ],
+            names=["domain", "feature", "segment"],
+        )
         descriptions.index = idx
-        scores.index = idx
+        distances.index = idx
 
     for domain, jobs in [
         ("structure", structure_jobs),
@@ -189,12 +206,12 @@ def report(
         ("transitions", transition_jobs),
         ("scheduling", time_jobs),
     ]:
-        for feature, size, description, distance in jobs:
+        for feature, size, description_job, distance_job in jobs:
             # unpack tuples
             feature_name, feature = feature
             print(feature_name)
-            description_name, describe = description
-            distance_name, distance = distance
+            description_name, describe = description_job
+            distance_name, distance_metric = distance_job
 
             # build observed features
             observed_features = feature(observed)
@@ -206,9 +223,9 @@ def report(
             feature_weight = size(observed_features)
             feature_weight.name = "feature count"
 
-            description = describe(observed_features)
+            description_job = describe(observed_features)
             feature_descriptions = DataFrame(
-                {"feature count": feature_weight, "observed": description}
+                {"feature count": feature_weight, "observed": description_job}
             )
 
             # sort by count and description, drop description and add distance description
@@ -216,7 +233,7 @@ def report(
                 ascending=False, by=["feature count", "observed"]
             )
 
-            feature_scores = feature_descriptions.copy()
+            feature_distances = feature_descriptions.copy()
 
             # iterate through samples
             for model, y in sampled.items():
@@ -230,14 +247,14 @@ def report(
                 )
 
                 # report sampled distances
-                feature_scores = concat(
+                feature_distances = concat(
                     [
-                        feature_scores,
+                        feature_distances,
                         score_features(
                             model,
                             observed_features,
                             synth_features,
-                            distance,
+                            distance_metric,
                             default,
                         ),
                     ],
@@ -246,21 +263,21 @@ def report(
 
             # add domain and feature name to index
             feature_descriptions["description"] = description_name
-            feature_scores["distance"] = distance_name
+            feature_distances["distance"] = distance_name
             feature_descriptions.index = MultiIndex.from_tuples(
                 [(domain, feature_name, f) for f in feature_descriptions.index],
                 name=["domain", "feature", "segment"],
             )
-            feature_scores.index = MultiIndex.from_tuples(
-                [(domain, feature_name, f) for f in feature_scores.index],
+            feature_distances.index = MultiIndex.from_tuples(
+                [(domain, feature_name, f) for f in feature_distances.index],
                 name=["domain", "feature", "segment"],
             )
             descriptions = concat([descriptions, feature_descriptions], axis=0)
-            scores = concat([scores, feature_scores], axis=0)
+            distances = concat([distances, feature_distances], axis=0)
 
     # remove nans
     descriptions = descriptions.fillna(0)
-    scores = scores.fillna(0)
+    distances = distances.fillna(0)
 
     # features
     features_descriptions = (
@@ -272,19 +289,19 @@ def report(
         descriptions["description"].groupby(["domain", "feature"]).first()
     )
 
-    features_scores = (
-        scores.drop("distance", axis=1)
+    features_distances = (
+        distances.drop("distance", axis=1)
         .groupby(["domain", "feature"])
         .apply(weighted_av)
     )
-    features_scores["distance"] = (
-        scores["distance"].groupby(["domain", "feature"]).first()
+    features_distances["distance"] = (
+        distances["distance"].groupby(["domain", "feature"]).first()
     )
 
     # rank
-    feature_ranks = features_scores.drop(["observed", "distance"], axis=1).rank(
-        axis=1, method="min"
-    )
+    feature_ranks = features_distances.drop(
+        ["observed", "distance"], axis=1
+    ).rank(axis=1, method="min")
     col_ranks = feature_ranks.sum(axis=0)
     ranked = [i for _, i in sorted(zip(col_ranks, col_ranks.index))]
     feature_ranks = feature_ranks[ranked]
@@ -295,12 +312,12 @@ def report(
         .groupby("domain")
         .mean()
     )
-    domain_scores = (
-        features_scores.drop("distance", axis=1).groupby("domain").mean()
+    domain_distances = (
+        features_distances.drop("distance", axis=1).groupby("domain").mean()
     )
 
     # rank
-    domain_ranks = domain_scores.drop("observed", axis=1).rank(
+    domain_ranks = domain_distances.drop("observed", axis=1).rank(
         axis=1, method="min"
     )
     col_ranks = domain_ranks.sum(axis=0)
@@ -311,21 +328,21 @@ def report(
         descriptions.to_csv(Path(log_dir, "descriptions.csv"))
         features_descriptions.to_csv(Path(log_dir, "feature_descriptions.csv"))
         domain_descriptions.to_csv(Path(log_dir, "domain_descriptions.csv"))
-        scores.to_csv(Path(log_dir, "scores.csv"))
-        features_scores.to_csv(Path(log_dir, "feature_scores.csv"))
-        domain_scores.to_csv(Path(log_dir, "domain_scores.csv"))
+        distances.to_csv(Path(log_dir, "evaluation.csv"))
+        features_distances.to_csv(Path(log_dir, "feature_evaluation.csv"))
+        domain_distances.to_csv(Path(log_dir, "domain_evaluation.csv"))
 
     if head is not None:
         descriptions_short = descriptions.groupby(["domain", "feature"]).head(
             head
         )
-        scores_short = scores.groupby(["domain", "feature"]).head(head)
+        distances_short = distances.groupby(["domain", "feature"]).head(head)
         if log_dir is not None:
             descriptions_short.to_csv(Path(log_dir, "descriptions_short.csv"))
-            scores_short.to_csv(Path(log_dir, "scores_short.csv"))
+            distances_short.to_csv(Path(log_dir, "evaluation_short.csv"))
     else:
         descriptions_short = descriptions
-        scores_short = scores
+        distances_short = distances
 
     if verbose:
         print("\nDescriptions:")
@@ -334,23 +351,25 @@ def report(
                 tablefmt="fancy_grid", floatfmt=".3f"
             )
         )
-        print("\nScores:")
-        print(scores_short.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
+        print("\nEvalutions (Distance):")
+        print(
+            distances_short.to_markdown(tablefmt="fancy_grid", floatfmt=".3f")
+        )
     print("\nFeature Descriptions:")
     print(
         features_descriptions.to_markdown(tablefmt="fancy_grid", floatfmt=".3f")
     )
-    print("\nFeature Scores:")
-    print(features_scores.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
-    print("\nFeature Ranks:")
+    print("\nFeature Evaluations (Distance):")
+    print(features_distances.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
+    print("\nFeature Evaluations (Ranked):")
     print(feature_ranks.to_markdown(tablefmt="fancy_grid"))
     print("\nDomain Descriptions:")
     print(
         domain_descriptions.to_markdown(tablefmt="fancy_grid", floatfmt=".3f")
     )
-    print("\nDomain Scores:")
-    print(domain_scores.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
-    print("\nDomain Ranks:")
+    print("\nDomain Evaluations (Distance):")
+    print(domain_distances.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
+    print("\nDomain Evaluations (Ranked):")
     print(domain_ranks.to_markdown(tablefmt="fancy_grid"))
 
 
