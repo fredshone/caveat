@@ -43,7 +43,7 @@ def run_command(config: dict) -> None:
 
     print(f"Loaded {len(observed)} sequences from {data_path}")
 
-    sampled = {name: build_trainer(name, observed, config, log_dir, seed)}
+    sampled = {name: train_and_sample(name, observed, config, log_dir, seed)}
 
     report.report(observed, sampled, write_path)
 
@@ -181,8 +181,9 @@ def train_and_sample(
 
     logger = initiate_logger(log_dir, name)
 
+    observed_sample = data.sample_observed(observed, config)
     data_encoder = build_encoder(config)
-    encoded = data_encoder.encode(observed)
+    encoded = data_encoder.encode(observed_sample)
     data_loader = build_dataloader(config, encoded)
 
     experiment = build_experiment(encoded, config)
