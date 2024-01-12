@@ -34,9 +34,9 @@ def time_consistency(
 
 
 def duration_consistency(
-    population: DataFrame,
+    population: DataFrame, factor: int = 1440
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    durations = population.groupby("pid").duration.sum()
+    durations = population.groupby("pid").duration.sum() / factor
     return weighted_features({"total duration": durations.array})
 
 

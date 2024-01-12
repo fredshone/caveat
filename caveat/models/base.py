@@ -89,7 +89,7 @@ class BaseVAE(nn.Module):
 
         self.sos = sos
         self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0)
-        self.kld_weight = config.get("kld_weight", 0.001)
+        self.kld_weight = config.get("kld_weight", 0.0001)
         print(f"KLD weight: {self.kld_weight}")
         self.duration_weight = config.get("duration_weight", 1)
         self.use_mask = config.get("use_mask", True)  # defaults to True

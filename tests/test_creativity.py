@@ -1,6 +1,11 @@
 from pandas import DataFrame
 
-from caveat.features.creativity import diversity, hash_population, novelty, conservatism
+from caveat.features.creativity import (
+    conservatism,
+    diversity,
+    hash_population,
+    novelty,
+)
 
 
 def test_hash_population():
@@ -45,6 +50,29 @@ def test_internal_uniqueness_half():
     assert diversity(population, hashed) == 0.5
 
 
+def test_novelty_none():
+    a = DataFrame(
+        [
+            {"pid": 0, "act": "home", "duration": 10},
+            {"pid": 0, "act": "work", "duration": 10},
+            {"pid": 0, "act": "home", "duration": 10},
+            {"pid": 1, "act": "home", "duration": 10},
+            {"pid": 1, "act": "work", "duration": 10},
+        ]
+    )
+    b = DataFrame(
+        [
+            {"pid": 0, "act": "home", "duration": 10},
+            {"pid": 0, "act": "work", "duration": 10},
+            {"pid": 0, "act": "home", "duration": 10},
+            {"pid": 1, "act": "home", "duration": 10},
+            {"pid": 1, "act": "work", "duration": 10},
+        ]
+    )
+    assert novelty(hash_population(a), hash_population(b)) == 0
+    assert conservatism(hash_population(a), hash_population(b)) == 1
+
+
 def test_novelty_full():
     a = DataFrame(
         [
@@ -65,8 +93,8 @@ def test_novelty_full():
             {"pid": 3, "act": "shop", "duration": 10},
         ]
     )
-    assert novelty(hash_population(a), b, hash_population(b)) == 1
-    assert conservatism(hash_population(a), b, hash_population(b)) == 0
+    assert novelty(hash_population(a), hash_population(b)) == 1
+    assert conservatism(hash_population(a), hash_population(b)) == 0
 
 
 def test_novelty_partial():
@@ -89,5 +117,5 @@ def test_novelty_partial():
             {"pid": 3, "act": "shop", "duration": 10},
         ]
     )
-    assert novelty(hash_population(a), b, hash_population(b)) == 0.5
-    assert conservatism(hash_population(a), b, hash_population(b)) == 0.5
+    assert novelty(hash_population(a), hash_population(b)) == 0.5
+    assert conservatism(hash_population(a), hash_population(b)) == 0.5

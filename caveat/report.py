@@ -104,19 +104,19 @@ transition_jobs = [
 ]
 time_jobs = [
     (
-        ("start times", times.start_times_by_act),
+        ("start times", times.start_times_by_act_plan_enum),
         (feature_weight),
         ("average", average),
         ("EMD", emd),
     ),
     (
-        ("end times", times.end_times_by_act),
+        ("end times", times.end_times_by_act_plan_enum),
         (feature_weight),
         ("average", average),
         ("EMD", emd),
     ),
     (
-        ("durations", times.durations_by_act),
+        ("durations", times.durations_by_act_plan_enum),
         (feature_weight),
         ("average", average),
         ("EMD", emd),
@@ -134,82 +134,87 @@ def report(
     observed: DataFrame,
     sampled: dict[str, DataFrame],
     log_dir: Optional[Path] = None,
-    report_description: bool = True,
-    report_scores: bool = True,
     head: int = 10,
     verbose: bool = True,
-    report_creativity: bool = True,
+    report_stats: bool = False,
 ):
     descriptions = DataFrame()
     distances = DataFrame()
 
-    if report_creativity:
-        observed_hash = creativity.hash_population(observed)
-        observed_diversity = creativity.diversity(observed, observed_hash)
-        creativity_descriptions = DataFrame(
-            {
-                "feature count": [observed.pid.nunique()] * 2,
-                "observed": [observed_diversity, 1],
-            }
-        )
-        creativity_distance = creativity_descriptions.copy()
+    # Evaluate Creativity
+    observed_hash = creativity.hash_population(observed)
+    observed_diversity = creativity.diversity(observed, observed_hash)
+    creativity_descriptions = DataFrame(
+        {
+            "feature count": [observed.pid.nunique()] * 2,
+            "observed": [observed_diversity, 1],
+        }
+    )
+    creativity_distance = DataFrame(
+        {
+            "feature count": [observed.pid.nunique()] * 2,
+            "observed": [observed_diversity, 0],
+        }
+    )
 
-        creativity_descs = []
-        creativity_scs = []
-        for model, y in sampled.items():
-            y_hash = creativity.hash_population(y)
-            y_diversity = creativity.diversity(y, y_hash)
-            creativity_descs.append(
-                Series(
-                    [y_diversity, creativity.novelty(observed_hash, y, y_hash)],
-                    name=model,
-                )
-            )
-            creativity_scs.append(
-                Series(
-                    [
-                        abs(y_diversity - observed_diversity),
-                        creativity.conservatism(observed_hash, y, y_hash),
-                    ],
-                    name=model,
-                )
-            )
+    creativity_descs = []
+    creativity_dists = []
+    for model, y in sampled.items():
+        y_hash = creativity.hash_population(y)
+        y_diversity = creativity.diversity(y, y_hash)
         creativity_descs.append(
-            Series(["diversity", "novelty"], name="description")
+            Series(
+                [y_diversity, creativity.novelty(observed_hash, y_hash)],
+                name=model,
+            )
         )
-        creativity_scs.append(
-            Series(["abs error", "conservatism"], name="distance")
+        creativity_dists.append(
+            Series(
+                [
+                    abs(y_diversity - observed_diversity),
+                    creativity.conservatism(observed_hash, y_hash),
+                ],
+                name=model,
+            )
         )
+    creativity_descs.append(
+        Series(["prob. unique", "prob. novel"], name="description")
+    )
+    creativity_dists.append(
+        Series(["abs error", "prob. conservative"], name="distance")
+    )
 
-        descriptions = concat(
-            [creativity_descriptions, concat(creativity_descs, axis=1)], axis=1
-        )
-        distances = concat(
-            [creativity_distance, concat(creativity_scs, axis=1)], axis=1
-        )
+    descriptions = concat(
+        [creativity_descriptions, concat(creativity_descs, axis=1)], axis=1
+    )
+    distances = concat(
+        [creativity_distance, concat(creativity_dists, axis=1)], axis=1
+    )
+    descriptions.index = MultiIndex.from_tuples(
+        [("creativity", "diversity", "all"), ("creativity", "novelty", "all")],
+        names=["domain", "feature", "segment"],
+    )
+    distances.index = MultiIndex.from_tuples(
+        [
+            ("creativity", "diversity", "all"),
+            ("creativity", "conservatism", "all"),
+        ],
+        names=["domain", "feature", "segment"],
+    )
 
-        idx = MultiIndex.from_tuples(
-            [
-                ("creativity", "diversity", "all"),
-                ("creativity", "conservatism", "all"),
-            ],
-            names=["domain", "feature", "segment"],
-        )
-        descriptions.index = idx
-        distances.index = idx
-
+    # Evaluate Correctness
     for domain, jobs in [
         ("structure", structure_jobs),
         ("frequency", frequency_jobs),
         ("participation_probs", participation_prob_jobs),
         ("participation_rates", participation_rate_jobs),
         ("transitions", transition_jobs),
-        ("scheduling", time_jobs),
+        ("timing", time_jobs),
     ]:
         for feature, size, description_job, distance_job in jobs:
             # unpack tuples
             feature_name, feature = feature
-            print(feature_name)
+            print(f"Calculating {feature_name}...")
             description_name, describe = description_job
             distance_name, distance_metric = distance_job
 
@@ -324,6 +329,23 @@ def report(
     ranked = [i for _, i in sorted(zip(col_ranks, col_ranks.index))]
     domain_ranks = domain_ranks[ranked]
 
+    if report_stats:
+        select = list(sampled.keys())
+        descriptions["mean"] = descriptions[select].mean(axis=1)
+        descriptions["std"] = descriptions[select].std(axis=1)
+        features_descriptions["mean"] = features_descriptions[select].mean(
+            axis=1
+        )
+        features_descriptions["std"] = features_descriptions[select].std(axis=1)
+        domain_descriptions["mean"] = domain_descriptions[select].mean(axis=1)
+        domain_descriptions["std"] = domain_descriptions[select].std(axis=1)
+        distances["mean"] = distances[select].mean(axis=1)
+        distances["std"] = distances[select].std(axis=1)
+        features_distances["mean"] = features_distances[select].mean(axis=1)
+        features_distances["std"] = features_distances[select].std(axis=1)
+        domain_distances["mean"] = domain_distances[select].mean(axis=1)
+        domain_distances["std"] = domain_distances[select].std(axis=1)
+
     if log_dir is not None:
         descriptions.to_csv(Path(log_dir, "descriptions.csv"))
         features_descriptions.to_csv(Path(log_dir, "feature_descriptions.csv"))
@@ -418,45 +440,3 @@ def weighted_av(report: DataFrame, weight_col: str = "feature count") -> Series:
     for c in cols:
         scores[c] = report[c] * weights / total
     return scores.sum()
-
-
-# def report_diff(
-#     observed: DataFrame,
-#     ys: dict[str, DataFrame],
-#     feature: Callable,
-#     head: Optional[int] = None,
-# ) -> DataFrame:
-#     x_report = feature(observed)
-#     x_report.name = "observed"
-#     report = DataFrame(x_report)
-#     for name, y in ys.items():
-#         y_report = feature(y)
-#         y_report.name = name
-#         report = concat([report, y_report], axis=1)
-#         report = report.fillna(0)
-#         report[f"{name} delta"] = report[name] - report.observed
-#     if head is not None:
-#         report = report.head(head)
-#     return report
-
-
-def describe(
-    observed: DataFrame,
-    ys: dict[str, DataFrame],
-    feature: Callable,
-    head: Optional[int] = None,
-) -> DataFrame:
-    x_report = feature(observed)
-    x_report.name = "observed"
-    report = DataFrame(x_report)
-    for name, y in ys.items():
-        y_report = feature(y)
-        y_report.name = name
-        report = concat([report, y_report], axis=1)
-        report = report.fillna(0)
-    report["mean"] = report[ys.keys()].mean(axis=1)
-    report["mean delta"] = report["mean"] - report.observed
-    report["std"] = report[ys.keys()].std(axis=1)
-    if head is not None:
-        report = report.head(head)
-    return report
