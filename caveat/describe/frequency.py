@@ -60,13 +60,15 @@ def plot_agg_acts(
         datetime(2021, 11, 1, 0) + timedelta(minutes=i * step)
         for i in range(len(df.index))
     ]
-    fig = df.plot(kind="bar", stacked=True, width=1, ax=ax, **kwargs)
+    fig = df.plot(
+        kind="bar", stacked=True, width=1, ax=ax, legend=legend, **kwargs
+    )
     if legend:
         ax.legend(loc="right")
     ax = fig.axes
     labels = [" " for _ in range(len(df.index))]
-    labels[:: int(60 / step)] = [x.strftime("%H:%M") for x in df.index][
-        :: int(60 / step)
+    labels[:: int(120 / step)] = [x.strftime("%H:%M") for x in df.index][
+        :: int(120 / step)
     ]
     ax.set_xticklabels(labels)
     ax.spines["top"].set_visible(False)
@@ -76,5 +78,5 @@ def plot_agg_acts(
 
     ax.set_xlabel("Time of day")
     ax.set_ylabel("Activity frequency")
-    ax.set_title(name.title(), fontstyle="italic")
+    ax.set_title(name.title())
     return ax

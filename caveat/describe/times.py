@@ -43,7 +43,7 @@ def _times_plot(
     for i, act in enumerate(acts):
         if act not in population.act.unique():
             continue
-        axs[0][i].set_title(act.title(), fontstyle="italic")
+        axs[0][i].set_title(act.title())
         axs[0][i].hist(
             starts.get_group(act),
             bins=bins,
@@ -55,7 +55,7 @@ def _times_plot(
         axs[0][i].set_xlim(xmin, xmax)
         axs[0][i].set_yticklabels([])
         axs[0][i].set(ylabel=None)
-        axs[0][0].legend(fontsize="x-small")
+        axs[0][0].legend(fontsize="small")
 
         axs[1][i].hist(
             ends.get_group(act),
@@ -114,7 +114,7 @@ def joint_time_distributions_plot(
     # now deal with ys
     for i, (name, y) in enumerate(ys.items()):
         subfig = subfigs[i + 1]
-        subfig.suptitle(name.title(), fontstyle="italic")
+        subfig.suptitle(name.title())
         axs = subfig.subplots(
             nrows=1, ncols=len(acts), sharex=True, sharey=True
         )

@@ -13,7 +13,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch.random import seed as seeder
 
-from caveat import cuda_available, data, encoders, models, report
+from caveat import cuda_available, data, encoders, evaluate, models
 from caveat.experiment import Experiment
 
 
@@ -50,7 +50,7 @@ def run_command(config: dict) -> None:
         )
     }
 
-    report.report(observed, sampled, write_path)
+    evaluate.report(observed, sampled, write_path)
 
 
 def batch_command(batch_config: dict, stats: bool = False) -> None:
@@ -86,10 +86,10 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
         seed = combined_config.pop("seed", seeder())
         trainer, encoder = train(name, observed, combined_config, logger, seed)
         sampled[name] = sample(
-            trainer, len(observed), encoder, config, write_path, seed
+            trainer, observed.pid.nunique(), encoder, config, write_path, seed
         )
 
-    report.report(observed, sampled, log_dir, report_stats=stats)
+    evaluate.report(observed, sampled, log_dir, report_stats=stats)
 
 
 def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
@@ -119,10 +119,15 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
         seed = seeder()
         trainer, encoder = train(run_name, observed, config, logger, seed)
         sampled[name] = sample(
-            trainer, len(observed), encoder, config, log_dir / run_name, seed
+            trainer,
+            observed.pid.nunique(),
+            encoder,
+            config,
+            log_dir / run_name,
+            seed,
         )
 
-    report.report(observed, sampled, log_dir, report_stats=stats)
+    evaluate.report(observed, sampled, log_dir, report_stats=stats)
 
 
 def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
@@ -154,14 +159,14 @@ def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
         seed = seeder()
         sampled[name] = sample(
             trainer,
-            len(observed),
+            observed.pid.nunique(),
             encoder,
             config,
             log_dir / name / run_name,
             seed,
         )
 
-    report.report(observed, sampled, log_dir, report_stats=stats)
+    evaluate.report(observed, sampled, log_dir, report_stats=stats)
 
 
 def report_command(
@@ -187,7 +192,7 @@ def report_command(
         path = experiment / version.name / name
         sampled[experiment.name] = data.load_and_validate(path)
 
-    report.report(
+    evaluate.report(
         observed=observed,
         sampled=sampled,
         log_dir=log_dir,

@@ -40,6 +40,15 @@ def duration_consistency(
     return weighted_features({"total duration": durations.array})
 
 
+def sequence_lengths(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    lengths = population.groupby("pid").size().value_counts().sort_index()
+    keys = array(lengths.index)
+    values = array(lengths.values)
+    return {"sequence lengths": (keys, values / values.sum())}
+
+
 def trip_consistency(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:

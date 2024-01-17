@@ -3,7 +3,7 @@ from pandas import DataFrame, Series
 
 from caveat.distance.scalar import mae
 from caveat.features.times import start_times_by_act
-from caveat.report import extract_default, report, score_features
+from caveat.evaluate import extract_default, report, score_features
 
 
 def test_describe_feature():

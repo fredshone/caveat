@@ -86,24 +86,7 @@ def combinations_with_replacement(
     return combs
 
 
-def calc_pair_rate(act_counts: DataFrame, pair: tuple) -> float:
-    """
-    Calculates the participation rate for given activity pairs given activity counts.
-
-    Parameters:
-    act_counts (DataFrame): DataFrame of activity counts.
-    pair (tuple): Pair of activities to calculate participation rate for.
-
-    Returns:
-    float: Participation rate of the pair of users.
-    """
-    a, b = pair
-    if a == b:
-        return (act_counts[a] > 1).mean()
-    return ((act_counts[a] > 0) & (act_counts[b] > 0)).mean()
-
-
-def calc_pair_count(act_counts, pair):
+def calc_pair_prob(act_counts, pair):
     a, b = pair
     if a == b:
         return (act_counts[a] > 1).sum()
@@ -111,6 +94,39 @@ def calc_pair_count(act_counts, pair):
 
 
 def joint_participation_prob(
+    population: DataFrame,
+) -> dict[str, tuple[ndarray, ndarray]]:
+    """
+    Calculate the participation prob for all pairs of activities in the given population.
+
+    Args:
+        population (pandas.DataFrame): A DataFrame containing the population data.
+
+    Returns:
+        pandas.Series: A Series containing the participation rate for all pairs of activities.
+    """
+    act_counts = (
+        population.groupby("pid").act.value_counts().unstack(fill_value=0)
+    )
+    acts = list(population.act.unique())
+    pairs = combinations_with_replacement(acts, 2)
+    n = population.pid.nunique()
+    metric = {}
+    for pair in pairs:
+        p = calc_pair_prob(act_counts, pair)
+        metric["+".join(pair)] = (array([0, 1]), array([n - p, p]))
+
+    return metric
+
+
+def calc_pair_rate(act_counts, pair):
+    a, b = pair
+    if a == b:
+        return ((act_counts[a] / 2).astype(int)).value_counts().sort_index()
+    return ((act_counts[[a, b]].min(axis=1) / 2).astype(int)).value_counts()
+
+
+def joint_participation_rate(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
     """
@@ -127,10 +143,11 @@ def joint_participation_prob(
     )
     acts = list(population.act.unique())
     pairs = combinations_with_replacement(acts, 2)
-    n = population.pid.nunique()
     metric = {}
     for pair in pairs:
-        p = calc_pair_count(act_counts, pair)
-        metric["+".join(pair)] = (array([0, 1]), array([n - p, p]))
+        counts = calc_pair_rate(act_counts, pair)
+        keys = array(list(counts.keys()))
+        values = array(list(counts.values))
+        metric["+".join(pair)] = (keys, values / values.sum())
 
     return metric

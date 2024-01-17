@@ -11,7 +11,7 @@ def activity_bins(
         descretise_population(
             population, duration=duration, step_size=step, class_map=class_map
         )
-        .sum(0)
+        .mean(0)
         .numpy()
     )[0, :, :]
 

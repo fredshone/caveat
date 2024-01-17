@@ -7,7 +7,49 @@ from caveat import current_device
 from caveat.models.base import BaseVAE, CustomEmbedding
 
 
-class LSTM(BaseVAE):
+class HiddenSkip(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        output_size: int,
+        num_layers: int,
+    ):
+        """Hidden state with skip connection.
+
+        Args:
+            input_size (int): input size.
+            hidden_size (int): hidden size.
+            output_size (int): output size.
+            num_layers (int): number of layers.
+        """
+        super().__init__()
+        if num_layers < 2:
+            raise UserWarning("num_layers must be greater than 1.")
+        modules = [
+            nn.Sequential(
+                nn.Linear(input_size, hidden_size, bias=False),
+                nn.BatchNorm1d(hidden_size),
+                nn.LeakyReLU(),
+            )
+        ]
+        for _ in range(num_layers - 2):
+            modules.append(
+                nn.Sequential(
+                    nn.Linear(hidden_size, hidden_size, bias=False),
+                    nn.BatchNorm1d(hidden_size),
+                    nn.LeakyReLU(),
+                )
+            )
+        modules.append(nn.Linear(hidden_size, output_size))
+        self.fc = nn.Sequential(*modules)
+        self.skip = nn.Linear(input_size, output_size)
+
+    def forward(self, x):
+        return self.fc(x) + self.skip(x)
+
+
+class LSTM_Deep(BaseVAE):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -16,6 +58,7 @@ class LSTM(BaseVAE):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
         self.hidden_layers = config["hidden_layers"]
+        fc_layers = config["fc_layers"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
@@ -36,9 +79,15 @@ class LSTM(BaseVAE):
         )
         self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
-        self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+        self.fc_mu = HiddenSkip(
+            flat_size_encode, 128, self.latent_dim, fc_layers
+        )
+        self.fc_var = HiddenSkip(
+            flat_size_encode, 128, self.latent_dim, fc_layers
+        )
+        self.fc_hidden = HiddenSkip(
+            self.latent_dim, 128, flat_size_encode, fc_layers
+        )
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
@@ -108,15 +157,12 @@ class Encoder(nn.Module):
             batch_first=True,
             bidirectional=False,
         )
-        self.norm = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         embedded = self.embedding(x)
         _, (h1, h2) = self.lstm(embedded)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
-        h1 = self.norm(h1)
-        h2 = self.norm(h2)
         hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
         # [N, flatsize]
         return hidden

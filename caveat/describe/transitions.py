@@ -42,11 +42,12 @@ def sequence_prob_plot(
     observed: DataFrame, ys: Optional[dict[DataFrame]], **kwargs
 ) -> Figure:
     acts = list(observed.act.value_counts(ascending=False).index)
-    if kwargs.pop("cmap", None) is None:
+    cmap = kwargs.pop("cmap", None)
+    if cmap is None:
         cmap = plt.cm.Set3
-    colors = cmap.colors
-    factor = (len(acts) // len(colors)) + 1
-    cmap = dict(zip(acts, colors * factor))
+        colors = cmap.colors
+        factor = (len(acts) // len(colors)) + 1
+        cmap = dict(zip(acts, colors * factor))
 
     n_plots = len(ys) + 2
     ratios = [1 for _ in range(n_plots)]
@@ -63,12 +64,12 @@ def sequence_prob_plot(
     )
     acts = list(observed.act.value_counts(ascending=False).index)
     _probs_plot(observed, acts, ax=axs[0], cmap=cmap)
-    axs[0].set_title("Observed", fontstyle="italic")
+    axs[0].set_title("Observed")
     if ys is None:
         return fig
     for i, (name, y) in enumerate(ys.items()):
         _probs_plot(y, acts, ax=axs[i + 1], cmap=cmap)
-        axs[i + 1].set_title(name.title(), fontstyle="italic")
+        axs[i + 1].set_title(name.title())
 
     elements = [Patch(facecolor=cmap[act], label=act.title()) for act in acts]
     axs[-1].axis("off")
