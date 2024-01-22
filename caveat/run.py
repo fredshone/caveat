@@ -46,7 +46,12 @@ def run_command(config: dict) -> None:
     trainer, data_encoder = train(name, observed, config, logger, seed)
     sampled = {
         name: sample(
-            trainer, len(observed), data_encoder, config, logger.log_dir, seed
+            trainer,
+            len(observed),
+            data_encoder,
+            config,
+            Path(logger.log_dir),
+            seed,
         )
     }
 
@@ -89,7 +94,7 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
             observed.pid.nunique(),
             encoder,
             config,
-            logger.log_dir,
+            Path(logger.log_dir),
             seed,
         )
 
@@ -127,7 +132,7 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
             observed.pid.nunique(),
             encoder,
             config,
-            logger.log_dir,
+            Path(logger.log_dir),
             seed,
         )
 
@@ -159,10 +164,10 @@ def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
 
     sampled = {}
     for i in range(n):
-        run_name = f"{logger.log_dir}_nsample{i}"
+        sample_dir = Path(logger.log_dir) / f"nsample{i}"
         seed = seeder()
         sampled[name] = sample(
-            trainer, observed.pid.nunique(), encoder, config, run_name, seed
+            trainer, observed.pid.nunique(), encoder, config, sample_dir, seed
         )
 
     evaluate.report(observed, sampled, log_dir, report_stats=stats)
