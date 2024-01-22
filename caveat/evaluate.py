@@ -166,7 +166,7 @@ def report(
     creativity_distance = DataFrame(
         {
             "feature count": [observed.pid.nunique()] * 2,
-            "observed": [observed_diversity, 0],
+            "observed": [1 - observed_diversity, 0],
         }
     )
 
@@ -184,7 +184,7 @@ def report(
         creativity_dists.append(
             Series(
                 [
-                    abs(y_diversity - observed_diversity),
+                    1 - observed_diversity,
                     creativity.conservatism(observed_hash, y_hash),
                 ],
                 name=model,
@@ -194,7 +194,7 @@ def report(
         Series(["prob. unique", "prob. novel"], name="description")
     )
     creativity_dists.append(
-        Series(["abs error", "prob. conservative"], name="distance")
+        Series(["prob. not unique", "prob. conservative"], name="distance")
     )
 
     descriptions = concat(
@@ -209,7 +209,7 @@ def report(
     )
     distances.index = MultiIndex.from_tuples(
         [
-            ("creativity", "diversity", "all"),
+            ("creativity", "homogeneity", "all"),
             ("creativity", "conservatism", "all"),
         ],
         names=["domain", "feature", "segment"],

@@ -82,11 +82,15 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
         logger = initiate_logger(log_dir, name)
         combined_config = global_config.copy()
         combined_config.update(config)
-        write_path = log_dir / name
         seed = combined_config.pop("seed", seeder())
         trainer, encoder = train(name, observed, combined_config, logger, seed)
         sampled[name] = sample(
-            trainer, observed.pid.nunique(), encoder, config, write_path, seed
+            trainer,
+            observed.pid.nunique(),
+            encoder,
+            config,
+            logger.log_dir,
+            seed,
         )
 
     evaluate.report(observed, sampled, log_dir, report_stats=stats)
@@ -123,7 +127,7 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
             observed.pid.nunique(),
             encoder,
             config,
-            log_dir / run_name,
+            logger.log_dir,
             seed,
         )
 
@@ -155,15 +159,10 @@ def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
 
     sampled = {}
     for i in range(n):
-        run_name = f"{name}_nsample{i}"
+        run_name = f"{logger.log_dir}_nsample{i}"
         seed = seeder()
         sampled[name] = sample(
-            trainer,
-            observed.pid.nunique(),
-            encoder,
-            config,
-            log_dir / name / run_name,
-            seed,
+            trainer, observed.pid.nunique(), encoder, config, run_name, seed
         )
 
     evaluate.report(observed, sampled, log_dir, report_stats=stats)
@@ -196,9 +195,6 @@ def report_command(
         observed=observed,
         sampled=sampled,
         log_dir=log_dir,
-        report_description=True,
-        report_scores=True,
-        report_creativity=True,
         verbose=verbose,
         head=head,
     )

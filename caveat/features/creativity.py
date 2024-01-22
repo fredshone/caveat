@@ -31,6 +31,19 @@ def diversity(population: DataFrame, hashed: set[str]) -> float:
     return unique / n
 
 
+def homogeneity(population: DataFrame, hashed: set[str]) -> float:
+    """Measure the internal homogeneity of a population of sequences. This is 1-diversity.
+
+    Args:
+        population (DataFrame): Input population of sequences.
+        hashed (set[str]): Hashed population of sequences.
+
+    Returns:
+        float: Homogeneity of the synthetic sample.
+    """
+    return 1 - diversity(population, hashed)
+
+
 def novelty(observed_hashed: set[str], synthetic_hashed: set[str]) -> float:
     """Measure the novelty of a population by comparing it to an observed population.
 

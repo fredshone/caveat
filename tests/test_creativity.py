@@ -4,6 +4,7 @@ from caveat.features.creativity import (
     conservatism,
     diversity,
     hash_population,
+    homogeneity,
     novelty,
 )
 
@@ -33,6 +34,7 @@ def test_internal_uniqueness_full():
     )
     hashed = hash_population(population)
     assert diversity(population, hashed) == 1
+    assert homogeneity(population, hashed) == 0
 
 
 def test_internal_uniqueness_half():
@@ -48,6 +50,7 @@ def test_internal_uniqueness_half():
     )
     hashed = hash_population(population)
     assert diversity(population, hashed) == 0.5
+    assert homogeneity(population, hashed) == 0.5
 
 
 def test_novelty_none():
