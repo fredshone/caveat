@@ -122,8 +122,12 @@ def joint_participation_prob(
 def calc_pair_rate(act_counts, pair):
     a, b = pair
     if a == b:
-        return ((act_counts[a] / 2).astype(int)).value_counts().sort_index()
-    return ((act_counts[[a, b]].min(axis=1) / 2).astype(int)).value_counts()
+        return ((act_counts[a] / 2).astype(int)).value_counts().to_dict()
+    return (
+        ((act_counts[[a, b]].min(axis=1) / 2).astype(int))
+        .value_counts()
+        .to_dict()
+    )
 
 
 def joint_participation_rate(
@@ -147,7 +151,7 @@ def joint_participation_rate(
     for pair in pairs:
         counts = calc_pair_rate(act_counts, pair)
         keys = array(list(counts.keys()))
-        values = array(list(counts.values))
+        values = array(list(counts.values()))
         metric["+".join(pair)] = (keys, values / values.sum())
 
     return metric
