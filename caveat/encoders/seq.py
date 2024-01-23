@@ -9,11 +9,10 @@ from caveat.encoders import BaseEncodedPlans, BaseEncoder
 
 
 class SequenceEncoder(BaseEncoder):
-    def __init__(
-        self, max_length: int = 12, duration: int = 1440, **kwargs
-    ):
+    def __init__(self, max_length: int = 12, duration: int = 1440, **kwargs):
         self.max_length = max_length
         self.duration = duration
+        self.weighting = kwargs.get("weighting", "duration")
 
     def encode(self, data: pd.DataFrame) -> BaseEncodedPlans:
         self.sos = 0
@@ -25,7 +24,11 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceEncodedPlans(
-            data, self.max_length, self.acts_to_index, self.duration
+            data=data,
+            max_length=self.max_length,
+            acts_to_index=self.acts_to_index,
+            norm_duration=self.duration,
+            weighting=self.weighting,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -75,6 +78,7 @@ class SequenceEncodedPlans(BaseEncodedPlans):
         norm_duration: int,
         sos: int = 0,
         eos: int = 1,
+        weighting: str = "duration",
     ):
         """Torch Dataset for sequence data.
 
@@ -87,6 +91,7 @@ class SequenceEncodedPlans(BaseEncodedPlans):
         self.sos = sos
         self.eos = eos
         self.encodings = len(acts_to_index)
+        self.weighting = weighting
         self.encoded, self.masks, self.encoding_weights = self._encode(
             data, max_length, acts_to_index, norm_duration
         )
@@ -103,10 +108,24 @@ class SequenceEncodedPlans(BaseEncodedPlans):
         data.act = data.act.map(acts_to_index)
 
         # calc weightings
-        weights = data.groupby("act", observed=True).duration.sum().to_dict()
-        n = (
-            data.pid.nunique() * 60
-        )  # sos and eos weight is equal to 1 hour per sequence
+        if self.weighting == "duration":
+            print("DURATION")
+            weights = (
+                data.groupby("act", observed=True).duration.sum().to_dict()
+            )
+            n = (
+                data.pid.nunique() * 60
+            )  # sos and eos weight is equal to 1 hour per sequence
+
+        elif self.weighting == "count":
+            weights = data.groupby("act", observed=True).size().to_dict()
+            n = data.pid.nunique()
+
+        else:
+            raise UserWarning(
+                "Unrecognised weighting, please use either 'duration' or 'count'."
+            )
+
         weights.update({self.sos: n, self.eos: n})
         weights = np.array([weights[k] for k in range(len(weights))])
         weights = 1 / weights
