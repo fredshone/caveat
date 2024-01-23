@@ -8,7 +8,8 @@ def start_times_by_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
     return weighted_features(
-        population.groupby("act", observed=False).start.apply(list).to_dict()
+        population.groupby("act", observed=False).start.apply(list).to_dict(),
+        factor=1440,
     )
 
 
@@ -16,7 +17,8 @@ def end_times_by_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
     return weighted_features(
-        population.groupby("act", observed=False).end.apply(list).to_dict()
+        population.groupby("act", observed=False).end.apply(list).to_dict(),
+        factor=1440,
     )
 
 
@@ -24,7 +26,10 @@ def durations_by_act(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
     return weighted_features(
-        population.groupby("act", observed=False).duration.apply(list).to_dict()
+        population.groupby("act", observed=False)
+        .duration.apply(list)
+        .to_dict(),
+        factor=1440,
     )
 
 
@@ -41,7 +46,7 @@ def start_and_duration_by_act_bins(
     population: DataFrame, bin_size: int = 15
 ) -> dict[str, tuple[ndarray, ndarray]]:
     return weighted_features(
-        start_durations_by_act(population), bin_size=bin_size
+        start_durations_by_act(population), bin_size=bin_size, factor=1440
     )
 
 
@@ -52,7 +57,7 @@ def start_times_by_act_plan_seq(
         str
     ) + population.act.astype(str)
     return weighted_features(
-        population.groupby(actseq).start.apply(list).to_dict()
+        population.groupby(actseq).start.apply(list).to_dict(), factor=1440
     )
 
 
@@ -63,7 +68,7 @@ def start_times_by_act_plan_enum(
         ["pid", "act"], as_index=False, observed=False
     ).cumcount().astype(str)
     return weighted_features(
-        population.groupby(actseq).start.apply(list).to_dict()
+        population.groupby(actseq).start.apply(list).to_dict(), factor=1440
     )
 
 
@@ -74,7 +79,7 @@ def end_times_by_act_plan_seq(
         str
     ) + population.act.astype(str)
     return weighted_features(
-        population.groupby(actseq).end.apply(list).to_dict()
+        population.groupby(actseq).end.apply(list).to_dict(), factor=1440
     )
 
 
@@ -85,7 +90,7 @@ def end_times_by_act_plan_enum(
         ["pid", "act"], as_index=False, observed=False
     ).cumcount().astype(str)
     return weighted_features(
-        population.groupby(actseq).end.apply(list).to_dict()
+        population.groupby(actseq).end.apply(list).to_dict(), factor=1440
     )
 
 
@@ -96,7 +101,7 @@ def durations_by_act_plan_seq(
         str
     ) + population.act.astype(str)
     return weighted_features(
-        population.groupby(actseq).duration.apply(list).to_dict()
+        population.groupby(actseq).duration.apply(list).to_dict(), factor=1440
     )
 
 
@@ -107,5 +112,5 @@ def durations_by_act_plan_enum(
         ["pid", "act"], as_index=False, observed=False
     ).cumcount().astype(str)
     return weighted_features(
-        population.groupby(actseq).duration.apply(list).to_dict()
+        population.groupby(actseq).duration.apply(list).to_dict(), factor=1440
     )

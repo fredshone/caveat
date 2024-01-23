@@ -120,7 +120,8 @@ def test_calc_pair_rate():
             "school": [1, 0, 0, 0, 0],
         }
     )
-    assert participation.calc_pair_rate(act_counts, ("home", "home")) == 0.8
+    pair_rate = participation.calc_pair_rate(act_counts, ("home", "home"))
+    assert pair_rate == {0: 1, 1: 4}
 
 
 def test_participation_pairs():

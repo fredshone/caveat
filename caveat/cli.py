@@ -3,7 +3,13 @@
 import click
 import yaml
 
-from caveat.run import batch_command, nrun_command, report_command, run_command
+from caveat.run import (
+    batch_command,
+    nrun_command,
+    nsample_command,
+    report_command,
+    run_command,
+)
 
 
 @click.version_option(package_name="caveat")
@@ -24,21 +30,34 @@ def run(config_path: click.Path):
 
 @cli.command()
 @click.argument("config_path", type=click.Path(exists=True))
-def batch(config_path: click.Path):
+@click.option("--stats", "-s", is_flag=True)
+def batch(config_path: click.Path, stats: bool):
     """Train and report on a batch of encoders and models as per the given configuration file."""
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
-        batch_command(config)
+        batch_command(config, stats)
 
 
 @cli.command()
 @click.argument("config_path", type=click.Path(exists=True))
 @click.option("--n", type=int, default=5)
-def nrun(config_path: click.Path, n: int):
+@click.option("--stats", "-s", is_flag=True)
+def nrun(config_path: click.Path, n: int, stats: bool):
     """Train and report variance on n identical runs with varying seeds."""
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
-        nrun_command(config, n)
+        nrun_command(config, n, stats)
+
+
+@cli.command()
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--n", type=int, default=5)
+@click.option("--stats", "-s", is_flag=True)
+def nsample(config_path: click.Path, n: int, stats: bool):
+    """Train and report variance on n identical runs with varying seeds."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        nsample_command(config, n, stats)
 
 
 @cli.command()

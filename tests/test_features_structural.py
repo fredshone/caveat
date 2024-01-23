@@ -55,4 +55,4 @@ def test_duration_consistency():
         ]
     )
     expected = {"total duration": (array([20, 30]), array([1, 1]))}
-    assert equals(duration_consistency(population), expected)
+    assert equals(duration_consistency(population, factor=1), expected)

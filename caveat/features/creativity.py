@@ -31,34 +31,42 @@ def diversity(population: DataFrame, hashed: set[str]) -> float:
     return unique / n
 
 
-def novelty(
-    observed_hashed: set[str], synthetic: DataFrame, synthetic_hashed: set[str]
-) -> float:
+def homogeneity(population: DataFrame, hashed: set[str]) -> float:
+    """Measure the internal homogeneity of a population of sequences. This is 1-diversity.
+
+    Args:
+        population (DataFrame): Input population of sequences.
+        hashed (set[str]): Hashed population of sequences.
+
+    Returns:
+        float: Homogeneity of the synthetic sample.
+    """
+    return 1 - diversity(population, hashed)
+
+
+def novelty(observed_hashed: set[str], synthetic_hashed: set[str]) -> float:
     """Measure the novelty of a population by comparing it to an observed population.
 
     Args:
         observed_hashed (set[str]): Hashed observed population.
-        synthetic (DataFrame): Synthetic population.
         synthetic_hashed (set[str]): Hashed synthetic population.
 
     Returns:
         float: Novelty of the synthetic population.
     """
-    unique = len(synthetic_hashed - observed_hashed)
-    return unique / synthetic.pid.nunique()
+    return len(synthetic_hashed - observed_hashed) / len(synthetic_hashed)
 
 
 def conservatism(
-    observed_hashed: set[str], synthetic: DataFrame, synthetic_hashed: set[str]
+    observed_hashed: set[str], synthetic_hashed: set[str]
 ) -> float:
     """Measure the conservatism of a population as 1-novelty.
 
     Args:
         observed_hashed (set[str]): Hashed observed population.
-        synthetic (DataFrame): Synthetic population.
         synthetic_hashed (set[str]): Hashed synthetic population.
 
     Returns:
         float: Conservatism of the synthetic population.
     """
-    return 1 - novelty(observed_hashed, synthetic, synthetic_hashed)
+    return 1 - novelty(observed_hashed, synthetic_hashed)

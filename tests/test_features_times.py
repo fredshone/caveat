@@ -16,16 +16,16 @@ def test_times_by_act():
         ]
     )
     expected_starts = {
-        "home": (array([0, 6]), array([2, 1])),
-        "work": (array([1, 2]), array([1, 1])),
+        "home": (array([0, 6]) / 1440, array([2, 1])),
+        "work": (array([1, 2]) / 1440, array([1, 1])),
     }
     expected_ends = {
-        "home": (array([1, 2, 8]), array([1, 1, 1])),
-        "work": (array([6, 8]), array([1, 1])),
+        "home": (array([1, 2, 8]) / 1440, array([1, 1, 1])),
+        "work": (array([6, 8]) / 1440, array([1, 1])),
     }
     expected_durations = {
-        "home": (array([1, 2]), array([1, 2])),
-        "work": (array([4, 7]), array([1, 1])),
+        "home": (array([1, 2]) / 1440, array([1, 2])),
+        "work": (array([4, 7]) / 1440, array([1, 1])),
     }
     assert equals(times.start_times_by_act(population), expected_starts)
     assert equals(times.end_times_by_act(population), expected_ends)
@@ -43,13 +43,16 @@ def test_start_and_duration_by_act_bins():
         ]
     )
     expected = {
-        "home": (array([[0.5, 1.5], [0.5, 2.5], [6.5, 2.5]]), array([1, 1, 1])),
-        "work": (array([[1.5, 7.5], [2.5, 4.5]]), array([1, 1])),
+        "home": (
+            array([[0.5, 1.5], [0.5, 2.5], [6.5, 2.5]]) / 1440,
+            array([1, 1, 1]),
+        ),
+        "work": (array([[1.5, 7.5], [2.5, 4.5]]) / 1440, array([1, 1])),
     }
     assert equals(times.start_and_duration_by_act_bins(population, 1), expected)
     expected = {
-        "home": (array([[2, 2], [6, 2]]), array([2, 1])),
-        "work": (array([[2, 6]]), array([2])),
+        "home": (array([[2, 2], [6, 2]]) / 1440, array([2, 1])),
+        "work": (array([[2, 6]]) / 1440, array([2])),
     }
     assert equals(times.start_and_duration_by_act_bins(population, 4), expected)
 
@@ -65,9 +68,9 @@ def test_start_times_by_act_plan_seq():
         ]
     )
     expected = {
-        "0home": (array([0]), array([2])),
-        "1work": (array([1, 2]), array([1, 1])),
-        "2home": (array([6]), array([1])),
+        "0home": (array([0]) / 1440, array([2])),
+        "1work": (array([1, 2]) / 1440, array([1, 1])),
+        "2home": (array([6]) / 1440, array([1])),
     }
     assert equals(times.start_times_by_act_plan_seq(population), expected)
 
@@ -83,9 +86,9 @@ def test_start_times_by_act_plan_enum():
         ]
     )
     expected = {
-        "home0": (array([0]), array([2])),
-        "work0": (array([1, 2]), array([1, 1])),
-        "home1": (array([6]), array([1])),
+        "home0": (array([0]) / 1440, array([2])),
+        "work0": (array([1, 2]) / 1440, array([1, 1])),
+        "home1": (array([6]) / 1440, array([1])),
     }
     assert equals(times.start_times_by_act_plan_enum(population), expected)
 
@@ -101,9 +104,9 @@ def test_end_times_by_act_plan_seq():
         ]
     )
     expected = {
-        "0home": (array([0]), array([2])),
-        "1work": (array([1, 2]), array([1, 1])),
-        "2home": (array([6]), array([1])),
+        "0home": (array([0]) / 1440, array([2])),
+        "1work": (array([1, 2]) / 1440, array([1, 1])),
+        "2home": (array([6]) / 1440, array([1])),
     }
     assert equals(times.end_times_by_act_plan_seq(population), expected)
 
@@ -119,9 +122,9 @@ def test_end_times_by_act_plan_enum():
         ]
     )
     expected = {
-        "home0": (array([0]), array([2])),
-        "work0": (array([1, 2]), array([1, 1])),
-        "home1": (array([6]), array([1])),
+        "home0": (array([0]) / 1440, array([2])),
+        "work0": (array([1, 2]) / 1440, array([1, 1])),
+        "home1": (array([6]) / 1440, array([1])),
     }
     assert equals(times.end_times_by_act_plan_enum(population), expected)
 
@@ -137,9 +140,9 @@ def test_durations_by_act_plan_seq():
         ]
     )
     expected = {
-        "0home": (array([0]), array([2])),
-        "1work": (array([1, 2]), array([1, 1])),
-        "2home": (array([6]), array([1])),
+        "0home": (array([0]) / 1440, array([2])),
+        "1work": (array([1, 2]) / 1440, array([1, 1])),
+        "2home": (array([6]) / 1440, array([1])),
     }
     assert equals(times.durations_by_act_plan_seq(population), expected)
 
@@ -155,8 +158,8 @@ def test_durations_by_act_plan_enum():
         ]
     )
     expected = {
-        "home0": (array([0]), array([2])),
-        "work0": (array([1, 2]), array([1, 1])),
-        "home1": (array([6]), array([1])),
+        "home0": (array([0]) / 1440, array([2])),
+        "work0": (array([1, 2]) / 1440, array([1, 1])),
+        "home1": (array([6]) / 1440, array([1])),
     }
     assert equals(times.durations_by_act_plan_enum(population), expected)

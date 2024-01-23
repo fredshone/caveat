@@ -34,10 +34,19 @@ def time_consistency(
 
 
 def duration_consistency(
+    population: DataFrame, factor: int = 1440
+) -> dict[str, tuple[ndarray, ndarray]]:
+    durations = population.groupby("pid").duration.sum() / factor
+    return weighted_features({"total duration": durations.array})
+
+
+def sequence_lengths(
     population: DataFrame,
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    durations = population.groupby("pid").duration.sum()
-    return weighted_features({"total duration": durations.array})
+    lengths = population.groupby("pid").size().value_counts().sort_index()
+    keys = array(lengths.index)
+    values = array(lengths.values)
+    return {"sequence lengths": (keys, values / values.sum())}
 
 
 def trip_consistency(

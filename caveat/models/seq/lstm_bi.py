@@ -7,9 +7,9 @@ from caveat import current_device
 from caveat.models.base import BaseVAE, CustomEmbedding
 
 
-class LSTM(BaseVAE):
+class LSTM_BI(BaseVAE):
     def __init__(self, *args, **kwargs):
-        """RNN based encoder and decoder with encoder embedding layer."""
+        """RNN based encoder and decoder with bi-directional encoder lstm and encoder embedding layer."""
         super().__init__(*args, **kwargs)
 
     def build(self, **config):
@@ -35,10 +35,11 @@ class LSTM(BaseVAE):
             sos=self.sos,
         )
         self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
-        flat_size_encode = self.hidden_layers * self.hidden_size * 2
+        flat_size_encode = self.hidden_layers * self.hidden_size * 4
+        flat_size_decode = self.hidden_layers * self.hidden_size * 2
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_decode)
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
@@ -56,11 +57,9 @@ class LSTM(BaseVAE):
         h = self.fc_hidden(z)
 
         # initialize hidden state
-        hidden = h.unflatten(
-            1, (2 * self.hidden_layers, self.hidden_size)
-        ).permute(
+        hidden = h.unflatten(1, self.unflattened_shape).permute(
             1, 0, 2
-        )  # ([2xhidden, N, layers])
+        )  # ([4xhidden, N, layers])
         hidden = hidden.split(
             self.hidden_layers
         )  # ([hidden, N, layers, [hidden, N, layers]])
@@ -106,7 +105,7 @@ class Encoder(nn.Module):
             hidden_size,
             num_layers,
             batch_first=True,
-            bidirectional=False,
+            bidirectional=True,
         )
         self.norm = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
@@ -114,7 +113,7 @@ class Encoder(nn.Module):
     def forward(self, x):
         embedded = self.embedding(x)
         _, (h1, h2) = self.lstm(embedded)
-        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
+        # ([2xlayers, N, C (output_size)], [2xlayers, N, C (output_size)])
         h1 = self.norm(h1)
         h2 = self.norm(h2)
         hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
@@ -133,7 +132,7 @@ class Decoder(nn.Module):
         dropout: float = 0.0,
         sos: int = 0,
     ):
-        """LSTM Decoder with teacher forcing.
+        """LSTM Decoder with teacher forcings.
 
         Args:
             input_size (int): lstm input size.
@@ -163,7 +162,7 @@ class Decoder(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Sigmoid()
+        self.duration_activation = nn.Softmax(dim=1)
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
         hidden, cell = hidden
