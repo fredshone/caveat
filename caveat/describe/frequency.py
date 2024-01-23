@@ -4,7 +4,7 @@ from typing import Optional
 from matplotlib import pyplot as plt
 from pandas import DataFrame
 
-from caveat.features.frequency import binned_activity_count
+from caveat.features.frequency import binned_activity_density
 
 
 def frequency_plots(
@@ -49,7 +49,7 @@ def plot_agg_acts(
     legend=True,
     **kwargs,
 ):
-    bins = binned_activity_count(
+    bins = binned_activity_density(
         population, duration=duration, step=step, class_map=class_map
     )
     columns = list(class_map.keys())
