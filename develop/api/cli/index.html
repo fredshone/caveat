@@ -16,11 +16,11 @@
         <link rel="prev" href="../../CHANGELOG/">
       
       
-        <link rel="next" href="../../reference/caveat/experiment/">
+        <link rel="next" href="../../reference/caveat/evaluate/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.3">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.4">
     
     
       
@@ -564,6 +564,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#caveat-nsample" class="md-nav__link">
+    <span class="md-ellipsis">
+      nsample
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#caveat-report" class="md-nav__link">
     <span class="md-ellipsis">
       report
@@ -659,11 +668,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/caveat/experiment/" class="md-nav__link">
+      <a href="../../reference/caveat/evaluate/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.experiment
+    caveat.evaluate
   </span>
   
 
@@ -680,11 +689,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/caveat/report/" class="md-nav__link">
+      <a href="../../reference/caveat/experiment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.report
+    caveat.experiment
   </span>
   
 
@@ -1502,6 +1511,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1644,6 +1657,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/caveat/models/seq/lstm_bi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.lstm_bi
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/seq/lstm_deep/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.lstm_deep
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/caveat/models/seq/transformer/" class="md-nav__link">
         
   
@@ -1757,6 +1812,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#caveat-nsample" class="md-nav__link">
+    <span class="md-ellipsis">
+      nsample
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#caveat-report" class="md-nav__link">
     <span class="md-ellipsis">
       report
@@ -1849,6 +1913,12 @@
 </thead>
 <tbody>
 <tr>
+<td><code>--stats</code>, <code>-s</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
 <td><code>--help</code></td>
 <td>boolean</td>
 <td>Show this message and exit.</td>
@@ -1879,6 +1949,48 @@
 <td><code>5</code></td>
 </tr>
 <tr>
+<td><code>--stats</code>, <code>-s</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="caveat-nsample">caveat nsample<a class="headerlink" href="#caveat-nsample" title="Permanent link">#</a></h3>
+<p>Train and report variance on n identical runs with varying seeds.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>caveat nsample [OPTIONS] CONFIG_PATH
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--n</code></td>
+<td>integer</td>
+<td>N/A</td>
+<td><code>5</code></td>
+</tr>
+<tr>
+<td><code>--stats</code>, <code>-s</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
 <td><code>--help</code></td>
 <td>boolean</td>
 <td>Show this message and exit.</td>
@@ -1889,7 +2001,7 @@
 <h3 id="caveat-report">caveat report<a class="headerlink" href="#caveat-report" title="Permanent link">#</a></h3>
 <p>Report on the given observed population and logs directory.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>caveat report [OPTIONS] OBSERVED_PATH LOGS_DIR
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>caveat report [OPTIONS] OBSERVED_PATH LOGS_DIR
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -1937,7 +2049,7 @@
 <h3 id="caveat-run">caveat run<a class="headerlink" href="#caveat-run" title="Permanent link">#</a></h3>
 <p>Train and report on an encoder and model as per the given configuration file.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>caveat run [OPTIONS] CONFIG_PATH
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>caveat run [OPTIONS] CONFIG_PATH
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2005,10 +2117,10 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.indexes"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.indexes"], "search": "../../assets/javascripts/workers/search.c011b7c0.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      <script src="../../assets/javascripts/bundle.7389ff0e.min.js"></script>
       
     
   </body>

@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.3">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.4">
     
     
       
@@ -626,11 +626,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/caveat/experiment/" class="md-nav__link">
+      <a href="../../reference/caveat/evaluate/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.experiment
+    caveat.evaluate
   </span>
   
 
@@ -647,11 +647,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/caveat/report/" class="md-nav__link">
+      <a href="../../reference/caveat/experiment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.report
+    caveat.experiment
   </span>
   
 
@@ -1469,6 +1469,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1595,6 +1599,48 @@
   
   <span class="md-ellipsis">
     caveat.models.seq.lstm
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/seq/lstm_bi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.lstm_bi
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/seq/lstm_deep/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq.lstm_deep
   </span>
   
 
@@ -1995,11 +2041,12 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
     if (!diagrams.length) {
       return;
     }
-    const mermaid = (await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.0/mermaid.esm.min.mjs")).default;
+    const mermaid = (await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.7.0/mermaid.esm.min.mjs")).default;
     const parser = new DOMParser();
 
     mermaid.initialize({
       maxTextSize: 100000,
+      maxEdges: 100000,
       startOnLoad: false,
       fontFamily: window
         .getComputedStyle(document.body)
@@ -2157,7 +2204,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy for="cell-1">
@@ -2192,7 +2239,7 @@ from caveat.features import creativity</div>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy for="cell-2">
@@ -2249,7 +2296,7 @@ synthetic = {"a": a, "b": b}</div>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy for="cell-3">
@@ -2291,7 +2338,7 @@ b_hash = creativity.hash_population(b)</div>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy for="cell-4">
@@ -2334,9 +2381,9 @@ print(
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Observed population of size 1010 has diversity of 0.925
-Synthetic population A of size 512 has diversity of 0.91
-Synthetic population B of size 1024 has diversity of 0.935
+<pre>Observed population of size 1021 has diversity of 0.94
+Synthetic population A of size 515 has diversity of 0.96
+Synthetic population B of size 1009 has diversity of 0.9
 </pre>
 </div>
 </div>
@@ -2361,7 +2408,7 @@ Synthetic population B of size 1024 has diversity of 0.935
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy for="cell-5">
@@ -2375,17 +2422,17 @@ Synthetic population B of size 1024 has diversity of 0.935
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="nb">print</span><span class="p">(</span>
-    <span class="sa">f</span><span class="s2">"Synthetic population A of size </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="si">}</span><span class="s2"> has novelty of </span><span class="si">{</span><span class="n">creativity</span><span class="o">.</span><span class="n">novelty</span><span class="p">(</span><span class="n">observed_hash</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">a_hash</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+    <span class="sa">f</span><span class="s2">"Synthetic population A of size </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="si">}</span><span class="s2"> has novelty of </span><span class="si">{</span><span class="n">creativity</span><span class="o">.</span><span class="n">novelty</span><span class="p">(</span><span class="n">observed_hash</span><span class="p">,</span><span class="w"> </span><span class="n">a_hash</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
 <span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span>
-    <span class="sa">f</span><span class="s2">"Synthetic population B of size </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="si">}</span><span class="s2"> has novelty of </span><span class="si">{</span><span class="n">creativity</span><span class="o">.</span><span class="n">novelty</span><span class="p">(</span><span class="n">observed_hash</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">b_hash</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+    <span class="sa">f</span><span class="s2">"Synthetic population B of size </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="si">}</span><span class="s2"> has novelty of </span><span class="si">{</span><span class="n">creativity</span><span class="o">.</span><span class="n">novelty</span><span class="p">(</span><span class="n">observed_hash</span><span class="p">,</span><span class="w"> </span><span class="n">b_hash</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-5">print(
-    f"Synthetic population A of size {len(a)} has novelty of {creativity.novelty(observed_hash, a, a_hash)}"
+    f"Synthetic population A of size {len(a)} has novelty of {creativity.novelty(observed_hash, a_hash)}"
 )
 print(
-    f"Synthetic population B of size {len(b)} has novelty of {creativity.novelty(observed_hash, b, b_hash)}"
+    f"Synthetic population B of size {len(b)} has novelty of {creativity.novelty(observed_hash, b_hash)}"
 )</div>
 </div>
 </div>
@@ -2398,8 +2445,8 @@ print(
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Synthetic population A of size 512 has novelty of 0.0
-Synthetic population B of size 1024 has novelty of 0.67
+<pre>Synthetic population A of size 515 has novelty of 0.0
+Synthetic population B of size 1009 has novelty of 0.7388888888888889
 </pre>
 </div>
 </div>
@@ -2472,10 +2519,10 @@ Synthetic population B of size 1024 has novelty of 0.67
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.indexes"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.indexes"], "search": "../../assets/javascripts/workers/search.c011b7c0.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      <script src="../../assets/javascripts/bundle.7389ff0e.min.js"></script>
       
     
   </body>
