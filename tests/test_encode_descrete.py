@@ -123,3 +123,25 @@ def test_decode_descretised(encoded, length, step_size, expected):
     encoder.index_to_acts = {0: "a", 1: "b", 2: "c"}
     result = encoder.decode(encoded)
     pd.testing.assert_frame_equal(expected, result)
+
+
+def test_jitterer():
+    traces = pd.DataFrame(
+        [
+            [0, "a", 0, 2, 2],
+            [0, "b", 2, 5, 3],
+            [0, "a", 5, 10, 5],
+            [1, "a", 0, 3, 3],
+            [1, "b", 3, 5, 2],
+            [1, "a", 5, 10, 5],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    encoded = descrete.DescreteEncoder(
+        duration=10, step_size=2, jitter=0.9
+    ).encode(traces)
+    for _ in range(10):
+        s, _ = encoded[0]
+        # check sequence still has 3 acts
+        transitions = np.where(s[:-1] != s[1:])[0]
+        assert len(transitions) == 2

@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ class DescreteEncoder(BaseEncoder):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
+        self.jitter = kwargs.get("jitter", None)
 
     def encode(self, data: pd.DataFrame) -> BaseEncodedPlans:
         self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
@@ -22,6 +23,7 @@ class DescreteEncoder(BaseEncoder):
             duration=self.duration,
             step_size=self.step_size,
             class_map=self.acts_to_index,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -72,7 +74,12 @@ class DescreteEncoder(BaseEncoder):
 
 class DescreteEncodedPlans(BaseEncodedPlans):
     def __init__(
-        self, data: pd.DataFrame, duration: int, step_size: int, class_map: dict
+        self,
+        data: pd.DataFrame,
+        duration: int,
+        step_size: int,
+        class_map: dict,
+        jitter: Optional[float] = None,
     ):
         """Torch Dataset for descretised sequence data.
 
@@ -87,6 +94,9 @@ class DescreteEncodedPlans(BaseEncodedPlans):
         self.encoded = descretise_population(
             data, duration=duration, step_size=step_size, class_map=class_map
         )
+        self.jitter = jitter
+        if self.jitter is not None:
+            self.jitter = DiscreteJitterer(step_size, jitter)
         self.mask = torch.ones((1, self.encoded.shape[-1]))
         self.size = len(self.encoded)
 
@@ -97,7 +107,11 @@ class DescreteEncodedPlans(BaseEncodedPlans):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx], self.mask
+        seq = self.encoded[idx]
+        if self.jitter is None:
+            return seq, self.mask
+        seq = self.jitter(seq)
+        return seq, self.mask
 
 
 def descretise_population(
@@ -173,3 +187,44 @@ def down_sample(array: np.ndarray, step: int) -> np.ndarray:
         np.array: _description_
     """
     return array[::step]
+
+
+class DiscreteJitterer:
+    def __init__(self, step_size, jitter):
+        self.step_size = step_size
+        self.jitter = jitter
+
+    def __call__(self, sequence):
+        transitions = np.where(sequence[:-1] != sequence[1:])[0]
+        idx = np.random.choice(len(transitions))
+        transition = transitions[idx]
+        acts = sequence[transition], sequence[transition + 1]
+        direction = np.random.choice([0, 1])
+        act = acts[direction]
+
+        durations = [
+            (j - i)
+            for i, j in zip(
+                np.concatenate([[0], transitions + 1]),
+                np.concatenate([transitions + 1, [len(sequence)]]),
+            )
+        ]
+        dur_a, dur_b = (
+            durations[idx] * self.step_size,
+            durations[idx + 1] * self.step_size,
+        )
+
+        min_duration = min(dur_a, dur_b)
+
+        delta = int(
+            min_duration * np.random.rand() * self.jitter / self.step_size
+        )
+
+        if delta != 0:
+            for j in range(1, delta + 1):
+                if direction == 0:
+                    sequence[transition + j] = act
+                else:
+                    sequence[transition - j + 1] = act
+
+        return sequence

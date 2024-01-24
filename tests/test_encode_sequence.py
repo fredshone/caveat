@@ -114,11 +114,29 @@ def test_encoded_weights():
         )
     ],
 )
-def test_decode_descretised(encoded, length, norm_duration, expected):
-    encoder = seq.SequenceEncoder(
-        max_length=length, duration=norm_duration
-    )
+def test_decode(encoded, length, norm_duration, expected):
+    encoder = seq.SequenceEncoder(max_length=length, duration=norm_duration)
     _ = encoder.encode(expected)
     result = encoder.decode(encoded)
     result["duration"] = result["end"] - result["start"]
     pd.testing.assert_frame_equal(expected, result)
+
+
+def test_jitterer():
+    traces = pd.DataFrame(
+        [
+            [0, "a", 0, 2, 2],
+            [0, "b", 2, 5, 3],
+            [0, "a", 5, 10, 5],
+            [1, "a", 0, 3, 3],
+            [1, "b", 3, 5, 2],
+            [1, "a", 5, 10, 5],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    encoded = seq.SequenceEncoder(
+        max_length=10, duration=10, jitter=1.0
+    ).encode(traces)
+    for _ in range(10):
+        s, _ = encoded[0]
+        assert abs(s[:, 1].sum().item() - 1.0) < 1e-06

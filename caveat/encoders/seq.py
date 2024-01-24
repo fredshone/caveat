@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ class SequenceEncoder(BaseEncoder):
         self.max_length = max_length
         self.duration = duration
         self.weighting = kwargs.get("weighting", "duration")
+        self.jitter = kwargs.get("jitter", None)
 
     def encode(self, data: pd.DataFrame) -> BaseEncodedPlans:
         self.sos = 0
@@ -29,6 +30,7 @@ class SequenceEncoder(BaseEncoder):
             acts_to_index=self.acts_to_index,
             norm_duration=self.duration,
             weighting=self.weighting,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -79,6 +81,7 @@ class SequenceEncodedPlans(BaseEncodedPlans):
         sos: int = 0,
         eos: int = 1,
         weighting: str = "duration",
+        jitter: Optional[float] = None,
     ):
         """Torch Dataset for sequence data.
 
@@ -86,12 +89,20 @@ class SequenceEncodedPlans(BaseEncodedPlans):
             data (DataFrame): Population of sequences.
             max_length (int): Max length of sequences.
             acts_to_index (dict): Mapping of activity to index.
+            norm_duration (int): Expected duration.
+            sos (int): Start of sequence token. Defaults to 0.
+            eos (int): End of sequence token. Defaults to 1.
+            weighting (str): Weighting for loss function. Defaults to "duration".
+            jitter (Optional[float]): Jitter transform size. Defaults to None.
         """
         self.max_length = max_length
         self.sos = sos
         self.eos = eos
         self.encodings = len(acts_to_index)
         self.weighting = weighting
+        self.jitter = jitter
+        if self.jitter is not None:
+            self.jitter = Jitterer(jitter)
         self.encoded, self.masks, self.encoding_weights = self._encode(
             data, max_length, acts_to_index, norm_duration
         )
@@ -109,7 +120,6 @@ class SequenceEncodedPlans(BaseEncodedPlans):
 
         # calc weightings
         if self.weighting == "duration":
-            print("DURATION")
             weights = (
                 data.groupby("act", observed=True).duration.sum().to_dict()
             )
@@ -165,7 +175,11 @@ class SequenceEncodedPlans(BaseEncodedPlans):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx], self.masks[idx]
+        seq, mask = self.encoded[idx], self.masks[idx]
+        if self.jitter is None:
+            return seq, mask
+        seq = self.jitter(seq, mask)
+        return seq, mask
 
 
 def encode_sequence(
@@ -205,3 +219,17 @@ def encode_sequence(
         else:
             encoding[i][0] = eos
     return encoding, mask
+
+
+class Jitterer:
+    def __init__(self, a):
+        self.a = a
+
+    def __call__(self, seq, mask):
+        j = sum(mask) - 2
+        i = np.random.randint(1, j)
+        d = min(seq[i, 1], seq[i + 1, 1])
+        delta = d * (np.random.rand() * (2 * self.a) - self.a)
+        seq[i, 1] += delta
+        seq[i + 1, 1] -= delta
+        return seq
