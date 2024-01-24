@@ -29,12 +29,16 @@ def frequency_plots(
     else:
         ax = axs[0]
 
-    plot_agg_acts("observed", observed, class_map, ax=ax, legend=True, **kwargs)
+    _, order = plot_agg_acts(
+        "observed", observed, class_map, ax=ax, legend=True, **kwargs
+    )
 
     # now deal with ys
     for i, (name, y) in enumerate(ys.items()):
         ax = axs[i + 1]
-        plot_agg_acts(name, y, class_map, ax=ax, legend=False, **kwargs)
+        _ = plot_agg_acts(
+            name, y, class_map, ax=ax, legend=False, order=order, **kwargs
+        )
 
     return fig
 
@@ -47,6 +51,7 @@ def plot_agg_acts(
     step: int = 10,
     ax=None,
     legend=True,
+    order=None,
     **kwargs,
 ):
     bins = binned_activity_density(
@@ -54,8 +59,11 @@ def plot_agg_acts(
     )
     columns = list(class_map.keys())
     totals = bins.sum(0)
-    sorted_cols = [x for _, x in sorted(zip(totals, columns))]
-    df = DataFrame(bins, columns=columns)[sorted_cols]
+    if order is None:
+        order = [x for _, x in sorted(zip(totals, columns))]
+    else:
+        order = [x for x in order if x in columns]
+    df = DataFrame(bins, columns=columns)[order]
     df.index = [
         datetime(2021, 11, 1, 0) + timedelta(minutes=i * step)
         for i in range(len(df.index))
@@ -64,7 +72,7 @@ def plot_agg_acts(
         kind="bar", stacked=True, width=1, ax=ax, legend=legend, **kwargs
     )
     if legend:
-        ax.legend(loc="right")
+        ax.legend(loc="upper right")
     ax = fig.axes
     labels = [" " for _ in range(len(df.index))]
     labels[:: int(120 / step)] = [x.strftime("%H:%M") for x in df.index][
@@ -79,4 +87,4 @@ def plot_agg_acts(
     ax.set_xlabel("Time of day")
     ax.set_ylabel("Activity frequency")
     ax.set_title(name.title())
-    return ax
+    return ax, order
