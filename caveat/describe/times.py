@@ -6,7 +6,10 @@ from pandas import DataFrame
 
 
 def times_distributions_plot(
-    observed: DataFrame, ys: Optional[dict[str, DataFrame]], **kwargs
+    observed: DataFrame,
+    ys: Optional[dict[str, DataFrame]],
+    name="observed",
+    **kwargs,
 ) -> Figure:
     fig, axs = plt.subplots(
         3,
@@ -17,7 +20,7 @@ def times_distributions_plot(
         tight_layout=True,
     )
     acts = list(observed.act.value_counts(ascending=False).index)
-    _times_plot("observed", observed, acts, axs=axs)
+    _times_plot(name, observed, acts, axs=axs)
     if ys is None:
         return fig
     for name, y in ys.items():
@@ -87,7 +90,10 @@ def _times_plot(
 
 
 def joint_time_distributions_plot(
-    observed: DataFrame, ys: Optional[dict[DataFrame]], **kwargs
+    observed: DataFrame,
+    ys: Optional[dict[DataFrame]],
+    name="observed sample",
+    **kwargs,
 ) -> Figure:
     if ys is None:
         ys = dict()
@@ -103,7 +109,7 @@ def joint_time_distributions_plot(
         subfig = subfigs
     else:
         subfig = subfigs[0]
-    subfig.suptitle("Observed", fontstyle="italic")
+    subfig.suptitle(name.title())
     axs = subfig.subplots(nrows=1, ncols=len(acts), sharex=True, sharey=True)
     _joint_time_plot("obseved", observed, axs, acts)
 

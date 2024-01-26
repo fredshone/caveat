@@ -8,7 +8,10 @@ from caveat.features.frequency import binned_activity_density
 
 
 def frequency_plots(
-    observed: DataFrame, ys: Optional[dict[DataFrame]], **kwargs
+    observed: DataFrame,
+    ys: Optional[dict[DataFrame]],
+    name: str = "observed",
+    **kwargs,
 ):
     if ys is None:
         ys = dict()
@@ -30,7 +33,7 @@ def frequency_plots(
         ax = axs[0]
 
     _, order = plot_agg_acts(
-        "observed", observed, class_map, ax=ax, legend=True, **kwargs
+        name, observed, class_map, ax=ax, legend=True, **kwargs
     )
 
     # now deal with ys

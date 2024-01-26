@@ -39,7 +39,10 @@ def _probs_plot(
 
 
 def sequence_prob_plot(
-    observed: DataFrame, ys: Optional[dict[DataFrame]], **kwargs
+    observed: DataFrame,
+    ys: Optional[dict[DataFrame]],
+    name: str = "observed",
+    **kwargs,
 ) -> Figure:
     acts = list(observed.act.value_counts(ascending=False).index)
     cmap = kwargs.pop("cmap", None)
@@ -64,7 +67,7 @@ def sequence_prob_plot(
     )
     acts = list(observed.act.value_counts(ascending=False).index)
     _probs_plot(observed, acts, ax=axs[0], cmap=cmap)
-    axs[0].set_title("Observed")
+    axs[0].set_title(name.title())
     if ys is None:
         return fig
     for i, (name, y) in enumerate(ys.items()):
@@ -76,6 +79,3 @@ def sequence_prob_plot(
     axs[-1].legend(handles=elements, loc="center left", frameon=False)
 
     return fig
-
-
-#
