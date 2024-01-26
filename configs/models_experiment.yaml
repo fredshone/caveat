@@ -1,0 +1,206 @@
+global:
+  data_path: C:\Users\DAF3\Data\NTS\processed\nts_2021_acts_home_based.csv
+  logging_params:
+    log_dir: "experiments"
+    name: "paper6"
+  trainer_params:
+    max_epochs: 120
+    min_epochs: 50
+    patience: 20
+  loader_params:
+    train_batch_size: 256
+    val_batch_size:  256
+    num_workers: 3
+  experiment_params:
+    LR: 0.005
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+
+# SEQ2SEQ1:
+#   seed: 1111
+#   encoder_params:
+#     name: "sequence"
+#     duration: 1440
+#     max_length: 14
+#     weighting: "count"
+#   model_params:
+#     name: "SEQ2SEQ"
+#     hidden_layers: 2
+#     hidden_size: 256
+#     latent_dim: 6
+#     use_mask: True
+#     dropout: 0.2
+#     kld_weight: 0.005
+#     duration_weight: 500
+
+
+EmbedConv_1:
+  seed: 1111
+  encoder_params:
+    name: "descrete"
+    duration: 1440
+    step_size: 10
+    weighting: "duration"
+    jitter: 0.1
+  model_params:
+    name: "EmbedConv"
+    hidden_layers: [128, 128, 128, 128, 128]
+    latent_dim: 6
+    kld_weight: 0.002
+    dropout: 0.2
+
+EmbedConv_2:
+  seed: 2222
+  encoder_params:
+    name: "descrete"
+    duration: 1440
+    step_size: 10
+    weighting: "duration"
+    jitter: 0.1
+  model_params:
+    name: "EmbedConv"
+    hidden_layers: [128, 128, 128, 128, 128]
+    latent_dim: 6
+    kld_weight: 0.002
+    dropout: 0.2
+
+EmbedConv_3:
+  seed: 3333
+  encoder_params:
+    name: "descrete"
+    duration: 1440
+    step_size: 10
+    weighting: "duration"
+    jitter: 0.1
+  model_params:
+    name: "EmbedConv"
+    hidden_layers: [128, 128, 128, 128, 128]
+    latent_dim: 6
+    kld_weight: 0.002
+    dropout: 0.2
+
+EmbedConv_4:
+  seed: 4444
+  encoder_params:
+    name: "descrete"
+    duration: 1440
+    step_size: 10
+    weighting: "duration"
+    jitter: 0.1
+  model_params:
+    name: "EmbedConv"
+    hidden_layers: [128, 128, 128, 128, 128]
+    latent_dim: 6
+    kld_weight: 0.002
+    dropout: 0.2
+
+EmbedConv_5:
+  seed: 5555
+  encoder_params:
+    name: "descrete"
+    duration: 1440
+    step_size: 10
+    weighting: "duration"
+    jitter: 0.1
+  model_params:
+    name: "EmbedConv"
+    hidden_layers: [128, 128, 128, 128, 128]
+    latent_dim: 6
+    kld_weight: 0.002
+    dropout: 0.2
+
+
+LSTM1:
+  seed: 1111
+  encoder_params:
+    name: "sequence"
+    duration: 1440
+    max_length: 14
+    weighting: "count"
+    jitter: 0.1
+  model_params:
+    name: "LSTM"
+    hidden_layers: 2
+    hidden_size: 256
+    latent_dim: 6
+    teacher_forcing_ratio: 0.5
+    use_mask: True
+    dropout: 0.2
+    kld_weight: 0.005
+    duration_weight: 500
+
+LSTM2:
+  seed: 2222
+  encoder_params:
+    name: "sequence"
+    duration: 1440
+    max_length: 14
+    weighting: "count"
+    jitter: 0.1
+  model_params:
+    name: "LSTM"
+    hidden_layers: 2
+    hidden_size: 256
+    latent_dim: 6
+    teacher_forcing_ratio: 0.5
+    use_mask: True
+    dropout: 0.2
+    kld_weight: 0.005
+    duration_weight: 500
+
+LSTM3:
+  seed: 3333
+  encoder_params:
+    name: "sequence"
+    duration: 1440
+    max_length: 14
+    weighting: "count"
+    jitter: 0.2
+  model_params:
+    name: "LSTM"
+    hidden_layers: 2
+    hidden_size: 256
+    latent_dim: 6
+    teacher_forcing_ratio: 0.5
+    use_mask: True
+    dropout: 0.1
+    kld_weight: 0.005
+    duration_weight: 500
+
+LSTM4:
+  seed: 4444
+  encoder_params:
+    name: "sequence"
+    duration: 1440
+    max_length: 14
+    weighting: "count"
+    jitter: 0.1
+  model_params:
+    name: "LSTM"
+    hidden_layers: 2
+    hidden_size: 256
+    latent_dim: 6
+    teacher_forcing_ratio: 0.5
+    use_mask: True
+    dropout: 0.2
+    kld_weight: 0.005
+    duration_weight: 500
+
+LSTM5:
+  seed: 5555
+  encoder_params:
+    name: "sequence"
+    duration: 1440
+    max_length: 14
+    weighting: "count"
+    jitter: 0.1
+  model_params:
+    name: "LSTM"
+    hidden_layers: 2
+    hidden_size: 256
+    latent_dim: 6
+    teacher_forcing_ratio: 0.5
+    use_mask: True
+    dropout: 0.2
+    kld_weight: 0.005
+    duration_weight: 500
