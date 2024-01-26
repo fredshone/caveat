@@ -227,9 +227,10 @@ class Jitterer:
 
     def __call__(self, seq, mask):
         j = sum(mask) - 2
-        i = np.random.randint(1, j)
-        d = min(seq[i, 1], seq[i + 1, 1])
-        delta = d * (np.random.rand() * (2 * self.a) - self.a)
-        seq[i, 1] += delta
-        seq[i + 1, 1] -= delta
+        if j > 1:
+            i = np.random.randint(1, j)
+            d = min(seq[i, 1], seq[i + 1, 1])
+            delta = d * (np.random.rand() * (2 * self.a) - self.a)
+            seq[i, 1] += delta
+            seq[i + 1, 1] -= delta
         return seq

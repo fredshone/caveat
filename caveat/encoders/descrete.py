@@ -196,7 +196,9 @@ class DiscreteJitterer:
 
     def __call__(self, sequence):
         transitions = np.where(sequence[:-1] != sequence[1:])[0]
-        idx = np.random.choice(len(transitions))
+        if len(transitions) == 0:
+            return sequence
+        idx = np.random.randint(0, len(transitions))
         transition = transitions[idx]
         acts = sequence[transition], sequence[transition + 1]
         direction = np.random.choice([0, 1])
