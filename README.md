@@ -11,12 +11,12 @@ Caveat is for building models that generate human activity sequences.
 
 ## Framework
 
-Caveat provides a framework to train and test generative models. A model run is composed of:
+Caveat provides a framework to train and test generative models. A Caveat model is composed of:
 
-- Data - see the caveat examples for synthetic and real data generation
-- Encoder - see caveat encoders for available encoders
-- Model - see caveat models for available models
-- Report - see caveat report
+- Input Data - we support a simple tabular structure for input sequences
+- Encoder/Decoder - methods for converting tabular inputs into different data structures and vide versa
+- Model - Generative models to learn and synthesize new populations of sequences
+- Evaluate - Methods for assessing the quality of synthetic populations of sequences
 
 ## Quick Start
 
@@ -28,11 +28,15 @@ Train and report on a model using `caveat run configs/toy_run.yaml`. The run dat
 
 `caveat batch --help`
 
-Train and report on a batch of runs using a special batch config `caveat batch configs/toy_batch.yaml`. Batch allows comparison of multiple models and/or hyper-params as per the batch config.
+Train and report on a batch of runs using a batch config `caveat batch configs/toy_batch.yaml`. Batch allows comparison of multiple models and/or hyper-params as per the batch config.
 
 `caveat nrun --help`
 
 Run and report the variance of n of the same run using `caveat nrun configs/toy_run.yaml --n 3`. The config is as per a regular run config but `seed` is ignored.
+
+`caveat report --help`
+
+Evaluate the outputs of an existing run or batch (using `-b`).
 
 ## Data
 
@@ -51,18 +55,18 @@ Caveat requires a .csv format to represent a *population* of *activity sequences
 - **act** is a categorical value for the type of activity in the sequence
 - **start** and **end** are the start and end times of the activities in the sequence
 
-We commonly refer to these as ***populations***. Times are assumed to be in minutes and should be integers. Valid sequences should be complete, ie the start of an activity should be equal to the end of the previous. The convention is to start at midnight. Such that time can be thought of as *minutes since midnight*.
+We commonly refer to these as ***sample populations***. Times are assumed to be in minutes and should be integers. Valid sequences should be complete, ie the start of an activity should be equal to the end of the previous. The convention is to start at midnight. Such that time can be thought of as *minutes since midnight*.
 
-There is an example [toy population](https://github.com/fredshone/caveat/latest/examples/data) with 1000 sequences in `caveat/examples/data`. There are also [example notebooks](https://github.com/fredshone/caveat/tree/main/examples) for:
+There are example [toy populations](https://github.com/fredshone/caveat/latest/examples/data) with 1000 sequences in `caveat/examples/data`. There are also [example notebooks](https://github.com/fredshone/caveat/tree/main/examples) for:
 
 - Generation of a synthetic population
-- Generation of a population from UK travel diaries
+- Generation of a population from UK travel diaries (requires access to UK NTS trip data)
 
 ### Encoder
 
-We are keen to test different encodings (such as continuous sequences versus descretised time-steps). The exact encoding required will depend on the model structure being used.
+We are keen to test different encodings (such as continuous sequences versus discretized time-steps).
 
-The encoder and it's parameters are defined in the config `encoder` group.
+The encoder and it's parameters are defined in the config `encoder` group. See examples in `caveat.configs`.
 
 Encoders are defined in the `encoders` module and should be accessed via `caveat.encoders.library`.
 
@@ -70,7 +74,7 @@ Note that encoders must implement both an encode and decode method so that model
 
 ## Model
 
-The model and it's parameters are defined in the config `model` group. Models are trained until validation stabilises or until some max number of epochs.
+The model and it's parameters are defined in the config `model_params` group. See examples in `caveat.configs`.
 
 Models are defined in `models` and should be accessed via `caveat.models.library`. Models and their training should be specified via the config.
 
@@ -78,11 +82,13 @@ The `data_loader`, `experiment` and `trainer` hyper-params are also configured b
 
 ## Evaluate
 
-Each model (with training weights from the best performing validation step) is used to generate a new "sythetic" population.
+Each model (with training weights from the best performing validation step) is used to generate a new "synthetic" population.
 
-Sythetic populations are compared to the original "observed" population.
+Synthetic populations are compared to the original "observed" population.
 
-Evaluating the quality of generated populations is subjective. The `features` module provides functions for extracting features from populations. Such as "activity durations". These are then used to make descriptive metrics and distance metrics between the observed and sythetic populations.
+Evaluating the quality of generated populations is subjective. The `features` module provides functions for extracting features from populations. Such as "activity durations". These are then used to make descriptive metrics and distance metrics between the observed and synthetic populations.
+
+See [examples](https://github.com/fredshone/caveat/latest/examples) for evaluation inspiration.
 
 <!--- --8<-- [end:docs] -->
 

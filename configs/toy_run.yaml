@@ -4,16 +4,16 @@ logging_params:
 
 data_path: "examples/data/synthetic_population.csv"
 
-model_params:
-  name: "VAE"
-  hidden_dims: [64,64]
-  latent_dim: 2
-  stride: [2,2]
-
 encoder_params:
   name: "descrete"
   duration: 1440
   step_size: 10
+
+model_params:
+  name: "EmbedConv"
+  hidden_layers: [64,64]
+  latent_dim: 2
+  stride: [2,2]
 
 loader_params:
   train_batch_size: 32
