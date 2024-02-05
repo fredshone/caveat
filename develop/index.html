@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.4">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.7">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.50c56a3b.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.f2e4d321.min.css">
       
       
 
@@ -1862,21 +1862,23 @@
 <a href="https://fredshone.github.io/caveat"><img alt="Documentation" src="https://github.com/fredshone/caveat/actions/workflows/pages/pages-build-deployment/badge.svg" /></a></p>
 <p>Caveat is for building models that generate human activity sequences.</p>
 <h2 id="framework">Framework<a class="headerlink" href="#framework" title="Permanent link">#</a></h2>
-<p>Caveat provides a framework to train and test generative models. A model run is composed of:</p>
+<p>Caveat provides a framework to train and test generative models. A Caveat model is composed of:</p>
 <ul>
-<li>Data - see the caveat examples for synthetic and real data generation</li>
-<li>Encoder - see caveat encoders for available encoders</li>
-<li>Model - see caveat models for available models</li>
-<li>Report - see caveat report</li>
+<li>Input Data - we support a simple tabular structure for input sequences</li>
+<li>Encoder/Decoder - methods for converting tabular inputs into different data structures and vide versa</li>
+<li>Model - Generative models to learn and synthesize new populations of sequences</li>
+<li>Evaluate - Methods for assessing the quality of synthetic populations of sequences</li>
 </ul>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">#</a></h2>
 <p>Once installed get started using <code>caveat --help</code>.</p>
 <p><code>caveat run --help</code></p>
 <p>Train and report on a model using <code>caveat run configs/toy_run.yaml</code>. The run data, encoder, model and other parameters are controlled using a run config. This will write results and tensorboard logs to <code>logs/</code> (this is configurable). Monitor or review training progress using <code>tensorboard --logdir=logs</code>.</p>
 <p><code>caveat batch --help</code></p>
-<p>Train and report on a batch of runs using a special batch config <code>caveat batch configs/toy_batch.yaml</code>. Batch allows comparison of multiple models and/or hyper-params as per the batch config.</p>
+<p>Train and report on a batch of runs using a batch config <code>caveat batch configs/toy_batch.yaml</code>. Batch allows comparison of multiple models and/or hyper-params as per the batch config.</p>
 <p><code>caveat nrun --help</code></p>
 <p>Run and report the variance of n of the same run using <code>caveat nrun configs/toy_run.yaml --n 3</code>. The config is as per a regular run config but <code>seed</code> is ignored.</p>
+<p><code>caveat report --help</code></p>
+<p>Evaluate the outputs of an existing run or batch (using <code>-b</code>).</p>
 <h2 id="data">Data<a class="headerlink" href="#data" title="Permanent link">#</a></h2>
 <p>Caveat requires a .csv format to represent a <em>population</em> of <em>activity sequences</em>:</p>
 <table>
@@ -1932,25 +1934,26 @@
 <li><strong>act</strong> is a categorical value for the type of activity in the sequence</li>
 <li><strong>start</strong> and <strong>end</strong> are the start and end times of the activities in the sequence</li>
 </ul>
-<p>We commonly refer to these as <strong><em>populations</em></strong>. Times are assumed to be in minutes and should be integers. Valid sequences should be complete, ie the start of an activity should be equal to the end of the previous. The convention is to start at midnight. Such that time can be thought of as <em>minutes since midnight</em>.</p>
-<p>There is an example <a href="https://github.com/fredshone/caveat/latest/examples/data">toy population</a> with 1000 sequences in <code>caveat/examples/data</code>. There are also <a href="https://github.com/fredshone/caveat/tree/main/examples">example notebooks</a> for:</p>
+<p>We commonly refer to these as <strong><em>sample populations</em></strong>. Times are assumed to be in minutes and should be integers. Valid sequences should be complete, ie the start of an activity should be equal to the end of the previous. The convention is to start at midnight. Such that time can be thought of as <em>minutes since midnight</em>.</p>
+<p>There are example <a href="https://github.com/fredshone/caveat/latest/examples/data">toy populations</a> with 1000 sequences in <code>caveat/examples/data</code>. There are also <a href="https://github.com/fredshone/caveat/tree/main/examples">example notebooks</a> for:</p>
 <ul>
 <li>Generation of a synthetic population</li>
-<li>Generation of a population from UK travel diaries</li>
+<li>Generation of a population from UK travel diaries (requires access to UK NTS trip data)</li>
 </ul>
 <h3 id="encoder">Encoder<a class="headerlink" href="#encoder" title="Permanent link">#</a></h3>
-<p>We are keen to test different encodings (such as continuous sequences versus descretised time-steps). The exact encoding required will depend on the model structure being used.</p>
-<p>The encoder and it's parameters are defined in the config <code>encoder</code> group.</p>
+<p>We are keen to test different encodings (such as continuous sequences versus discretized time-steps).</p>
+<p>The encoder and it's parameters are defined in the config <code>encoder</code> group. See examples in <code>caveat.configs</code>.</p>
 <p>Encoders are defined in the <code>encoders</code> module and should be accessed via <code>caveat.encoders.library</code>.</p>
 <p>Note that encoders must implement both an encode and decode method so that model outputs can be converted back into the population format for reporting.</p>
 <h2 id="model">Model<a class="headerlink" href="#model" title="Permanent link">#</a></h2>
-<p>The model and it's parameters are defined in the config <code>model</code> group. Models are trained until validation stabilises or until some max number of epochs.</p>
+<p>The model and it's parameters are defined in the config <code>model_params</code> group. See examples in <code>caveat.configs</code>.</p>
 <p>Models are defined in <code>models</code> and should be accessed via <code>caveat.models.library</code>. Models and their training should be specified via the config.</p>
 <p>The <code>data_loader</code>, <code>experiment</code> and <code>trainer</code> hyper-params are also configured by similarly named groups. These groups use the standard <a href="https://pypi.org/project/pytorch-lightning/">pytorch-lightning</a> framework.</p>
 <h2 id="evaluate">Evaluate<a class="headerlink" href="#evaluate" title="Permanent link">#</a></h2>
-<p>Each model (with training weights from the best performing validation step) is used to generate a new "sythetic" population.</p>
-<p>Sythetic populations are compared to the original "observed" population.</p>
-<p>Evaluating the quality of generated populations is subjective. The <code>features</code> module provides functions for extracting features from populations. Such as "activity durations". These are then used to make descriptive metrics and distance metrics between the observed and sythetic populations.</p>
+<p>Each model (with training weights from the best performing validation step) is used to generate a new "synthetic" population.</p>
+<p>Synthetic populations are compared to the original "observed" population.</p>
+<p>Evaluating the quality of generated populations is subjective. The <code>features</code> module provides functions for extracting features from populations. Such as "activity durations". These are then used to make descriptive metrics and distance metrics between the observed and synthetic populations.</p>
+<p>See <a href="https://github.com/fredshone/caveat/latest/examples">examples</a> for evaluation inspiration.</p>
 
 
 
@@ -1998,10 +2001,10 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.indexes"], "search": "assets/javascripts/workers/search.c011b7c0.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.indexes"], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.7389ff0e.min.js"></script>
+      <script src="assets/javascripts/bundle.caa56a14.min.js"></script>
       
     
   </body>
