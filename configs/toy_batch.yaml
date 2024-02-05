@@ -4,40 +4,6 @@ global:
     save_dir: "logs"
     name: "toy_batch"
   seed: 1234
-
-2d_latent:
-  model_params:
-    name: "VAE"
-    hidden_dims: [64,64]
-    latent_dim: 2
-    stride: [2,2]
-
-  encoder_params:
-    name: "descrete"
-    duration: 1440
-    step_size: 10
-
-  loader_params:
-    train_batch_size: 32
-    val_batch_size:  32
-    num_workers: 3
-
-  experiment_params:
-    LR: 0.005
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.00025
-
-  trainer_params:
-    max_epochs: 50
-
-3d_latent:
-  model_params:
-    name: "VAE"
-    hidden_dims: [64,64]
-    latent_dim: 3
-    stride: [2,2]
-
   encoder_params:
     name: "descrete"
     duration: 1440
@@ -56,3 +22,19 @@ global:
 
   trainer_params:
     max_epochs: 50
+
+2d_latent:
+  model_params:
+    name: "EmbedConv"
+    hidden_layers: [64,64]
+    latent_dim: 2
+    stride: [2,2]
+
+3d_latent:
+  model_params:
+    name: "EmbedConv"
+    hidden_layers: [64,64]
+    latent_dim: 3
+    stride: [2,2]
+
+
