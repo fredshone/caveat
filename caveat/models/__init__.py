@@ -4,6 +4,7 @@ from .seq.gru import GRU
 from .seq.lstm import LSTM
 from .seq.lstm_bi import LSTM_BI
 from .seq.lstm_deep import LSTM_Deep
+from .seq.lstm_discrete import LSTM_Discrete
 
 library = {
     "EmbedConv": EmbedConv,
@@ -12,4 +13,5 @@ library = {
     "GRU": GRU,
     "LSTM_BI": LSTM_BI,
     "LSTM_Deep": LSTM_Deep,
+    "LSTM_Discrete": LSTM_Discrete,
 }
