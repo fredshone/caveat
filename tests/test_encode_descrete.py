@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch import tensor
 
-from caveat.encoders import descrete
+from caveat.encoders import discrete
 
 
 @pytest.mark.parametrize(
@@ -23,7 +23,7 @@ from caveat.encoders import descrete
 )
 def test_descretise_trace(acts, starts, ends, length, expected):
     class_map = {"a": 0, "b": 1}
-    result = descrete.descretise_trace(acts, starts, ends, length, class_map)
+    result = discrete.descretise_trace(acts, starts, ends, length, class_map)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -43,7 +43,7 @@ def test_descretise_population():
     step = 2
     expected = np.array([[0, 1, 1], [0, 0, 1]], dtype=np.int8)
     class_map = {"a": 0, "b": 1}
-    result = descrete.descretise_population(traces, length, step, class_map)
+    result = discrete.descretise_population(traces, length, step, class_map)
     expected = torch.from_numpy(expected)
     assert torch.equal(result, expected)
 
@@ -57,7 +57,7 @@ def test_large_downsample_descretise_population():
     step = 180
     expected = np.array([[0, 0, 1, 1, 1, 0, 0, 0]], dtype=np.int8)
     class_map = {"a": 0, "b": 1}
-    result = descrete.descretise_population(traces, length, step, class_map)
+    result = discrete.descretise_population(traces, length, step, class_map)
     expected = torch.from_numpy(expected)
     assert torch.equal(result, expected)
 
@@ -78,7 +78,7 @@ def test_encoded_weights():
     step = 2
     expected_weights = torch.tensor([1 / 7, 1 / 5])
     expected_mask = torch.tensor([[1, 1, 1]])
-    encoder = descrete.DescreteEncoder(length, step)
+    encoder = discrete.DiscreteEncoder(length, step)
     encoded = encoder.encode(traces)
     assert torch.equal(encoded.encoding_weights, expected_weights)
     assert torch.equal(encoded[0][1], expected_mask)
@@ -119,7 +119,7 @@ def test_encoded_weights():
     ],
 )
 def test_decode_descretised(encoded, length, step_size, expected):
-    encoder = descrete.DescreteEncoder(duration=length, step_size=step_size)
+    encoder = discrete.DiscreteEncoder(duration=length, step_size=step_size)
     encoder.index_to_acts = {0: "a", 1: "b", 2: "c"}
     result = encoder.decode(encoded)
     pd.testing.assert_frame_equal(expected, result)

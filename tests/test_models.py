@@ -1,14 +1,14 @@
 import torch
 
-from caveat.models.conv.conv2d import Conv2d
-from caveat.models.conv.embed_conv import EmbedConv
+from caveat.models.conv.conv2d import ConvOneHot
+from caveat.models.conv.embed_conv import Conv
 from caveat.models.seq.gru import GRU
 from caveat.models.seq.lstm import LSTM
 
 
 def test_conv_one_hot_forward():
     x = torch.randn(3, 1, 144, 5)  # (batch, channels, steps, acts)
-    model = Conv2d(
+    model = ConvOneHot(
         in_shape=x[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -29,7 +29,7 @@ def test_conv_one_hot_forward():
 def test_conv_embed_cov_forward():
     x = torch.randn(3, 1, 144, 5)  # (batch, channels, steps, acts)
     x_max = x.argmax(dim=-1).squeeze()
-    model = EmbedConv(
+    model = Conv(
         in_shape=x_max[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -60,7 +60,7 @@ def test_gru_forward():
         encoding_weights=torch.ones((5)),
         **{
             "hidden_layers": 1,
-            "hidden_size": 1,
+            "hidden_size": 2,
             "latent_dim": 2,
             "dropout": 0.1,
         },
@@ -90,7 +90,7 @@ def test_lstm_forward():
         encoding_weights=torch.ones((5)),
         **{
             "hidden_layers": 1,
-            "hidden_size": 1,
+            "hidden_size": 2,
             "latent_dim": 2,
             "dropout": 0.1,
         },

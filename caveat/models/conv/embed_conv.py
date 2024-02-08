@@ -6,7 +6,7 @@ from caveat.models.base import BaseVAE
 from caveat.models.utils import calc_output_padding, conv_size
 
 
-class EmbedConv(BaseVAE):
+class Conv(BaseVAE):
     def __init__(self, *args, **kwargs):
         """Convolution based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)

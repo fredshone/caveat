@@ -1,12 +1,12 @@
-from re import S
-
-from .base import BaseEncodedPlans, BaseEncoder
-from .descrete import DescreteEncoder
-from .descrete_one_hot import DescreteEncoderOneHot
-from .seq import SequenceEncoder
+from caveat.encoders.base import BaseEncoded, BaseEncoder
+from caveat.encoders.discrete import DiscreteEncoder
+from caveat.encoders.discrete_one_hot import DiscreteOneHotEncoder
+from caveat.encoders.seq import UnweightedSequenceEncoder
+from caveat.encoders.seq_weighted import SequenceEncoder
 
 library = {
-    "one_hot": DescreteEncoderOneHot,
-    "descrete": DescreteEncoder,
+    "discrete_one_hot": DiscreteOneHotEncoder,
+    "discrete": DiscreteEncoder,
+    "unweighted_sequence": UnweightedSequenceEncoder,
     "sequence": SequenceEncoder,
 }

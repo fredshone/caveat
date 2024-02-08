@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models.base import BaseVAE, CustomEmbedding
+from caveat.models.base import BaseVAE, CustomDurationEmbedding
 
 
 class LSTM(BaseVAE):
@@ -79,6 +79,22 @@ class LSTM(BaseVAE):
         return log_probs, probs
 
 
+class LSTM_Unweighted(LSTM):
+    def loss_function(
+        self,
+        log_probs: Tensor,
+        probs: Tensor,
+        input: Tensor,
+        mu: Tensor,
+        log_var: Tensor,
+        mask: Tensor,
+        **kwargs,
+    ) -> dict:
+        return self.unweighted_seq_loss(
+            log_probs, probs, input, mu, log_var, mask, **kwargs
+        )
+
+
 class Encoder(nn.Module):
     def __init__(
         self,
@@ -98,7 +114,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = CustomEmbedding(
+        self.embedding = CustomDurationEmbedding(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(
@@ -150,7 +166,7 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = CustomEmbedding(
+        self.embedding = CustomDurationEmbedding(
             input_size, hidden_size, dropout=dropout
         )
         self.lstm = nn.LSTM(

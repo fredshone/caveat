@@ -13,7 +13,7 @@ global:
     stride: [2,2]
 
   encoder_params:
-    name: "descrete"
+    name: "discrete"
     duration: 1440
     step_size: 10
 
