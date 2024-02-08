@@ -4,77 +4,71 @@ import pytest
 import torch
 from torch import tensor
 
-from caveat.encoders import seq
+from caveat.encoders import seq_weighted as seq
 
 
 @pytest.mark.parametrize(
-    "acts,durations,expected,expected_mask",
+    "acts,durations,act_weights,expected,expects_weights",
     [
         (
             [2, 3, 2],
             [0.3, 0.2, 0.5],
+            {0: 0.1, 1: 0.1, 2: 0.3, 3: 0.5},
             np.array(
                 [[0, 0.0], [2, 0.3], [3, 0.2], [2, 0.5], [1, 0.0], [1, 0.0]],
                 dtype=np.float32,
             ),
-            np.array([1, 1, 1, 1, 1, 0]),
+            np.array([0.1, 0.3, 0.5, 0.3, 0.1, 0.0], dtype=np.float32),
         )
     ],
 )
-def test_encode_sequence(acts, durations, expected, expected_mask):
-    result, mask = seq.encode_sequence(
-        acts, durations, max_length=6, encoding_width=2, sos=0, eos=1
+def test_encode_sequence(
+    acts, durations, act_weights, expected, expects_weights
+):
+    result, weights = seq.encode_sequence(
+        acts,
+        durations,
+        max_length=6,
+        encoding_width=2,
+        act_weights=act_weights,
+        sos=0,
+        eos=1,
     )
     np.testing.assert_array_equal(result, expected)
-    np.testing.assert_array_equal(mask, expected_mask)
+    np.testing.assert_array_equal(weights, expects_weights)
 
 
 def test_encode_population():
     traces = pd.DataFrame(
         [
-            [0, "a", 0, 2, 2],
-            [0, "b", 2, 5, 3],
-            [0, "a", 5, 10, 5],
-            [1, "a", 0, 3, 3],
-            [1, "b", 3, 5, 2],
-            [1, "a", 5, 10, 5],
+            [0, "a", 0, 4, 4],
+            [0, "b", 4, 10, 6],
+            [1, "a", 0, 6, 6],
+            [1, "b", 6, 10, 4],
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
     map = {"<SOS>": 0, "<EOS>": 1, "a": 2, "b": 3}
-    encoded = seq.SequenceEncodedPlans(
+    encoded = seq.SequenceDurationsWeighted(
         traces, max_length=6, acts_to_index=map, norm_duration=10
     )
     expected = np.array(
         [
-            [[0.0, 0.0], [2, 0.2], [3, 0.3], [2, 0.5], [1.0, 0.0], [1.0, 0.0]],
-            [[0.0, 0.0], [2, 0.3], [3, 0.2], [2, 0.5], [1.0, 0.0], [1.0, 0.0]],
+            [[0, 0.0], [2, 0.4], [3, 0.6], [1, 0.0], [1, 0.0], [1, 0.0]],
+            [[0, 0.0], [2, 0.6], [3, 0.4], [1, 0.0], [1, 0.0], [1, 0.0]],
         ],
         dtype=np.float32,
     )
-    expected = torch.from_numpy(expected)
-    assert torch.equal(encoded.encoded, expected)
-
-
-def test_encoded_weights():
-    traces = pd.DataFrame(
-        [
-            [0, "a", 0, 2, 2],
-            [0, "b", 2, 5, 3],
-            [0, "a", 5, 10, 5],
-            [1, "a", 0, 3, 3],
-            [1, "b", 3, 5, 2],
-            [1, "a", 5, 10, 5],
-        ],
-        columns=["pid", "act", "start", "end", "duration"],
+    n = 1 / (2 * 60)
+    expected_weights = np.array(
+        [[n, 0.1, 0.1, n, 0.0, 0.0], [n, 0.1, 0.1, n, 0.0, 0.0]],
+        dtype=np.float32,
     )
-    expected_weights = torch.tensor([1 / 120, 1 / 120, 1 / 15, 1 / 5])
-    expected_mask = torch.tensor([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+    expected = torch.from_numpy(expected)
+    expected_weights = torch.from_numpy(expected_weights)
 
-    encoder = seq.UnweightedSequenceEncoder(max_length=10, duration=10)
-    encoded = encoder.encode(traces)
+    assert torch.equal(encoded.encoded, expected)
     assert torch.equal(encoded.encoding_weights, expected_weights)
-    assert torch.equal(encoded[0][1], expected_mask)
 
 
 @pytest.mark.parametrize(
@@ -115,9 +109,7 @@ def test_encoded_weights():
     ],
 )
 def test_decode_descretised(encoded, length, norm_duration, expected):
-    encoder = seq.UnweightedSequenceEncoder(
-        max_length=length, duration=norm_duration
-    )
+    encoder = seq.SequenceEncoder(max_length=length, duration=norm_duration)
     _ = encoder.encode(expected)
     result = encoder.decode(encoded)
     result["duration"] = result["end"] - result["start"]

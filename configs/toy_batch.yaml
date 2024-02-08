@@ -5,7 +5,7 @@ global:
     name: "toy_batch"
   seed: 1234
   encoder_params:
-    name: "descrete"
+    name: "discrete"
     duration: 1440
     step_size: 10
 
@@ -25,14 +25,14 @@ global:
 
 2d_latent:
   model_params:
-    name: "EmbedConv"
+    name: "conv"
     hidden_layers: [64,64]
     latent_dim: 2
     stride: [2,2]
 
 3d_latent:
   model_params:
-    name: "EmbedConv"
+    name: "conv"
     hidden_layers: [64,64]
     latent_dim: 3
     stride: [2,2]

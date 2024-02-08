@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch import tensor
 
-from caveat.encoders import descrete_one_hot
+from caveat.encoders import discrete_one_hot
 
 
 @pytest.mark.parametrize(
@@ -15,7 +15,7 @@ from caveat.encoders import descrete_one_hot
     ],
 )
 def test_one_hot(target, num_classes, expected):
-    result = descrete_one_hot.one_hot(target, num_classes)
+    result = discrete_one_hot.one_hot(target, num_classes)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -31,7 +31,7 @@ def test_one_hot(target, num_classes, expected):
     ],
 )
 def test_down_sample(target, step, expected):
-    result = descrete_one_hot.down_sample(target, step)
+    result = discrete_one_hot.down_sample(target, step)
     np.testing.assert_array_equal(result, expected)
 
 
@@ -51,7 +51,7 @@ def test_down_sample(target, step, expected):
 )
 def test_descretise_trace(acts, starts, ends, length, expected):
     class_map = {"a": 0, "b": 1}
-    result = descrete_one_hot.descretise_trace(
+    result = discrete_one_hot.descretise_trace(
         acts, starts, ends, length, class_map
     )
     np.testing.assert_array_equal(result, expected)
@@ -75,7 +75,7 @@ def test_descretise_population():
         [[[[1, 0], [0, 1], [0, 1]]], [[[1, 0], [1, 0], [0, 1]]]], dtype=np.int8
     )
     class_map = {"a": 0, "b": 1}
-    result = descrete_one_hot.descretise_population(
+    result = discrete_one_hot.descretise_population(
         traces, length, step, class_map
     )
     expected = torch.from_numpy(expected)
@@ -94,7 +94,7 @@ def test_large_downsample_descretise_population():
         dtype=np.int8,
     )
     class_map = {"a": 0, "b": 1}
-    result = descrete_one_hot.descretise_population(
+    result = discrete_one_hot.descretise_population(
         traces, length, step, class_map
     )
     expected = torch.from_numpy(expected)
@@ -117,7 +117,7 @@ def test_encoded_weights():
     step = 2
     expected_weights = torch.tensor([1 / 7, 1 / 5])
     expected_mask = torch.tensor([[1, 1, 1]])
-    encoder = descrete_one_hot.DescreteEncoderOneHot(length, step)
+    encoder = discrete_one_hot.DiscreteOneHotEncoder(length, step)
     encoded = encoder.encode(traces)
     assert torch.equal(encoded.encoding_weights, expected_weights)
     assert torch.equal(encoded[0][1], expected_mask)
@@ -158,7 +158,7 @@ def test_encoded_weights():
     ],
 )
 def test_decode_descretised(encoded, length, step_size, expected):
-    encoder = descrete_one_hot.DescreteEncoderOneHot(
+    encoder = discrete_one_hot.DiscreteOneHotEncoder(
         duration=length, step_size=step_size
     )
     encoder.index_to_acts = {0: "a", 1: "b", 2: "c"}

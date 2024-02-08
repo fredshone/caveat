@@ -6,7 +6,7 @@ from caveat.models.base import BaseVAE
 from caveat.models.utils import calc_output_padding, conv_size
 
 
-class Conv2d(BaseVAE):
+class ConvOneHot(BaseVAE):
     def __init__(self, *args, **kwargs):
         """Convolution based encoder and decoder, takes pre-encoded input (eg one-hot)."""
         super().__init__(*args, **kwargs)
