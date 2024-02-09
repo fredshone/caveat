@@ -272,7 +272,7 @@ def build_encoder(config: dict) -> encoders.BaseEncoder:
 
 
 def build_dataloader(
-    config: dict, dataset: encoders.BaseEncodedPlans
+    config: dict, dataset: encoders.BaseEncoded
 ) -> data.DataModule:
     data_loader_params = config.get("loader_params", {})
     datamodule = data.DataModule(data=dataset, **data_loader_params)
@@ -280,9 +280,7 @@ def build_dataloader(
     return datamodule
 
 
-def build_experiment(
-    dataset: encoders.BaseEncodedPlans, config: dict
-) -> Experiment:
+def build_experiment(dataset: encoders.BaseEncoded, config: dict) -> Experiment:
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     model = model(

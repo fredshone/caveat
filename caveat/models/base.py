@@ -19,6 +19,25 @@ class OneHotEmbedding(nn.Module):
     def __init__(self, input_size, hidden_size, dropout: float = 0.1):
         """Embedding that combines activity onehot embedding and duration."""
         super().__init__()
+        if hidden_size != input_size + 1:
+            raise ValueError("Hidden size must be equal to input size plus 1.")
+        self.classes = input_size
+        self.fc = nn.Linear(hidden_size, hidden_size)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        embedded, durations = torch.split(x, [1, 1], dim=-1)
+        embedded = self.dropout(
+            nn.functional.one_hot(embedded.int(), self.classes)
+        )
+        embedded = torch.cat((embedded, durations), dim=-1)
+        return embedded
+
+
+class OneHotPlusLinearEmbedding(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout: float = 0.1):
+        """Embedding that combines activity onehot embedding and duration and linear layer."""
+        super().__init__()
         self.classes = input_size
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.dropout = nn.Dropout(dropout)
@@ -33,10 +52,12 @@ class OneHotEmbedding(nn.Module):
         return embedded
 
 
-class CustomEmbedding(nn.Module):
+class CustomDurationEmbedding(nn.Module):
     def __init__(self, input_size, hidden_size, dropout: float = 0.1):
-        """Embedding that combines activity embedding layer."""
+        """Embedding that combines activity embedding layer and duration."""
         super().__init__()
+        if hidden_size < 2:
+            raise ValueError("Hidden size must be greater than 1.")
         self.embedding = nn.Embedding(input_size, hidden_size - 1)
         self.dropout = nn.Dropout(dropout)
 
@@ -47,10 +68,29 @@ class CustomEmbedding(nn.Module):
         return embedded
 
 
+class CustomCombinedEmbedding(nn.Module):
+    def __init__(self, input_size, hidden_size, dropout: float = 0.1):
+        """Embedding that combines activity embedding layer and duration and end time."""
+        super().__init__()
+        if hidden_size < 3:
+            raise ValueError("Hidden size must be at least 3.")
+        self.embedding = nn.Embedding(input_size, hidden_size - 2)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        embedded, durations = torch.split(x, [1, 1], dim=-1)
+        ends = torch.cumsum(durations, dim=-1)
+        embedded = self.dropout(self.embedding(embedded.int())).squeeze(-2)
+        embedded = torch.cat((embedded, durations, ends), dim=-1)
+        return embedded
+
+
 class CustomLinearEmbedding(nn.Module):
     def __init__(self, input_size, hidden_size, dropout: float = 0.1):
         """Embedding that combines activity embedding layer and duration using a linear layer."""
         super().__init__()
+        if hidden_size < 2:
+            raise ValueError("Hidden size must be greater than 1.")
         self.embedding = nn.Embedding(input_size, hidden_size - 1)
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.dropout = nn.Dropout(dropout)
@@ -98,6 +138,7 @@ class BaseVAE(nn.Module):
         )  # defaults to True
 
         self.NLLL = nn.NLLLoss(weight=encoding_weights)
+        self.base_NLLL = nn.NLLLoss(reduction="none")
         self.MSE = nn.MSELoss()
         self.hamming = MulticlassHammingDistance(
             num_classes=encodings, average="micro"
@@ -225,11 +266,11 @@ class BaseVAE(nn.Module):
             dict: Losses.
         """
 
-        return self.seq_loss(
+        return self.weighted_seq_loss(
             log_probs, probs, input, mu, log_var, mask, **kwargs
         )
 
-    def seq_loss(
+    def unweighted_seq_loss(
         self, log_probs, probs, input, mu, log_var, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
@@ -243,25 +284,26 @@ class BaseVAE(nn.Module):
         else:
             flat_mask = torch.ones_like(target_acts).view(-1).bool()
 
-        # activity encoding
+        # activity loss
         recon_act_nlll = self.NLLL(
             pred_acts.view(-1, self.encodings)[flat_mask],
             target_acts.view(-1).long()[flat_mask],
         )
 
-        # duration encoding
+        # duration loss
         recon_dur_mse = self.duration_weight * self.MSE(
             pred_durations.view(-1)[flat_mask],
             target_durations.view(-1)[flat_mask],
         )
 
-        # combined
+        # reconstruction loss
         recons_loss = recon_act_nlll + recon_dur_mse
 
-        # hamming distance
-        recon_argmax = torch.argmax(pred_acts, dim=-1)
-        recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
+        # # hamming distance
+        # recon_argmax = torch.argmax(pred_acts, dim=-1)
+        # recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
 
+        # kld loss
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
@@ -271,13 +313,155 @@ class BaseVAE(nn.Module):
 
         return {
             "loss": recons_loss + kld_loss,
+            "KLD": kld_loss.detach(),
             "recon_loss": recons_loss.detach(),
             "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_dur_mse_loss": recon_dur_mse.detach(),
-            "recon_act_ham_loss": recon_act_ham.detach(),
-            "KLD": kld_loss.detach(),
+            "recon_time_mse_loss": recon_dur_mse.detach(),
             "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll + recon_dur_mse,
+            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
+            "recon_kld_ratio": recons_loss / kld_loss,
+        }
+
+    def weighted_seq_loss(
+        self, log_probs, probs, input, mu, log_var, weights, **kwargs
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        # unpack act probs and durations
+        target_acts, target_durations = self.unpack_encoding(input)
+        pred_acts, pred_durations = self.unpack_encoding(log_probs)
+
+        # activity loss
+        recon_act_nlll = self.base_NLLL(
+            pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
+        )
+        recon_act_nlll = (
+            recon_act_nlll * weights.view(-1)
+        ).sum() / weights.sum()
+
+        # duration loss
+        recon_dur_mse = self.duration_weight * self.MSE(
+            pred_durations, target_durations
+        )
+        recon_dur_mse = (recon_dur_mse * weights).sum() / weights.sum()
+
+        # reconstruction loss
+        recons_loss = recon_act_nlll + recon_dur_mse
+
+        # kld loss
+        norm_kld_weight = self.kld_weight * self.latent_dim
+
+        kld_loss = norm_kld_weight * torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
+        )
+
+        return {
+            "loss": recons_loss + kld_loss,
+            "KLD": kld_loss.detach(),
+            "recon_loss": recons_loss.detach(),
+            "recon_act_nlll_loss": recon_act_nlll.detach(),
+            "recon_time_mse_loss": recon_dur_mse.detach(),
+            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
+            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
+            "recon_kld_ratio": recons_loss / kld_loss,
+        }
+
+    def end_time_seq_loss(
+        self, log_probs, probs, input, mu, log_var, weights, **kwargs
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        # unpack act probs and durations
+        target_acts, target_durations = self.unpack_encoding(input)
+        pred_acts, pred_durations = self.unpack_encoding(log_probs)
+
+        # activity loss
+        recon_act_nlll = self.base_NLLL(
+            pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
+        )
+        recon_act_nlll = (
+            recon_act_nlll * weights.view(-1)
+        ).sum() / weights.sum()
+
+        # ends loss
+        target_ends = torch.cumsum(target_durations, dim=-1)
+        pred_ends = torch.cumsum(pred_durations, dim=-1)
+
+        recon_end_mse = self.duration_weight * self.MSE(pred_ends, target_ends)
+        recon_end_mse = (recon_end_mse * weights).sum() / weights.sum()
+
+        # reconstruction loss
+        recons_loss = recon_act_nlll + recon_end_mse
+
+        # kld loss
+        norm_kld_weight = self.kld_weight * self.latent_dim
+
+        kld_loss = norm_kld_weight * torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
+        )
+
+        return {
+            "loss": recons_loss + kld_loss,
+            "KLD": kld_loss.detach(),
+            "recon_loss": recons_loss.detach(),
+            "recon_act_nlll_loss": recon_act_nlll.detach(),
+            "recon_time_mse_loss": recon_end_mse.detach(),
+            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
+            "recon_act_ratio": recon_act_nlll / recon_end_mse,
+            "recon_kld_ratio": recons_loss / kld_loss,
+        }
+
+    def combined_seq_loss(
+        self, log_probs, probs, input, mu, log_var, weights, **kwargs
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        # unpack act probs and durations
+        target_acts, target_durations = self.unpack_encoding(input)
+        pred_acts, pred_durations = self.unpack_encoding(log_probs)
+
+        # activity loss
+        recon_act_nlll = self.base_NLLL(
+            pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
+        )
+        recon_act_nlll = (
+            recon_act_nlll * weights.view(-1)
+        ).sum() / weights.sum()
+
+        # duration loss
+        recon_dur_mse = self.duration_weight * self.MSE(
+            pred_durations, target_durations
+        )
+        recon_dur_mse = (recon_dur_mse * weights).sum() / weights.sum()
+
+        # ends loss
+        target_ends = torch.cumsum(target_durations, dim=-1)
+        pred_ends = torch.cumsum(pred_durations, dim=-1)
+
+        recon_end_mse = self.duration_weight * self.MSE(pred_ends, target_ends)
+        recon_end_mse = (recon_end_mse * weights).sum() / weights.sum()
+
+        # combined time loss
+        recon_time_mse = (0.5 * recon_dur_mse) + (0.5 * recon_end_mse)
+
+        # reconstruction loss
+        recons_loss = recon_act_nlll + recon_time_mse
+
+        # kld loss
+        norm_kld_weight = self.kld_weight * self.latent_dim
+
+        kld_loss = norm_kld_weight * torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
+        )
+
+        return {
+            "loss": recons_loss + kld_loss,
+            "KLD": kld_loss.detach(),
+            "recon_loss": recons_loss.detach(),
+            "recon_act_nlll_loss": recon_act_nlll.detach(),
+            "recon_time_mse_loss": recon_time_mse.detach(),
+            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
+            "recon_act_ratio": recon_act_nlll / recon_time_mse,
             "recon_kld_ratio": recons_loss / kld_loss,
         }
 
@@ -286,29 +470,28 @@ class BaseVAE(nn.Module):
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
 
-        recon_argmax = probs.squeeze().argmax(dim=-1)
-
-        # activity encoding
+        # activity loss
         recon_act_nlll = self.NLLL(
             log_probs.squeeze().permute(0, 2, 1), input.long()
         )
 
-        recon_act_ham = self.hamming(recon_argmax, input.long())
+        # recon_argmax = probs.squeeze().argmax(dim=-1)
+        # recon_act_ham = self.hamming(recon_argmax, input.long())
 
+        # kld loss
         norm_kld_weight = self.kld_weight
-
         kld_loss = norm_kld_weight * torch.mean(
             -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
             dim=0,
         )
 
+        # loss
         loss = recon_act_nlll + kld_loss
 
         return {
             "loss": loss,
             "recon_loss": recon_act_nlll,
             "recon_act_nlll_loss": recon_act_nlll,
-            "recon_act_ham_loss": recon_act_ham,
             "KLD": kld_loss,
             "norm_kld_weight": torch.tensor([norm_kld_weight]),
             "recon_kld_ratio": recon_act_nlll / kld_loss,
@@ -348,7 +531,7 @@ class BaseVAE(nn.Module):
             tuple[tensor, tensor]: [activity [N, steps, acts], duration [N, steps, 1]].
         """
         acts = input[:, :, :-1].contiguous()
-        durations = input[:, :, -1:].contiguous()
+        durations = input[:, :, -1:].squeeze(-1).contiguous()
         return acts, durations
 
     def pack_encoding(self, acts: Tensor, durations: Tensor) -> Tensor:
@@ -361,6 +544,8 @@ class BaseVAE(nn.Module):
         Returns:
             tensor: Input sequences [N, steps, acts].
         """
+        if len(durations.shape) == 2:
+            durations = durations.unsqueeze(-1)
         return torch.cat((acts, durations), dim=-1)
 
     def predict_step(self, z: Tensor, current_device: int, **kwargs) -> Tensor:

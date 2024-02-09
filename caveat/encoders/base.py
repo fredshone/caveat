@@ -5,10 +5,10 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 
-class BaseEncodedPlans(Dataset):
+class BaseEncoded(Dataset):
     def __init__(self):
         """Base encoded sequence Dataset."""
-        super(BaseEncodedPlans, self).__init__()
+        super(BaseEncoded, self).__init__()
         self.encodings: int
         self.encoding_weights: Tensor
         self.masks: Tensor
@@ -29,7 +29,7 @@ class BaseEncoder(ABC):
         super(BaseEncoder, self).__init__()
         self.encodings = None
 
-    def encode(self, input: DataFrame) -> BaseEncodedPlans:
+    def encode(self, input: DataFrame) -> BaseEncoded:
         raise NotImplementedError
 
     def decode(self, encoded: Tensor) -> DataFrame:

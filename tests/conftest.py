@@ -16,7 +16,7 @@ def run_config_one_hot():
     return {
         "logging_params": {"log_dir": "tmp", "name": "test"},
         "encoder_params": {
-            "name": "one_hot",
+            "name": "discrete_one_hot",
             "step_size": 10,
             "duration": 1440,
         },
@@ -34,7 +34,7 @@ def run_config_one_hot():
         "trainer_params": {"max_epochs": 1, "min_epochs": 1},
         "seed": 1234,
         "model_params": {
-            "name": "Conv2d",
+            "name": "convOH",
             "hidden_layers": [1],
             "latent_dim": 2,
             "dropout": 0.1,
@@ -47,7 +47,7 @@ def run_config_embed_cov():
     return {
         "logging_params": {"log_dir": "tmp", "name": "test"},
         "encoder_params": {
-            "name": "descrete",
+            "name": "discrete",
             "step_size": 10,
             "duration": 1440,
         },
@@ -65,7 +65,7 @@ def run_config_embed_cov():
         "trainer_params": {"max_epochs": 1, "min_epochs": 1},
         "seed": 1234,
         "model_params": {
-            "name": "EmbedConv",
+            "name": "conv",
             "hidden_layers": [1],
             "latent_dim": 2,
             "dropout": 0.1,
@@ -99,7 +99,7 @@ def run_config_gru():
         "model_params": {
             "name": "GRU",
             "hidden_layers": 1,
-            "hidden_size": 1,
+            "hidden_size": 2,
             "latent_dim": 2,
             "teacher_forcing_ratio": 0.5,
             "use_mask": True,
@@ -134,7 +134,7 @@ def run_config_lstm():
         "model_params": {
             "name": "LSTM",
             "hidden_layers": 1,
-            "hidden_size": 1,
+            "hidden_size": 2,
             "latent_dim": 2,
             "teacher_forcing_ratio": 0.5,
             "use_mask": True,
@@ -171,7 +171,7 @@ def batch_config():
         },
         "conv": {
             "model_params": {
-                "name": "Conv",
+                "name": "conv",
                 "hidden_layers": 1,
                 "hidden_size": 1,
                 "latent_dim": 2,
@@ -184,7 +184,7 @@ def batch_config():
             "model_params": {
                 "name": "GRU",
                 "hidden_layers": 1,
-                "hidden_size": 1,
+                "hidden_size": 2,
                 "latent_dim": 2,
                 "teacher_forcing_ratio": 0.5,
                 "use_mask": True,
@@ -195,7 +195,7 @@ def batch_config():
             "model_params": {
                 "name": "LSTM",
                 "hidden_layers": 1,
-                "hidden_size": 1,
+                "hidden_size": 2,
                 "latent_dim": 2,
                 "teacher_forcing_ratio": 0.5,
                 "use_mask": True,
