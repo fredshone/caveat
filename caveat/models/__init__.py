@@ -5,6 +5,7 @@ from .seq.lstm import LSTM, LSTM_Unweighted
 from .seq.lstm_bi import LSTM_BI
 from .seq.lstm_deep import LSTM_Deep
 from .seq.lstm_discrete import LSTM_Discrete
+from .seq.transformer_discrete import AttentionDiscrete
 
 library = {
     "conv": Conv,
@@ -15,4 +16,5 @@ library = {
     "LSTM_Deep": LSTM_Deep,
     "LSTM_Discrete": LSTM_Discrete,
     "LSTM_Unweighted": LSTM_Unweighted,
+    "Attention_Discrete": AttentionDiscrete,
 }

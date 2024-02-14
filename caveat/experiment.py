@@ -29,17 +29,18 @@ class Experiment(pl.LightningModule):
         self.curr_device = None
         self.save_hyperparameters(ignore=["model"])
 
-    def forward(self, batch: Tensor, **kwargs) -> List[Tensor]:
-        return self.model(batch, **kwargs)
+    def forward(self, batch: Tensor, teacher=None, **kwargs) -> List[Tensor]:
+        return self.model(batch, teacher, **kwargs)
 
     def training_step(self, batch, batch_idx):
-        batch, mask = batch
-        self.curr_device = batch.device
+        (x, x_mask), (y, y_mask) = batch
+        self.curr_device = x.device
 
-        results = self.forward(batch, target=batch)
+        results = self.forward(x, teacher=x)  # use x as teacher (shifted left)
         train_loss = self.model.loss_function(
             *results,
-            mask=mask,
+            target=y,
+            mask=y_mask,
             kld_weight=self.kld_weight,
             duration_weight=self.duration_weight,
             batch_idx=batch_idx,
@@ -51,13 +52,14 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        batch, mask = batch
-        self.curr_device = batch.device
+        (x, x_mask), (y, y_mask) = batch
+        self.curr_device = x.device
 
-        results = self.forward(batch)
+        results = self.forward(x)
         val_loss = self.model.loss_function(
             *results,
-            mask=mask,
+            target=y,
+            mask=y_mask,
             kld_weight=self.kld_weight,
             duration_weight=self.duration_weight,
             optimizer_idx=optimizer_idx,
@@ -77,18 +79,20 @@ class Experiment(pl.LightningModule):
         self.sample_sequences(100)
 
     def regenerate_test_batch(self):
-        x, _ = next(iter(self.trainer.datamodule.test_dataloader()))
+        (x, _), (y, _) = next(iter(self.trainer.datamodule.test_dataloader()))
         x = x.to(self.curr_device)
-        self.regenerate_batch(x, name="test_reconstructions")
+        y = y.to(self.curr_device)
+        self.regenerate_batch(x, target=y, name="test_reconstructions")
 
     def regenerate_val_batch(self):
-        x, _ = next(iter(self.trainer.datamodule.val_dataloader()))
+        (x, _), (y, _) = next(iter(self.trainer.datamodule.val_dataloader()))
         x = x.to(self.curr_device)
-        self.regenerate_batch(x, name="reconstructions")
+        y = y.to(self.curr_device)
+        self.regenerate_batch(x, target=y, name="reconstructions")
 
-    def regenerate_batch(self, x: Tensor, name: str):
+    def regenerate_batch(self, x: Tensor, target: Tensor, name: str):
         y_probs = self.model.generate(x, self.curr_device).squeeze()
-        image = unpack(x, y_probs, self.curr_device)
+        image = unpack(target, y_probs, self.curr_device)
         div = torch.ones_like(y_probs)
         images = torch.cat((image.squeeze(), div, y_probs), dim=-1)
         vutils.save_image(

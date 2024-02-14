@@ -240,14 +240,14 @@ class BaseVAE(nn.Module):
         self,
         log_probs: Tensor,
         probs: Tensor,
-        input: Tensor,
         mu: Tensor,
         log_var: Tensor,
+        target: Tensor,
         mask: Tensor,
         **kwargs,
     ) -> dict:
         """Computes the loss function. Different models are expected to need different loss functions
-        depending on the input data structure. Typically it will either be a sequence encoding [N, L, 2],
+        depending on the data structure. Typically it will either be a sequence encoding [N, L, 2],
         or discretized encoding [N, L, C] or [N, L].
 
         The default is to use the sequence loss function. But child classes can override this method.
@@ -257,9 +257,9 @@ class BaseVAE(nn.Module):
         Args:
             log_probs (Tensor): Log probabilities of the output.
             probs (Tensor): Probabilities of the output.
-            input (Tensor): Input sequences.
             mu (Tensor): Latent layer means.
             log_var (Tensor): Latent layer log variances.
+            target (Tensor): Target sequences.
             mask (Tensor): Input mask.
 
         Returns:
@@ -267,16 +267,16 @@ class BaseVAE(nn.Module):
         """
 
         return self.weighted_seq_loss(
-            log_probs, probs, input, mu, log_var, mask, **kwargs
+            log_probs, probs, mu, log_var, target, mask, **kwargs
         )
 
     def unweighted_seq_loss(
-        self, log_probs, probs, input, mu, log_var, mask, **kwargs
+        self, log_probs, probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
 
         # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(input)
+        target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
 
         if self.use_mask:  # default is to use masking
@@ -323,11 +323,11 @@ class BaseVAE(nn.Module):
         }
 
     def weighted_seq_loss(
-        self, log_probs, probs, input, mu, log_var, weights, **kwargs
+        self, log_probs, probs, mu, log_var, target, weights, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(input)
+        target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
 
         # activity loss
@@ -367,11 +367,11 @@ class BaseVAE(nn.Module):
         }
 
     def end_time_seq_loss(
-        self, log_probs, probs, input, mu, log_var, weights, **kwargs
+        self, log_probs, probs, mu, log_var, target, weights, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(input)
+        target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
 
         # activity loss
@@ -412,11 +412,11 @@ class BaseVAE(nn.Module):
         }
 
     def combined_seq_loss(
-        self, log_probs, probs, input, mu, log_var, weights, **kwargs
+        self, log_probs, probs, mu, log_var, target, weights, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
-        target_acts, target_durations = self.unpack_encoding(input)
+        target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
 
         # activity loss
@@ -466,13 +466,12 @@ class BaseVAE(nn.Module):
         }
 
     def discretized_loss(
-        self, log_probs, probs, input, mu, log_var, mask, **kwargs
+        self, log_probs, probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
-
         # activity loss
         recon_act_nlll = self.NLLL(
-            log_probs.squeeze().permute(0, 2, 1), input.long()
+            log_probs.squeeze().permute(0, 2, 1), target.long()
         )
 
         # recon_argmax = probs.squeeze().argmax(dim=-1)
@@ -498,13 +497,13 @@ class BaseVAE(nn.Module):
         }
 
     def discretized_loss_encoded(
-        self, log_probs, probs, input, mu, log_var, mask, **kwargs
+        self, log_probs, probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Computes the loss function for discretized encoding [N, L, C]."""
 
-        input_argmax = input.squeeze().argmax(dim=-1)
+        target_argmax = target.squeeze().argmax(dim=-1)
         return self.discretized_loss(
-            log_probs, probs, input_argmax, mu, log_var, mask, **kwargs
+            log_probs, probs, mu, log_var, target_argmax, mask, **kwargs
         )
 
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
