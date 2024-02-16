@@ -1,11 +1,11 @@
-from .conv.conv2d import ConvOneHot
-from .conv.embed_conv import Conv
-from .seq.gru import GRU
-from .seq.lstm import LSTM, LSTM_Unweighted
-from .seq.lstm_bi import LSTM_BI
-from .seq.lstm_deep import LSTM_Deep
-from .seq.lstm_discrete import LSTM_Discrete
-from .seq.transformer_discrete import AttentionDiscrete
+from .discrete.conv2d import ConvOneHot
+from .discrete.embed_conv import Conv
+from .discrete.lstm_discrete import LSTM_Discrete
+from .discrete.transformer_discrete import AttentionDiscrete
+from .sequence.gru import GRU
+from .sequence.lstm import LSTM, LSTM_Unweighted
+from .sequence.lstm_bi import LSTM_BI
+from .sequence.lstm_deep import LSTM_Deep
 
 library = {
     "conv": Conv,

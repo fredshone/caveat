@@ -206,9 +206,6 @@ class Decoder(nn.Module):
                 decoder_input = self.pack(decoder_output)
 
         acts_logits = torch.cat(outputs, dim=1)  # [N, L, C]
-        acts_logits = acts_logits.unsqueeze(1)  # to match cnn for decoder
-        # todo get ride of this ^, needs to be done for cnn too
-
         acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
 

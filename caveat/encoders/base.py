@@ -12,7 +12,6 @@ class BaseEncoded(Dataset):
         self.encodings: int
         self.encoding_weights: Tensor
         self.masks: Tensor
-        raise NotImplementedError
 
     def shape(self):
         raise NotImplementedError

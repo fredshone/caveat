@@ -63,10 +63,10 @@ class ConvOneHot(BaseVAE):
         return log_probs, probs
 
     def loss_function(
-        self, log_probs, probs, input, mu, log_var, mask, **kwargs
+        self, log_probs, probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         return self.discretized_loss_encoded(
-            log_probs, probs, input, mu, log_var, mask, **kwargs
+            log_probs, probs, mu, log_var, target, mask, **kwargs
         )
 
 

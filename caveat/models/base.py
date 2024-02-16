@@ -234,7 +234,7 @@ class BaseVAE(nn.Module):
         mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
         log_prob_y, prob_y = self.decode(z, target=target)
-        return [log_prob_y, prob_y, x, mu, log_var]
+        return [log_prob_y, prob_y, mu, log_var]
 
     def loss_function(
         self,

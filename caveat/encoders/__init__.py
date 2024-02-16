@@ -1,7 +1,6 @@
 from caveat.encoders.base import BaseEncoded, BaseEncoder
-from caveat.encoders.discrete import DiscreteEncoder
+from caveat.encoders.discrete import DiscreteEncoder, DiscreteWithPadEncoder
 from caveat.encoders.discrete_one_hot import DiscreteOneHotEncoder
-from caveat.encoders.discrete_padded import DiscreteWithPadEncoder
 from caveat.encoders.seq import UnweightedSequenceEncoder
 from caveat.encoders.seq_weighted import SequenceEncoder
 

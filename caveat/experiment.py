@@ -36,7 +36,7 @@ class Experiment(pl.LightningModule):
         (x, x_mask), (y, y_mask) = batch
         self.curr_device = x.device
 
-        results = self.forward(x, teacher=x)  # use x as teacher (shifted left)
+        results = self.forward(x, teacher=y)
         train_loss = self.model.loss_function(
             *results,
             target=y,
