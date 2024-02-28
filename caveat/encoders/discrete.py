@@ -144,7 +144,6 @@ class DiscreteWithPadEncoder(BaseEncoder):
 
             for step, act_idx in enumerate(encoded[pid]):
                 if int(act_idx) != current_act and current_act is not None:
-                    print(pid, current_act)
                     decoded.append(
                         [
                             pid,
@@ -155,6 +154,14 @@ class DiscreteWithPadEncoder(BaseEncoder):
                     )
                     act_start = step
                 current_act = int(act_idx)
+            decoded.append(
+                [
+                    pid,
+                    self.index_to_acts[current_act],
+                    int(act_start * self.step_size),
+                    self.duration,
+                ]
+            )
 
         return pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
 
@@ -176,7 +183,7 @@ class DiscretePadEncoded(BaseEncoded):
         weights = data.groupby("act", observed=True).duration.sum().to_dict()
         weights[0] = data.pid.nunique() * 60  # pad weight is equal to 1 hour
         weights = np.array([weights[k] for k in range(len(weights))])
-        self.encoding_weights = torch.from_numpy(1 / weights).float()
+        self.encoding_weights = torch.from_numpy(1 / (weights)).float()
         encoded = discretise_population(
             data, duration=duration, step_size=step_size
         )

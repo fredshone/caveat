@@ -130,12 +130,11 @@ class BaseVAE(nn.Module):
         self.sos = sos
         self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0)
         self.kld_weight = config.get("kld_weight", 0.0001)
-        print(f"KLD weight: {self.kld_weight}")
         self.duration_weight = config.get("duration_weight", 1)
         self.use_mask = config.get("use_mask", True)  # defaults to True
-        self.use_weighted_loss = config.get(
-            "use_weighted_loss", True
-        )  # defaults to True
+        # self.use_weighted_loss = config.get(
+        #     "use_weighted_loss", True
+        # )  # defaults to True
 
         self.NLLL = nn.NLLLoss(weight=encoding_weights)
         self.base_NLLL = nn.NLLLoss(reduction="none")
@@ -307,8 +306,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -351,8 +349,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -396,8 +393,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -450,8 +446,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -480,8 +475,7 @@ class BaseVAE(nn.Module):
         # kld loss
         norm_kld_weight = self.kld_weight
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         # loss

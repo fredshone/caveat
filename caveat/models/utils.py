@@ -3,6 +3,7 @@ from typing import Union
 import numpy as np
 import torch
 from torch import tensor
+from torch.optim.lr_scheduler import _LRScheduler
 
 from caveat import current_device
 
@@ -119,3 +120,51 @@ def calc_output_padding(size: Union[tuple[int, int, int], int]) -> np.array:
         size = (0, size, size)
     _, h, w = size
     return (int(h % 2 == 0), int(w % 2 == 0))
+
+
+# class LearningRateScheduler(_LRScheduler):
+
+#     def __init__(self, optimizer, init_lr):
+#         self.optimizer = optimizer
+#         self.init_lr = init_lr
+
+#     def step(self, *args, **kwargs):
+#         raise NotImplementedError
+
+#     @staticmethod
+#     def set_lr(optimizer, lr):
+#         for g in optimizer.param_groups:
+#             g["lr"] = lr
+
+#     def get_lr(self):
+#         for g in self.optimizer.param_groups:
+#             return g["lr"]
+
+
+class ScheduledOptim(_LRScheduler):
+    """A simple wrapper class for learning rate scheduling"""
+
+    def __init__(self, optimizer, lr_mul, d_model, n_warmup_steps):
+        self.optimizer = optimizer
+        self.lr_mul = lr_mul
+        self.d_model = d_model
+        self.n_warmup_steps = n_warmup_steps
+        self.n_steps = 0
+
+    def step(self):
+        "Step with the inner optimizer"
+        self._update_learning_rate()
+
+    def _get_lr_scale(self):
+        d_model = self.d_model
+        n_steps, n_warmup_steps = self.n_steps, self.n_warmup_steps
+        return (d_model**-0.5) * min(
+            n_steps ** (-0.5), n_steps * n_warmup_steps ** (-1.5)
+        )
+
+    def _update_learning_rate(self):
+        self.n_steps += 1
+        lr = self.lr_mul * self._get_lr_scale()
+
+        for param_group in self.optimizer.param_groups:
+            param_group["lr"] = lr
