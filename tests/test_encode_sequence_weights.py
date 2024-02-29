@@ -59,9 +59,8 @@ def test_encode_population():
         ],
         dtype=np.float32,
     )
-    n = 1 / (2 * 60)
     expected_weights = np.array(
-        [[n, 0.1, 0.1, n, 0.0, 0.0], [n, 0.1, 0.1, n, 0.0, 0.0]],
+        [[0.5, 1, 1, 0.5, 0.0, 0.0], [0.5, 1, 1, 0.5, 0.0, 0.0]],
         dtype=np.float32,
     )
     expected = torch.from_numpy(expected)

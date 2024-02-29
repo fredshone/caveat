@@ -99,22 +99,20 @@ class SequenceDurationsWeighted(BaseEncoded):
         norm_duration: int,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         data = data.copy()
+        data.duration = data.duration / norm_duration
         data.act = data.act.map(acts_to_index)
 
         # calc weightings
         act_weights = (
             data.groupby("act", observed=True).duration.sum().to_dict()
         )
-        n = (
-            data.pid.nunique() * 60
-        )  # sos and eos weight is equal to 1 hour per sequence
+        n = data.pid.nunique()  # sos/eos weight equal to 1 day
         act_weights.update({self.sos: n, self.eos: n})
         act_weights = np.array(
             [act_weights[k] for k in range(len(act_weights))]
         )
         act_weights = 1 / act_weights
 
-        data.duration = data.duration / norm_duration
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
 

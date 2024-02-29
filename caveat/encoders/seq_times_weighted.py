@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
+from caveat.data.augment import SequenceJitter
 from caveat.encoders import BaseEncoded, BaseEncoder
 
 
@@ -12,6 +13,10 @@ class SequenceEndsWeightedEncoder(BaseEncoder):
     def __init__(self, max_length: int = 12, duration: int = 1440, **kwargs):
         self.max_length = max_length
         self.duration = duration
+        self.jitter = kwargs.get("jitter", 0)
+        print(
+            f"SequenceEndsWeightedEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}"
+        )
 
     def encode(self, data: pd.DataFrame) -> BaseEncoded:
         self.sos = 0
@@ -23,7 +28,11 @@ class SequenceEndsWeightedEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceEndsWeighted(
-            data, self.max_length, self.acts_to_index, self.duration
+            data=data,
+            max_length=self.max_length,
+            acts_to_index=self.acts_to_index,
+            norm_duration=self.duration,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -66,6 +75,7 @@ class SequenceEndsWeighted(BaseEncoded):
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
+        jitter: float = 0.0,
         sos: int = 0,
         eos: int = 1,
     ):
@@ -75,6 +85,10 @@ class SequenceEndsWeighted(BaseEncoded):
             data (DataFrame): Population of sequences.
             max_length (int): Max length of sequences.
             acts_to_index (dict): Mapping of activity to index.
+            norm_duration (int): Length of plan in minutes.
+            jitter (float, optional): activity duration maximum delta. Defaults to 0.0.
+            sos (int, optional): Start of sequence token. Defaults to 0.
+            eos (int, optional): End of sequence token. Defaults to 1.
         """
         self.max_length = max_length
         self.sos = sos
@@ -85,6 +99,11 @@ class SequenceEndsWeighted(BaseEncoded):
         )
         self.size = len(self.encoded)
         self.weights = None
+        
+        if jitter:
+            self.augment = SequenceJitter(jitter)
+        else:
+            self.augment = None
 
     def _encode(
         self,

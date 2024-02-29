@@ -116,11 +116,31 @@ def test_encoded_weights():
     length = 6
     step = 2
     expected_weights = torch.tensor([1 / 7, 1 / 5])
-    expected_mask = torch.tensor([[1, 1, 1]])
     encoder = discrete_one_hot.DiscreteOneHotEncoder(length, step)
     encoded = encoder.encode(traces)
     assert torch.equal(encoded.encoding_weights, expected_weights)
-    assert torch.equal(encoded[0][1], expected_mask)
+
+
+def test_encode_with_jitter():
+    traces = pd.DataFrame(
+        [
+            [0, "a", 0, 2, 2],
+            [0, "b", 2, 5, 3],
+            [0, "a", 5, 6, 1],
+            [1, "a", 0, 3, 3],
+            [1, "b", 3, 5, 2],
+            [1, "a", 5, 6, 1],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    length = 6
+    step = 2
+    encoder = discrete_one_hot.DiscreteOneHotEncoder(length, step, jitter=0.3)
+    encoded = encoder.encode(traces)
+    for _ in range(10):
+        for i in range(len(encoded)):
+            (left, mask_left), (right, mask_right) = encoded[i]
+            assert len(left) == length / step
 
 
 @pytest.mark.parametrize(

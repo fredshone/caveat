@@ -89,26 +89,6 @@ class Experiment(pl.LightningModule):
         y = y.to(self.curr_device)
         self.regenerate_batch(x, target=y, name="test_reconstructions")
 
-    # def regenerate_train_batch(self):
-    #     (x, _), (y, _) = next(iter(self.trainer.datamodule.train_dataloader()))
-    #     x = x.to(self.curr_device)
-    #     y = y.to(self.curr_device)
-    #     _, y_probs, _, _ = self.model(x, teacher=y)
-    #     image = unpack(y, y_probs, self.curr_device)
-    #     div = torch.ones_like(y_probs)
-    #     images = torch.cat((image.squeeze(), div, y_probs), dim=-1)
-    #     vutils.save_image(
-    #         pre_process(images.data),
-    #         Path(
-    #             self.logger.log_dir,
-    #             "reconstructions",
-    #             f"train_{self.logger.name}_epoch_{self.current_epoch}.png",
-    #         ),
-    #         normalize=False,
-    #         nrow=1,
-    #         pad_value=1,
-    #     )
-
     def regenerate_val_batch(self):
         (x, _), (y, _) = next(iter(self.trainer.datamodule.val_dataloader()))
         x = x.to(self.curr_device)

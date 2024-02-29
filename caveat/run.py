@@ -93,7 +93,7 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
             trainer,
             observed.pid.nunique(),
             encoder,
-            config,
+            combined_config,
             Path(logger.log_dir),
             seed,
         )
@@ -228,6 +228,8 @@ def train(
 
     if cuda_available():
         torch.set_float32_matmul_precision("medium")
+
+    torch.cuda.empty_cache()
 
     print(f"\n======= Training {name} =======")
 

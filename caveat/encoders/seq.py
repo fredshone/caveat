@@ -98,18 +98,16 @@ class SequenceEncodedPlans(BaseEncoded):
         norm_duration: int,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         data = data.copy()
+        data.duration = data.duration / norm_duration
         data.act = data.act.map(acts_to_index)
 
         # calc weightings
         weights = data.groupby("act", observed=True).duration.sum().to_dict()
-        n = (
-            data.pid.nunique() * 60
-        )  # sos and eos weight is equal to 1 hour per sequence
+        n = data.pid.nunique()  # sos/eos weight is 1 day per sequence
         weights.update({self.sos: n, self.eos: n})
         weights = np.array([weights[k] for k in range(len(weights))])
         weights = 1 / weights
 
-        data.duration = data.duration / norm_duration
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
 

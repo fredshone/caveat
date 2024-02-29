@@ -68,7 +68,7 @@ def test_encoded_weights():
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
-    expected_weights = torch.tensor([1 / 120, 1 / 120, 1 / 15, 1 / 5])
+    expected_weights = torch.tensor([1 / 2, 1 / 2, 1 / 1.5, 1 / 0.5])
     expected_mask = torch.tensor([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
 
     encoder = seq.UnweightedSequenceEncoder(max_length=10, duration=10)

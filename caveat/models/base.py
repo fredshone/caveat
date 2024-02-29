@@ -129,14 +129,23 @@ class BaseVAE(nn.Module):
 
         self.sos = sos
         self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0)
+        print(f"Using teacher forcing ratio: {self.teacher_forcing_ratio}")
         self.kld_weight = config.get("kld_weight", 0.0001)
+        print(f"Using KLD weight: {self.kld_weight}")
         self.duration_weight = config.get("duration_weight", 1)
+        print(f"Using duration weight: {self.duration_weight}")
         self.use_mask = config.get("use_mask", True)  # defaults to True
-        # self.use_weighted_loss = config.get(
-        #     "use_weighted_loss", True
-        # )  # defaults to True
+        print(f"Using mask: {self.use_mask}")
+        self.use_weighted_loss = config.get(
+            "weighted_loss", True
+        )  # defaults to True
+        print(f"Using weighted loss: {self.use_weighted_loss}")
 
-        self.NLLL = nn.NLLLoss(weight=encoding_weights)
+        if self.use_weighted_loss:
+            self.NLLL = nn.NLLLoss(weight=encoding_weights)
+        else:
+            self.NLLL = nn.NLLLoss()
+
         self.base_NLLL = nn.NLLLoss(reduction="none")
         self.MSE = nn.MSELoss()
         self.hamming = MulticlassHammingDistance(

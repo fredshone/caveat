@@ -5,7 +5,6 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from caveat import current_device
 from caveat.models.base import BaseVAE
 
 
@@ -406,7 +405,9 @@ class LearntPositionalEncoding(nn.Module):
     def __init__(self, d_model: int, dropout: float = 0.0, length: int = 144):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
-        self.pe = nn.Embedding(length, d_model)
+        pe = torch.arange(0, length, dtype=torch.long)  # (T)
+        self.register_buffer("pe", pe)
+        self.embedding = nn.Embedding(length, d_model)
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -414,11 +415,9 @@ class LearntPositionalEncoding(nn.Module):
             x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
         """
         _, L, _ = x.shape  # (B,T,C)
-        position = torch.arange(
-            0, L, dtype=torch.long, device=current_device()
-        )  # (T)
-        pos_emb = self.pe(position).unsqueeze(0)  # (1,T,C)
-        x = x + pos_emb  # (B,T,C)
+
+        pos_emb = self.embedding(self.pe[:L]).unsqueeze(0)  # (1,L,C)
+        x = x + pos_emb  # (B,L,C)
         return self.dropout(x)
 
 
@@ -527,11 +526,11 @@ class AttentionDecoder(nn.Module):
 
         if position_embedding == "learnt":
             self.position_embedding = LearntPositionalEncoding(
-                d_model=hidden_size, dropout=0.0, length=length
+                d_model=hidden_size, dropout=dropout, length=length
             )
         elif position_embedding == "fixed":
             self.position_embedding = FixedPositionalEncoding(
-                d_model=hidden_size, dropout=0.0, length=length
+                d_model=hidden_size, dropout=dropout, length=length
             )
         else:
             raise ValueError(

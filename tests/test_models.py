@@ -36,8 +36,8 @@ def test_conv_embed_cov_forward():
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
     log_prob_y, prob_y, mu, log_var = model(x_max)
-    assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
+    assert log_prob_y.shape == torch.Size([3, 144, 5])
+    assert prob_y.shape == torch.Size([3, 144, 5])
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     losses = model.loss_function(

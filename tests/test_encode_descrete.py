@@ -90,16 +90,23 @@ def test_padded_encoder():
     traces["duration"] = traces.end - traces.start
     length = 6
     step = 2
+    encode = torch.tensor([[1, 2, 2], [1, 1, 2]])
     pad_left = torch.tensor([[0, 1, 2, 2], [0, 1, 1, 2]])
     pad_right = torch.tensor([[1, 2, 2, 0], [1, 1, 2, 0]])
     mask = torch.tensor([[1.0, 1.0, 1.0, 1.0]])
     weights = torch.tensor([1 / 120, 1 / 7, 1 / 5])
-    encoder = discrete.DiscreteWithPadEncoder(duration=length, step_size=step)
+    encoder = discrete.DiscreteWithPadEncoder(
+        duration=length, step_size=step, jitter=0
+    )
     encoded = encoder.encode(traces)
-    assert torch.equal(encoded.encoded_pad_right, pad_right)
-    assert torch.equal(encoded.encoded_pad_left, pad_left)
+    assert torch.equal(encoded.encoded, encode)
     assert torch.equal(encoded.mask, mask)
     assert torch.equal(encoded.encoding_weights, weights)
+    (left, mask_left), (right, mask_right) = encoded[0]
+    assert torch.equal(left, pad_left[0])
+    assert torch.equal(mask_left, mask)
+    assert torch.equal(right, pad_right[0])
+    assert torch.equal(mask_right, mask)
 
 
 @pytest.mark.parametrize(
