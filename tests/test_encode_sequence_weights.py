@@ -70,6 +70,62 @@ def test_encode_population():
     assert torch.equal(encoded.encoding_weights, expected_weights)
 
 
+def test_encoded():
+    traces = pd.DataFrame(
+        [
+            [0, 0, 0, 4, 4],
+            [0, 1, 4, 8, 4],
+            [0, 0, 8, 10, 2],
+            [1, 0, 0, 3, 3],
+            [1, 1, 3, 7, 4],
+            [1, 0, 7, 10, 3],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    length = 6
+    duration = 10
+    expected = torch.tensor(
+        [[0, 0.0], [2, 0.4], [3, 0.4], [2, 0.2], [1, 0.0], [1, 0.0]]
+    )
+    expected_weights = torch.tensor(
+        [1 / 2, 1 / 1.2, 1 / 0.8, 1 / 1.2, 1 / 2, 0]
+    )
+    encoder = seq.SequenceEncoder(max_length=length, duration=duration)
+    encoded = encoder.encode(traces)
+    (left, left_mask), (right, right_mask) = encoded[0]
+    assert torch.equal(left, expected)
+    assert torch.equal(left_mask, expected_weights)
+    assert torch.equal(right, expected)
+    assert torch.equal(right_mask, expected_weights)
+
+
+def test_encoded_with_jitter():
+    traces = pd.DataFrame(
+        [
+            [0, 0, 0, 4, 4],
+            [0, 1, 4, 8, 4],
+            [0, 0, 8, 10, 2],
+            [1, 0, 0, 3, 3],
+            [1, 1, 3, 7, 4],
+            [1, 0, 7, 10, 3],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    length = 6
+    duration = 10
+    encoder = seq.SequenceEncoder(
+        max_length=length, duration=duration, jitter=0.1
+    )
+    encoded = encoder.encode(traces)
+    for _ in range(10):
+        for i in range(len(encoded)):
+            (left, left_mask), (right, right_mask) = encoded[i]
+            assert torch.equal(left, right)
+            assert torch.equal(left_mask, right_mask)
+            assert left.shape == (6, 2)
+            assert left_mask.shape == (6,)
+
+
 @pytest.mark.parametrize(
     "encoded,length,norm_duration,expected",
     [

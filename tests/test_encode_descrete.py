@@ -75,6 +75,29 @@ def test_encoded_weights():
     assert torch.equal(encoded[0][0][1], expected_mask)
 
 
+def test_encoded_with_jitter():
+    traces = pd.DataFrame(
+        [
+            [0, 0, 0, 2, 2],
+            [0, 1, 2, 5, 3],
+            [0, 0, 5, 6, 1],
+            [1, 0, 0, 3, 3],
+            [1, 1, 3, 5, 2],
+            [1, 0, 5, 6, 1],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    length = 6
+    step = 2
+    encoder = discrete.DiscreteEncoder(length, step, jitter=0.2)
+    encoded = encoder.encode(traces)
+    for _ in range(10):
+        for i in range(len(encoded)):
+            (left, _), (right, _) = encoded[i]
+            assert left.shape == (3,)
+            assert torch.equal(left, right)
+
+
 def test_padded_encoder():
     traces = pd.DataFrame(
         [
@@ -107,6 +130,32 @@ def test_padded_encoder():
     assert torch.equal(mask_left, mask)
     assert torch.equal(right, pad_right[0])
     assert torch.equal(mask_right, mask)
+
+
+def test_padded_encoder_with_jitter():
+    traces = pd.DataFrame(
+        [
+            [0, 0, 0, 2],
+            [0, 1, 2, 5],
+            [0, 0, 5, 6],
+            [1, 0, 0, 3],
+            [1, 1, 3, 5],
+            [1, 0, 5, 6],
+        ],
+        columns=["pid", "act", "start", "end"],
+    )
+    traces["duration"] = traces.end - traces.start
+    length = 6
+    step = 2
+    encoder = discrete.DiscreteWithPadEncoder(
+        duration=length, step_size=step, jitter=0.2
+    )
+    encoded = encoder.encode(traces)
+    for _ in range(10):
+        for i in range(len(encoded)):
+            (left, _), (right, _) = encoded[i]
+            assert left.shape == (4,)
+            assert torch.equal(left[1:], right[:-1])
 
 
 @pytest.mark.parametrize(

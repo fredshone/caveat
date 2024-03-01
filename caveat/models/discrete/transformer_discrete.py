@@ -146,9 +146,9 @@ class AttentionDiscrete(BaseVAE):
             # get the predictions
             log_probs, probs = self.decode(z, context=sequences)
             # focus only on the last time step
+            last_log_probs = log_probs[:, -1, :]  # becomes (B, C)
             last_probs = probs[:, -1, :]  # becomes (B, C)
-            last_probs = probs[:, -1, :]  # becomes (B, C)
-            log_outputs.append(last_probs.unsqueeze(1))
+            log_outputs.append(last_log_probs.unsqueeze(1))
             outputs.append(last_probs.unsqueeze(1))
             if self.sampling:
                 # sample from the distribution
@@ -401,7 +401,6 @@ class DecoderBlock(nn.Module):
 
 
 class LearntPositionalEncoding(nn.Module):
-
     def __init__(self, d_model: int, dropout: float = 0.0, length: int = 144):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
@@ -422,7 +421,6 @@ class LearntPositionalEncoding(nn.Module):
 
 
 class FixedPositionalEncoding(nn.Module):
-
     def __init__(self, d_model: int, dropout: float = 0.0, length: int = 144):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)

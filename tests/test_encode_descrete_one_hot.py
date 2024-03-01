@@ -139,8 +139,11 @@ def test_encode_with_jitter():
     encoded = encoder.encode(traces)
     for _ in range(10):
         for i in range(len(encoded)):
-            (left, mask_left), (right, mask_right) = encoded[i]
-            assert len(left) == length / step
+            (left, left_mask), (right, right_mask) = encoded[i]
+            assert left.shape == (1, 3, 2)
+            assert left_mask.shape == (1, 3)
+            assert right.shape == (1, 3, 2)
+            assert right_mask.shape == (1, 3)
 
 
 @pytest.mark.parametrize(

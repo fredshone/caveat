@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
+from caveat.data.augment import SequenceJitter
 from caveat.encoders import BaseEncoded, BaseEncoder
 
 
@@ -12,6 +13,10 @@ class SequenceEncoder(BaseEncoder):
     def __init__(self, max_length: int = 12, duration: int = 1440, **kwargs):
         self.max_length = max_length
         self.duration = duration
+        self.jitter = kwargs.get("jitter", 0)
+        print(
+            f"SequenceEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}"
+        )
 
     def encode(self, data: pd.DataFrame) -> BaseEncoded:
         self.sos = 0
@@ -23,7 +28,11 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceDurationsWeighted(
-            data, self.max_length, self.acts_to_index, self.duration
+            data=data,
+            max_length=self.max_length,
+            acts_to_index=self.acts_to_index,
+            norm_duration=self.duration,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -71,6 +80,7 @@ class SequenceDurationsWeighted(BaseEncoded):
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
+        jitter: float = 0,
         sos: int = 0,
         eos: int = 1,
     ):
@@ -82,6 +92,10 @@ class SequenceDurationsWeighted(BaseEncoded):
             acts_to_index (dict): Mapping of activity to index.
         """
         self.max_length = max_length
+        if jitter:
+            self.augment = SequenceJitter(jitter)
+        else:
+            self.augment = None
         self.sos = sos
         self.eos = eos
         self.encodings = len(acts_to_index)
@@ -143,7 +157,11 @@ class SequenceDurationsWeighted(BaseEncoded):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx], self.encoding_weights[idx]
+        sample = self.encoded[idx]
+        if self.augment:
+            sample = self.augment(sample)
+        mask = self.encoding_weights[idx]
+        return (sample, mask), (sample, mask)
 
 
 def encode_sequence(
