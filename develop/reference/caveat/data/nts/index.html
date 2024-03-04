@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.9">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.12">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.f2e4d321.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.7e359304.min.css">
       
       
 
@@ -643,6 +643,8 @@
       
         
       
+        
+      
     
     
     
@@ -670,6 +672,27 @@
             caveat.data
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../augment/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.data.augment
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1242,11 +1265,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../encoders/discrete_padded/" class="md-nav__link">
+      <a href="../../encoders/seq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.discrete_padded
+    caveat.encoders.seq
   </span>
   
 
@@ -1263,11 +1286,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../encoders/seq/" class="md-nav__link">
+      <a href="../../encoders/seq_times_weighted/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.encoders.seq
+    caveat.encoders.seq_times_weighted
   </span>
   
 
@@ -1960,7 +1983,7 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/data/nts.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-158">158</a></span>
+            <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-158">158</a></span>
 <span class="normal"><a href="#__codelineno-0-159">159</a></span>
 <span class="normal"><a href="#__codelineno-0-160">160</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-158"><a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="k">def</span> <span class="nf">dt_to_min</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 </span><span id="__span-0-159"><a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="n">h</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">datetime_to_matsim_time</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
@@ -1986,7 +2009,7 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/data/nts.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-163">163</a></span>
+            <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-163">163</a></span>
 <span class="normal"><a href="#__codelineno-0-164">164</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-163"><a id="__codelineno-0-163" name="__codelineno-0-163"></a><span class="k">def</span> <span class="nf">is_home_based</span><span class="p">(</span><span class="n">plan</span><span class="p">:</span> <span class="n">Plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 </span><span id="__span-0-164"><a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="k">return</span> <span class="n">plan</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">act</span> <span class="o">==</span> <span class="s2">&quot;home&quot;</span> <span class="ow">and</span> <span class="n">plan</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">act</span> <span class="o">==</span> <span class="s2">&quot;home&quot;</span>
 </span></code></pre></div></td></tr></table></div>
@@ -2012,7 +2035,7 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/data/nts.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-167">167</a></span>
+            <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-167">167</a></span>
 <span class="normal"><a href="#__codelineno-0-168">168</a></span>
 <span class="normal"><a href="#__codelineno-0-169">169</a></span>
 <span class="normal"><a href="#__codelineno-0-170">170</a></span>
@@ -2080,7 +2103,7 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/data/nts.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-192">192</a></span>
+            <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-192">192</a></span>
 <span class="normal"><a href="#__codelineno-0-193">193</a></span>
 <span class="normal"><a href="#__codelineno-0-194">194</a></span>
 <span class="normal"><a href="#__codelineno-0-195">195</a></span>
@@ -2156,7 +2179,7 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/data/nts.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-35"> 35</a></span>
+            <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-35"> 35</a></span>
 <span class="normal"><a href="#__codelineno-0-36"> 36</a></span>
 <span class="normal"><a href="#__codelineno-0-37"> 37</a></span>
 <span class="normal"><a href="#__codelineno-0-38"> 38</a></span>
@@ -2418,7 +2441,7 @@
 
           <details class="quote">
             <summary>Source code in <code>caveat/data/nts.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
+            <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
 <span class="normal"><a href="#__codelineno-0-12">12</a></span>
 <span class="normal"><a href="#__codelineno-0-13">13</a></span>
 <span class="normal"><a href="#__codelineno-0-14">14</a></span>
@@ -2524,7 +2547,7 @@
     <script id="__config" type="application/json">{"base": "../../../..", "features": ["navigation.indexes"], "search": "../../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.c8d2eff1.min.js"></script>
       
     
   </body>
