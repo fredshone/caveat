@@ -82,14 +82,14 @@ class LSTM_Discrete(BaseVAE):
         self,
         log_probs: Tensor,
         probs: Tensor,
-        input: Tensor,
         mu: Tensor,
         log_var: Tensor,
+        target: Tensor,
         mask: Tensor,
         **kwargs,
     ) -> dict:
         return super().discretized_loss(
-            log_probs, probs, input, mu, log_var, mask, **kwargs
+            log_probs, probs, mu, log_var, target, mask, **kwargs
         )
 
 

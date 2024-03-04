@@ -9,13 +9,13 @@ from caveat.data.augment import SequenceJitter
 from caveat.encoders import BaseEncoded, BaseEncoder
 
 
-class SequenceEncoder(BaseEncoder):
+class SequenceEndsWeightedEncoder(BaseEncoder):
     def __init__(self, max_length: int = 12, duration: int = 1440, **kwargs):
         self.max_length = max_length
         self.duration = duration
         self.jitter = kwargs.get("jitter", 0)
         print(
-            f"SequenceEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}"
+            f"SequenceEndsWeightedEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}"
         )
 
     def encode(self, data: pd.DataFrame) -> BaseEncoded:
@@ -27,7 +27,7 @@ class SequenceEncoder(BaseEncoder):
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
         self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
-        return SequenceDurationsWeighted(
+        return SequenceEndsWeighted(
             data=data,
             max_length=self.max_length,
             acts_to_index=self.acts_to_index,
@@ -48,39 +48,34 @@ class SequenceEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        encoded, durations = torch.split(encoded, [self.encodings, 1], dim=-1)
+        encoded, ends = torch.split(encoded, [self.encodings, 1], dim=-1)
         encoded = encoded.argmax(dim=-1).numpy()
         decoded = []
 
         for pid in range(len(encoded)):
             act_start = 0
-            for act_idx, duration in zip(encoded[pid], durations[pid]):
+            for act_idx, end in zip(encoded[pid], ends[pid]):
                 if int(act_idx) == self.sos:
                     continue
                 if int(act_idx) == self.eos:
                     break
-                duration = int(duration * self.duration)
+                end = int(end * self.duration)
                 decoded.append(
-                    [
-                        pid,
-                        self.index_to_acts[int(act_idx)],
-                        act_start,
-                        act_start + duration,
-                    ]
+                    [pid, self.index_to_acts[int(act_idx)], act_start, end]
                 )
-                act_start += duration
+                act_start = end
 
         return pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
 
 
-class SequenceDurationsWeighted(BaseEncoded):
+class SequenceEndsWeighted(BaseEncoded):
     def __init__(
         self,
         data: pd.DataFrame,
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
-        jitter: float = 0,
+        jitter: float = 0.0,
         sos: int = 0,
         eos: int = 1,
     ):
@@ -90,12 +85,12 @@ class SequenceDurationsWeighted(BaseEncoded):
             data (DataFrame): Population of sequences.
             max_length (int): Max length of sequences.
             acts_to_index (dict): Mapping of activity to index.
+            norm_duration (int): Length of plan in minutes.
+            jitter (float, optional): activity duration maximum delta. Defaults to 0.0.
+            sos (int, optional): Start of sequence token. Defaults to 0.
+            eos (int, optional): End of sequence token. Defaults to 1.
         """
         self.max_length = max_length
-        if jitter:
-            self.augment = SequenceJitter(jitter)
-        else:
-            self.augment = None
         self.sos = sos
         self.eos = eos
         self.encodings = len(acts_to_index)
@@ -104,6 +99,11 @@ class SequenceDurationsWeighted(BaseEncoded):
         )
         self.size = len(self.encoded)
         self.weights = None
+        
+        if jitter:
+            self.augment = SequenceJitter(jitter)
+        else:
+            self.augment = None
 
     def _encode(
         self,
@@ -113,20 +113,22 @@ class SequenceDurationsWeighted(BaseEncoded):
         norm_duration: int,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         data = data.copy()
-        data.duration = data.duration / norm_duration
         data.act = data.act.map(acts_to_index)
 
         # calc weightings
         act_weights = (
             data.groupby("act", observed=True).duration.sum().to_dict()
         )
-        n = data.pid.nunique()  # sos/eos weight equal to 1 day
+        n = (
+            data.pid.nunique() * 60
+        )  # sos and eos weight is equal to 1 hour per sequence
         act_weights.update({self.sos: n, self.eos: n})
         act_weights = np.array(
             [act_weights[k] for k in range(len(act_weights))]
         )
         act_weights = 1 / act_weights
 
+        data.end = data.end / norm_duration
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
 
@@ -138,7 +140,7 @@ class SequenceDurationsWeighted(BaseEncoded):
         for pid, (_, trace) in enumerate(data.groupby("pid")):
             seq_encoding, seq_weights = encode_sequence(
                 acts=list(trace.act),
-                durations=list(trace.duration),
+                durations=list(trace.end),
                 max_length=max_length,
                 encoding_width=encoding_width,
                 act_weights=act_weights,
@@ -157,11 +159,7 @@ class SequenceDurationsWeighted(BaseEncoded):
         return self.size
 
     def __getitem__(self, idx):
-        sample = self.encoded[idx]
-        if self.augment:
-            sample = self.augment(sample)
-        mask = self.encoding_weights[idx]
-        return (sample, mask), (sample, mask)
+        return self.encoded[idx], self.encoding_weights[idx]
 
 
 def encode_sequence(

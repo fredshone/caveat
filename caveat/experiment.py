@@ -7,6 +7,7 @@ import torchvision.utils as vutils
 from torch import Tensor, optim
 
 from caveat.models.base import BaseVAE
+from caveat.models.utils import ScheduledOptim
 
 
 class Experiment(pl.LightningModule):
@@ -15,28 +16,28 @@ class Experiment(pl.LightningModule):
         model: BaseVAE,
         LR: float = 0.005,
         weight_decay: float = 0.0,
-        scheduler_gamma: float = 0.95,
         kld_weight: float = 0.00025,
         duration_weight: float = 1.0,
+        **kwargs,
     ) -> None:
         super(Experiment, self).__init__()
         self.model = model
         self.LR = LR
         self.weight_decay = weight_decay
-        self.scheduler_gamma = scheduler_gamma
+        self.kwargs = kwargs
         self.kld_weight = kld_weight
         self.duration_weight = duration_weight
         self.curr_device = None
         self.save_hyperparameters(ignore=["model"])
 
-    def forward(self, batch: Tensor, teacher=None, **kwargs) -> List[Tensor]:
-        return self.model(batch, teacher, **kwargs)
+    def forward(self, batch: Tensor, target=None, **kwargs) -> List[Tensor]:
+        return self.model(batch, target, **kwargs)
 
     def training_step(self, batch, batch_idx):
         (x, x_mask), (y, y_mask) = batch
         self.curr_device = x.device
 
-        results = self.forward(x, teacher=y)
+        results = self.forward(x, target=y)
         train_loss = self.model.loss_function(
             *results,
             target=y,
@@ -50,6 +51,10 @@ class Experiment(pl.LightningModule):
         )
 
         return train_loss["loss"]
+
+    # def on_train_epoch_end(self) -> None:
+    #     self.regenerate_train_batch()
+    #     return super().on_train_epoch_end()
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         (x, x_mask), (y, y_mask) = batch
@@ -123,20 +128,31 @@ class Experiment(pl.LightningModule):
         )
 
     def configure_optimizers(self):
-        optims = []
-        scheds = []
-
         optimizer = optim.Adam(
             self.model.parameters(), lr=self.LR, weight_decay=self.weight_decay
         )
-        optims.append(optimizer)
 
-        if self.scheduler_gamma is not None:
+        if self.kwargs.get("scheduler_gamma") is not None:
             scheduler = optim.lr_scheduler.ExponentialLR(
-                optims[0], gamma=self.scheduler_gamma
+                optimizer, gamma=self.kwargs["scheduler_gamma"]
             )
-            scheds.append(scheduler)
-        return optims, scheds
+
+        elif self.kwargs.get("warmup") is not None:
+            lr_mul = self.kwargs.get("lr_mul", 2)
+            d_model = self.kwargs.get("d_model", 512)
+            n_warmup_steps = self.kwargs.get("warmup")
+            scheduler = {
+                "scheduler": ScheduledOptim(
+                    optimizer,
+                    lr_mul=lr_mul,
+                    d_model=d_model,
+                    n_warmup_steps=n_warmup_steps,
+                ),
+                "monitor": "val_loss",
+                "interval": "step",
+            }
+
+        return [optimizer], [scheduler]
 
     def predict_step(self, batch):
         return self.model.predict_step(batch, self.curr_device)

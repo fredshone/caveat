@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
+from caveat.data.augment import SequenceJitter
 from caveat.encoders import BaseEncoded, BaseEncoder
 
 
@@ -12,6 +13,10 @@ class UnweightedSequenceEncoder(BaseEncoder):
     def __init__(self, max_length: int = 12, duration: int = 1440, **kwargs):
         self.max_length = max_length
         self.duration = duration
+        self.jitter = kwargs.get("jitter", 0)
+        print(
+            f"UnweightedSequenceEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}"
+        )
 
     def encode(self, data: pd.DataFrame) -> BaseEncoded:
         self.sos = 0
@@ -23,7 +28,11 @@ class UnweightedSequenceEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
         # encoding takes place in SequenceDataset
         return SequenceEncodedPlans(
-            data, self.max_length, self.acts_to_index, self.duration
+            data=data,
+            max_length=self.max_length,
+            acts_to_index=self.acts_to_index,
+            norm_duration=self.duration,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -71,6 +80,7 @@ class SequenceEncodedPlans(BaseEncoded):
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
+        jitter: float = 0.0,
         sos: int = 0,
         eos: int = 1,
     ):
@@ -80,8 +90,11 @@ class SequenceEncodedPlans(BaseEncoded):
             data (DataFrame): Population of sequences.
             max_length (int): Max length of sequences.
             acts_to_index (dict): Mapping of activity to index.
+            norm_duration (int): Length of plan in minutes.
+            jitter (float, optional): Jitter for durations. Defaults to 0.0.
         """
         self.max_length = max_length
+        self.augment = SequenceJitter(jitter) if jitter else None
         self.sos = sos
         self.eos = eos
         self.encodings = len(acts_to_index)
@@ -98,18 +111,16 @@ class SequenceEncodedPlans(BaseEncoded):
         norm_duration: int,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         data = data.copy()
+        data.duration = data.duration / norm_duration
         data.act = data.act.map(acts_to_index)
 
         # calc weightings
         weights = data.groupby("act", observed=True).duration.sum().to_dict()
-        n = (
-            data.pid.nunique() * 60
-        )  # sos and eos weight is equal to 1 hour per sequence
+        n = data.pid.nunique()  # sos/eos weight is 1 day per sequence
         weights.update({self.sos: n, self.eos: n})
         weights = np.array([weights[k] for k in range(len(weights))])
         weights = 1 / weights
 
-        data.duration = data.duration / norm_duration
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
 
@@ -144,7 +155,11 @@ class SequenceEncodedPlans(BaseEncoded):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx], self.masks[idx]
+        sample = self.encoded[idx]
+        if self.augment:
+            sample = self.augment(sample)
+        mask = self.masks[idx]
+        return (sample, mask), (sample, mask)
 
 
 def encode_sequence(

@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
+from caveat.data.augment import DiscreteJitter
 from caveat.encoders import BaseEncoded, BaseEncoder
 
 
@@ -13,6 +14,10 @@ class DiscreteOneHotEncoder(BaseEncoder):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
+        self.jitter = kwargs.get("jitter", 0)
+        print(
+            f"DiscreteOneHotEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
+        )
 
     def encode(self, data: pd.DataFrame) -> BaseEncoded:
         self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
@@ -22,6 +27,7 @@ class DiscreteOneHotEncoder(BaseEncoder):
             duration=self.duration,
             step_size=self.step_size,
             acts_to_index=self.acts_to_index,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -77,12 +83,22 @@ class DiscreteOneHotEncoded(BaseEncoded):
         duration: int,
         step_size: int,
         acts_to_index: dict,
+        jitter: int = 0,
     ):
-        """Torch Dataset for descretised sequence data.
+        """One hot encoding of activity traces. Using discretised time steps.
 
         Args:
-            data (Tensor): Population of sequences.
+            data (pd.DataFrame): _description_
+            duration (int): _description_
+            step_size (int): _description_
+            acts_to_index (dict): _description_
+            jitter (int, optional): _description_. Defaults to 0.
         """
+        if jitter:
+            self.augment = DiscreteJitter(step_size, jitter)
+        else:
+            self.augment = None
+
         self.encodings = data.act.nunique()
         # calc weightings based on durations
         weights = data.groupby("act", observed=True).duration.sum().to_dict()
@@ -94,7 +110,7 @@ class DiscreteOneHotEncoded(BaseEncoded):
             step_size=step_size,
             class_map=acts_to_index,
         )
-        self.masks = torch.ones((1, self.encoded.shape[2]))
+        self.mask = torch.ones((1, self.encoded.shape[2]))
         self.size = len(self.encoded)
 
     def shape(self):
@@ -104,7 +120,10 @@ class DiscreteOneHotEncoded(BaseEncoded):
         return self.size
 
     def __getitem__(self, idx):
-        return self.encoded[idx], self.masks
+        sample = self.encoded[idx]
+        if self.augment:
+            sample = self.augment(sample)
+        return (sample, self.mask), (sample, self.mask)
 
 
 def descretise_population(
@@ -172,7 +191,7 @@ def descretise_trace(
 
 
 def down_sample(array: np.ndarray, step: int) -> np.ndarray:
-    """Down-sample by steppiong through given array.
+    """Down-sample by stepping through given array.
     todo:
     Methodology will down sample based on first classification.
     If we are down sampling a lot (for example from minutes to hours),

@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 import torch
 from torch import Tensor
+from torch.nn.functional import pad
 
+from caveat.data.augment import DiscreteJitter
 from caveat.encoders import BaseEncoded, BaseEncoder
 
 
@@ -13,6 +15,10 @@ class DiscreteEncoder(BaseEncoder):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
+        self.jitter = kwargs.get("jitter", 0)
+        print(
+            f"DiscreteEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
+        )
 
     def encode(self, data: pd.DataFrame) -> BaseEncoded:
         self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
@@ -22,6 +28,7 @@ class DiscreteEncoder(BaseEncoder):
             duration=self.duration,
             step_size=self.step_size,
             class_map=self.acts_to_index,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -72,15 +79,30 @@ class DiscreteEncoder(BaseEncoder):
 
 class DiscreteEncoded(BaseEncoded):
     def __init__(
-        self, data: pd.DataFrame, duration: int, step_size: int, class_map: dict
+        self,
+        data: pd.DataFrame,
+        duration: int,
+        step_size: int,
+        class_map: dict,
+        jitter: int = 0,
     ):
-        """Torch Dataset for descretised sequence data.
+        """Torch Dataset for discretised sequence data.
 
         Args:
-            data (Tensor): Population of sequences.
+            data (pd.DataFrame): _description_
+            duration (int): _description_
+            step_size (int): _description_
+            class_map (dict): _description_
+            jitter (int, optional): _description_. Defaults to 0.
         """
+        if jitter:
+            self.augment = DiscreteJitter(step_size, jitter)
+        else:
+            self.augment = None
+
         data = data.copy()
         data.act = data.act.map(class_map)
+
         self.encodings = data.act.nunique()
         # calc weightings
         weights = data.groupby("act", observed=True).duration.sum().to_dict()
@@ -100,6 +122,8 @@ class DiscreteEncoded(BaseEncoded):
 
     def __getitem__(self, idx):
         sample = self.encoded[idx]
+        if self.augment:
+            sample = self.augment(sample)
         return (sample, self.mask), (sample, self.mask)
 
 
@@ -108,6 +132,10 @@ class DiscreteWithPadEncoder(BaseEncoder):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
+        self.jitter = kwargs.get("jitter", 0)
+        print(
+            f"DiscreteWithPadEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
+        )
 
     def encode(self, data: pd.DataFrame) -> BaseEncoded:
         self.index_to_acts = {i + 1: a for i, a in enumerate(data.act.unique())}
@@ -118,6 +146,7 @@ class DiscreteWithPadEncoder(BaseEncoder):
             duration=self.duration,
             step_size=self.step_size,
             class_map=self.acts_to_index,
+            jitter=self.jitter,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -144,7 +173,6 @@ class DiscreteWithPadEncoder(BaseEncoder):
 
             for step, act_idx in enumerate(encoded[pid]):
                 if int(act_idx) != current_act and current_act is not None:
-                    print(pid, current_act)
                     decoded.append(
                         [
                             pid,
@@ -161,45 +189,60 @@ class DiscreteWithPadEncoder(BaseEncoder):
 
 class DiscretePadEncoded(BaseEncoded):
     def __init__(
-        self, data: pd.DataFrame, duration: int, step_size: int, class_map: dict
+        self,
+        data: pd.DataFrame,
+        duration: int,
+        step_size: int,
+        class_map: dict,
+        jitter: int = 0,
     ):
         """Torch Dataset for discretised sequence data with padding.
 
         Args:
-            data (Tensor): Population of sequences.
+            data (pd.DataFrame): _description_
+            duration (int): _description_
+            step_size (int): _description_
+            class_map (dict): _description_
+            jitter (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
+
+        if jitter:
+            self.augment = DiscreteJitter(step_size, jitter)
+        else:
+            self.augment = None
+
         data = data.copy()
         data.act = data.act.map(class_map)
         self.encodings = data.act.nunique() + 1  # <PAD>
+
         # calc weightings
         weights = data.groupby("act", observed=True).duration.sum().to_dict()
         weights[0] = data.pid.nunique() * 60  # pad weight is equal to 1 hour
         weights = np.array([weights[k] for k in range(len(weights))])
-        self.encoding_weights = torch.from_numpy(1 / weights).float()
-        encoded = discretise_population(
+        self.encoding_weights = torch.from_numpy(1 / (weights)).float()
+        self.encoded = discretise_population(
             data, duration=duration, step_size=step_size
         )
-        self.size = len(encoded)
-        self.encoded_pad_left = torch.concatenate(
-            (torch.zeros((self.size, 1)), encoded), dim=-1
-        )
-        self.encoded_pad_right = torch.concatenate(
-            (encoded, torch.zeros((self.size, 1))), dim=-1
-        )
-        self.mask = torch.ones((1, self.encoded_pad_left.shape[-1]))
+        self.size = len(self.encoded)
+
+        self._shape = torch.Size([self.encoded.shape[-1] + 1])
+
+        self.mask = torch.ones((1, self.encoded.shape[-1] + 1))
 
     def shape(self):
-        return self.encoded_pad_left[0].shape
+        return self._shape
 
     def __len__(self):
         return self.size
 
     def __getitem__(self, idx):
-        return (
-            (self.encoded_pad_left[idx], self.mask),
-            (self.encoded_pad_right[idx], self.mask),
-        )
+        sample = self.encoded[idx]
+        if self.augment:
+            sample = self.augment(sample)
+        pad_left = pad(sample, (1, 0))
+        pad_right = pad(sample, (0, 1))
+        return ((pad_left, self.mask), (pad_right, self.mask))
 
 
 def discretise_population(

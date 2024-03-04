@@ -1,10 +1,10 @@
+import math
 from typing import List, Tuple
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from caveat import current_device
 from caveat.models.base import BaseVAE
 
 
@@ -15,11 +15,21 @@ class AttentionDiscrete(BaseVAE):
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
+        print(f"Latent dim: {self.latent_dim}")
         self.hidden_size = config["hidden_size"]
+        print(f"Hidden size: {self.hidden_size}")
         self.heads = config["heads"]
+        print(f"Heads: {self.heads}")
         self.hidden_layers = config["hidden_layers"]
+        print(f"Hidden layers: {self.hidden_layers}")
         self.dropout = config["dropout"]
+        print(f"Dropout: {self.dropout}")
         self.length = self.in_shape[0]
+        print(f"Length: {self.length}")
+        self.position_embedding = config.get("position_embedding", "learnt")
+        print(f"Positional embedding: {self.position_embedding}")
+        self.sampling = config.get("sampling", False)
+        print(f"Sampling: {self.sampling}")
 
         self.encoder = AttentionEncoder(
             input_size=self.encodings,
@@ -28,6 +38,7 @@ class AttentionDiscrete(BaseVAE):
             n_head=self.heads,
             n_layer=self.hidden_layers,
             dropout=self.dropout,
+            position_embedding=self.position_embedding,
         )
         self.decoder = AttentionDecoder(
             input_size=self.encodings,
@@ -37,6 +48,7 @@ class AttentionDiscrete(BaseVAE):
             num_layers=self.hidden_layers,
             length=self.length,
             dropout=self.dropout,
+            position_embedding=self.position_embedding,
         )
         self.unflattened_shape = (self.length, self.hidden_size)
         flat_size_encode = self.length * self.hidden_size
@@ -45,9 +57,10 @@ class AttentionDiscrete(BaseVAE):
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
 
         if config.get("share_embed", False):
+            print("Sharing embeddings")
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    def forward(self, x: Tensor, teacher=None, **kwargs) -> List[Tensor]:
+    def forward(self, x: Tensor, target=None, **kwargs) -> List[Tensor]:
         """Forward pass, also return latent parameterization.
 
         Args:
@@ -59,8 +72,8 @@ class AttentionDiscrete(BaseVAE):
         mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
 
-        if teacher is not None:  # training
-            log_prob_y, prob_y = self.decode(z, teacher=teacher)
+        if target is not None:  # training
+            log_prob_y, prob_y = self.decode(z, context=x)
             return [log_prob_y, prob_y, mu, log_var]
 
         # no target so assume generating
@@ -68,7 +81,7 @@ class AttentionDiscrete(BaseVAE):
         return [log_prob, prob, mu, log_var]
 
     def decode(
-        self, z: Tensor, teacher=None, **kwargs
+        self, z: Tensor, context=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
@@ -81,7 +94,7 @@ class AttentionDiscrete(BaseVAE):
         # initialize hidden state as inputs
         hidden = self.fc_hidden(z)
         hidden = hidden.unflatten(1, self.unflattened_shape)
-        log_probs, probs = self.decoder(hidden, teacher)
+        log_probs, probs = self.decoder(hidden, context)
 
         return log_probs, probs
 
@@ -129,21 +142,25 @@ class AttentionDiscrete(BaseVAE):
         log_outputs = []
         outputs = []
         sequences = torch.zeros(B, 1, device=z.device)
-        for _ in range(
-            self.length
-        ):  # todo: need a SOS encoding!!!!!!!!!!!!!!!!
+        for _ in range(self.length):
             # get the predictions
-            log_probs, probs = self.decode(z, teacher=sequences)
-            log_outputs.append(log_probs)
-            outputs.append(probs)
+            log_probs, probs = self.decode(z, context=sequences)
             # focus only on the last time step
+            last_log_probs = log_probs[:, -1, :]  # becomes (B, C)
             last_probs = probs[:, -1, :]  # becomes (B, C)
-            # sample from the distribution
-            next = torch.multinomial(last_probs, num_samples=1)  # (B, 1)
+            log_outputs.append(last_log_probs.unsqueeze(1))
+            outputs.append(last_probs.unsqueeze(1))
+            if self.sampling:
+                # sample from the distribution
+                next = torch.multinomial(last_probs, num_samples=1)  # (B, 1)
+            else:
+                _, next = last_probs.topk(1)
             # append sampled index to the running sequence
             sequences = torch.cat((sequences, next), dim=1)  # (B, T+1)
 
-        # prob_samples = prob_samples.unsqueeze(1)  # to match cnn for decoder
+        log_probs = torch.cat(log_outputs, dim=1)
+        probs = torch.cat(outputs, dim=1)
+
         return log_probs, probs
 
     def generate(self, x: Tensor, current_device: int, **kwargs) -> Tensor:
@@ -319,9 +336,9 @@ class FeedFoward(nn.Module):
     def __init__(self, n_embd, dropout=0.0):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
-            nn.ReLU(),
-            nn.Linear(4 * n_embd, n_embd),
+            nn.Linear(n_embd, 1 * n_embd),
+            nn.GELU(),
+            nn.Linear(1 * n_embd, n_embd),
             nn.Dropout(dropout),
         )
 
@@ -383,14 +400,77 @@ class DecoderBlock(nn.Module):
         return x
 
 
+class LearntPositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, dropout: float = 0.0, length: int = 144):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        pe = torch.arange(0, length, dtype=torch.long)  # (T)
+        self.register_buffer("pe", pe)
+        self.embedding = nn.Embedding(length, d_model)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Arguments:
+            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
+        """
+        _, L, _ = x.shape  # (B,T,C)
+
+        pos_emb = self.embedding(self.pe[:L]).unsqueeze(0)  # (1,L,C)
+        x = x + pos_emb  # (B,L,C)
+        return self.dropout(x)
+
+
+class FixedPositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, dropout: float = 0.0, length: int = 144):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = torch.arange(length).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2) * (-math.log(length) / d_model)
+        )
+        pe = torch.zeros(length, d_model)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer("pe", pe)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Arguments:
+            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
+        """
+        _, T, _ = x.shape
+        x = x + self.pe[:T, :]
+        return self.dropout(x)
+
+
 class AttentionEncoder(nn.Module):
     def __init__(
-        self, input_size, hidden_size, length, n_head, n_layer, dropout
+        self,
+        input_size,
+        hidden_size,
+        length,
+        n_head,
+        n_layer,
+        dropout: float = 0.0,
+        position_embedding: str = "learnt",
     ):
         super().__init__()
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.embed_dropout = nn.Dropout(dropout)
-        self.position_embedding = nn.Embedding(length, hidden_size)
+
+        if position_embedding == "learnt":
+            self.position_embedding = LearntPositionalEncoding(
+                d_model=hidden_size, dropout=0.0, length=length
+            )
+        elif position_embedding == "fixed":
+            self.position_embedding = FixedPositionalEncoding(
+                d_model=hidden_size, dropout=0.0, length=length
+            )
+        else:
+            raise ValueError(
+                f"Positional embedding must be either 'learnt' or 'fixed', got {position_embedding}"
+            )
 
         self.blocks = nn.Sequential(
             *[
@@ -401,7 +481,7 @@ class AttentionEncoder(nn.Module):
         self.ln_f = nn.LayerNorm(hidden_size)  # final layer norm
         # self.lm_head = nn.Linear(hidden_size, input_size)
 
-        # better init, not covered in the original GPT video, but important, will cover in followup video
+        # better init
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
@@ -411,16 +491,14 @@ class AttentionEncoder(nn.Module):
                 torch.nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, nn.LayerNorm):
+            torch.nn.init.zeros_(module.bias)
+            torch.nn.init.ones_(module.weight)
 
     def forward(self, x):
-        _, L = x.shape  # batch size and sequence encoding length
-
         # idx and targets are both (B,T) tensor of integers
-        embedding = self.embedding(x.long())  # (B,T,C)
-        pos_emb = self.position_embedding(
-            torch.arange(L, device=current_device())
-        )  # (T,C)
-        x = embedding + pos_emb  # (B,T,C)
+        x = self.embedding(x.long())  # (B,T,C)
+        x = self.position_embedding(x)  # (B,T,C)
         x = self.blocks(x)  # (B,T,C)
         x = self.ln_f(x)  # (B,T,C)
         x = x.flatten(1)
@@ -438,11 +516,24 @@ class AttentionDecoder(nn.Module):
         num_layers,
         length,
         dropout: float = 0.0,
+        position_embedding: str = "learnt",
     ) -> None:
         super().__init__()
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.embed_dropout = nn.Dropout(dropout)
-        self.position_embedding = nn.Embedding(length, hidden_size)
+
+        if position_embedding == "learnt":
+            self.position_embedding = LearntPositionalEncoding(
+                d_model=hidden_size, dropout=dropout, length=length
+            )
+        elif position_embedding == "fixed":
+            self.position_embedding = FixedPositionalEncoding(
+                d_model=hidden_size, dropout=dropout, length=length
+            )
+        else:
+            raise ValueError(
+                f"Positional embedding must be either 'learnt' or 'fixed', got {position_embedding}"
+            )
         self.blocks = nn.ModuleList(
             [
                 DecoderBlock(
@@ -467,17 +558,14 @@ class AttentionDecoder(nn.Module):
                 torch.nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, nn.LayerNorm):
+            torch.nn.init.zeros_(module.bias)
+            torch.nn.init.ones_(module.weight)
 
     def forward(self, x_encode, x):
-        N, L = x.shape  # batch size and sequence encoding length
-
         # idx and targets are both (B,T) tensor of integers
-        embedding = self.embedding(x.long())  # (B,T,C)
-        pos_emb = self.position_embedding(
-            torch.arange(L, device=current_device())
-        )  # (T,C)
-
-        x = embedding + pos_emb  # (B,T,C)
+        x = self.embedding(x.long())  # (B,T,C)
+        x = self.position_embedding(x)  # (B,T,C)
 
         for layer in self.blocks:
             x = layer(x_encode, x)
