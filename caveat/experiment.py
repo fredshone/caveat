@@ -52,10 +52,6 @@ class Experiment(pl.LightningModule):
 
         return train_loss["loss"]
 
-    # def on_train_epoch_end(self) -> None:
-    #     self.regenerate_train_batch()
-    #     return super().on_train_epoch_end()
-
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         (x, x_mask), (y, y_mask) = batch
         self.curr_device = x.device
