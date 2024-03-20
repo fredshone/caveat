@@ -1,6 +1,6 @@
 import datetime
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
 from pandas import DataFrame
@@ -270,7 +270,7 @@ def train(
 
 def generate(
     trainer: Trainer,
-    population: Any[int, DataFrame],
+    population: Union[int, DataFrame],
     data_encoder: encoders.BaseEncoder,
     config: dict,
     write_dir: Path,

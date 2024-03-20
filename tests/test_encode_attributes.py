@@ -18,11 +18,19 @@ def test_encode_ordinal():
     assert_close(encoded, expected)
 
 
-def test_encode_nominal():
+def test_encode_nominal_no_encodings():
     data = pd.Series(["M", "F", "F"])
-    encoded = nominal_encode(data)
-    expected = Tensor([[0, 1], [1, 0], [1, 0]]).float()
-    assert_close(encoded, expected)
+    encoded, encodings = nominal_encode(data, None)
+    assert_close(encoded, Tensor([[0, 1], [1, 0], [1, 0]]).float())
+    assert encodings == {"M": 1, "F": 0}
+
+
+def test_encode_nominal_with_encodings():
+    data = pd.Series(["M", "F", "F"])
+    encodings = {"M": 0, "F": 1}
+    encoded, encodings = nominal_encode(data, encodings)
+    assert_close(encoded, Tensor([[1, 0], [0, 1], [0, 1]]).float())
+    assert encodings == {"M": 0, "F": 1}
 
 
 def test_encoder_ordinal():
@@ -45,6 +53,40 @@ def test_encoder_nominal():
     encoded = encoder.encode(data)
     expected = Tensor([[0, 1], [1, 0], [1, 0]]).float()
     assert_close(encoded, expected)
+
+
+def test_re_encoder_nominal():
+    config = {"gender": "nominal"}
+    data = pd.DataFrame(
+        {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
+    )
+    encoder = AttributeEncoder(config=config)
+    encoded = encoder.encode(data)
+    assert_close(encoded, Tensor([[0, 1], [1, 0], [1, 0]]).float())
+    assert encoder.config["gender"] == {"nominal": {"M": 1, "F": 0}}
+    new = pd.DataFrame(
+        {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "M", "F"]}
+    )
+    new_encoded = encoder.encode(new)
+    assert_close(new_encoded, Tensor([[0, 1], [0, 1], [1, 0]]).float())
+    assert encoder.config["gender"] == {"nominal": {"M": 1, "F": 0}}
+
+
+def test_re_encoder_new_cat_nominal():
+    config = {"gender": "nominal"}
+    data = pd.DataFrame(
+        {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
+    )
+    encoder = AttributeEncoder(config=config)
+    encoded = encoder.encode(data)
+    assert_close(encoded, Tensor([[0, 1], [1, 0], [1, 0]]).float())
+    assert encoder.config["gender"] == {"nominal": {"M": 1, "F": 0}}
+    new = pd.DataFrame(
+        {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "X", "F"]}
+    )
+    with pytest.raises(UserWarning) as w:
+        encoder.encode(new)
+        assert w.message.contains("X")
 
 
 def test_encoder_missing_columns():

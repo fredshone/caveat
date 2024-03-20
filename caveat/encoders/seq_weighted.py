@@ -24,6 +24,10 @@ class SequenceEncoder(BaseEncoder):
         print(
             f"WeightedSequenceEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}, {self.conditionals=}"
         )
+        if self.conditionals:
+            self.attribute_encoder = AttributeEncoder(self.conditionals)
+        else:
+            self.attribute_encoder = None
 
     def encode(
         self, sequences: pd.DataFrame, attributes: Optional[pd.DataFrame] = None
@@ -38,12 +42,15 @@ class SequenceEncoder(BaseEncoder):
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
         self.encodings = len(self.index_to_acts)
 
-        if attributes is None and self.conditionals:
-            raise UserWarning("Conditionals provided but no attributes.")
-        if attributes is not None and self.conditionals is None:
-            raise UserWarning(
-                "Attributes provided but no conditionals configured."
-            )
+        # encode attributes
+        if attributes is not None:
+            if self.conditionals is None:
+                raise UserWarning(
+                    "Attributes provided but no conditionals configured."
+                )
+            encoded_attributes = self.attribute_encoder.encode(attributes)
+        else:
+            encoded_attributes = None
 
         return SequenceDurationsWeighted(
             data=sequences,
@@ -51,8 +58,7 @@ class SequenceEncoder(BaseEncoder):
             acts_to_index=self.acts_to_index,
             norm_duration=self.duration,
             jitter=self.jitter,
-            attributes=attributes,
-            conditionals=self.conditionals,
+            attributes=encoded_attributes,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -101,8 +107,7 @@ class SequenceDurationsWeighted(BaseEncoded):
         acts_to_index: dict,
         norm_duration: int,
         jitter: float = 0,
-        attributes: Optional[pd.DataFrame] = None,
-        conditionals: Optional[dict] = None,
+        attributes: Optional[Tensor] = None,
         sos: int = 0,
         eos: int = 1,
     ):
@@ -114,8 +119,7 @@ class SequenceDurationsWeighted(BaseEncoded):
             acts_to_index (dict): Mapping of activity to index.
             norm_duration (int): Normal day duration.
             jitter (float, optional): Jitter to apply to sequences. Defaults to 0.
-            attributes (DataFrame, optional): Attributes to encode. Defaults to None.
-            conditionals (dict, optional): Conditionals for attribute encoding. Defaults to None.
+            attributes (Optional[Tensor], optional): Conditional attributes. Defaults to None.
         """
         self.max_length = max_length
         if jitter:
@@ -128,11 +132,7 @@ class SequenceDurationsWeighted(BaseEncoded):
         self.encoded, self.encoding_weights = self._encode_sequences(
             data, max_length, acts_to_index, norm_duration
         )
-        if attributes is not None and conditionals is not None:
-            attribute_encoder = AttributeEncoder(conditionals)
-            self.attributes = attribute_encoder.encode(attributes)
-        else:
-            self.attributes = None
+        self.attributes = attributes
 
         self.size = len(self.encoded)
         self.weights = None

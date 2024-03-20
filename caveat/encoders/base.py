@@ -28,6 +28,7 @@ class BaseEncoder(ABC):
     def __init__(self) -> None:
         super(BaseEncoder, self).__init__()
         self.encodings = None
+        self.attribute_encoder = None
 
     def encode(
         self, schedules: DataFrame, conditionals: Optional[DataFrame]
