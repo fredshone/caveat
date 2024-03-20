@@ -1,9 +1,29 @@
 import random
+from typing import Optional
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 
-def sample_observed(data: DataFrame, config: dict) -> DataFrame:
+def sample_data(
+    sequences: DataFrame, attributes: Optional[DataFrame], config: dict
+):
+    """Sample a proportion of the data based on sampler config.
+
+    Args:
+        sequences (DataFrame): input sequences data.
+        attributes (Optional[DataFrame]): input attributes data.
+        config (dict): configuration.
+
+    Returns:
+        DataFrame: sampled sequences.
+    """
+    sequences = sample_sequences(sequences, config)
+    if attributes is not None:
+        attributes = select_attributes(attributes, sequences.pid)
+    return sequences, attributes
+
+
+def sample_sequences(data: DataFrame, config: dict) -> DataFrame:
     """Sample a proportion of the data based on sampler config.
 
     Args:
@@ -23,6 +43,10 @@ def sample_observed(data: DataFrame, config: dict) -> DataFrame:
         return biased_sample(data, p=cnfg["p"], threshold=cnfg["threshold"])
     else:
         raise ValueError(f"Sampler {sampler} not implemented.")
+
+
+def select_attributes(data: DataFrame, idxs: Series) -> DataFrame:
+    return data.copy().set_index("pid").loc[idxs.unique()].reset_index()
 
 
 def random_sample(data: DataFrame, p: float) -> DataFrame:

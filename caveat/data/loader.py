@@ -85,3 +85,11 @@ def predict_dataloader(
         num_workers=num_workers,
         persistent_workers=True,
     )
+
+
+# def conditional_dataloader(
+#         attributes: torch.Tensor,
+#         la
+#         batch_size: int = 256,
+#         num_workers: int = 4,
+# )

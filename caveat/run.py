@@ -1,6 +1,6 @@
 import datetime
 from pathlib import Path
-from typing import Union
+from typing import Any, Optional, Tuple, Union
 
 import torch
 from pandas import DataFrame
@@ -38,14 +38,30 @@ def run_command(config: dict) -> None:
 
     data_path = Path(config["data_path"])
     observed = data.load_and_validate(data_path)
-
     print(f"Loaded {len(observed)} sequences from {data_path}")
+
+    if config.get("attributes_path"):
+        attributes = data.load_and_validate_attributes(
+            config["attributes_path"], observed
+        )
+        print(
+            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
+        )
+    else:
+        attributes = None
 
     logger = initiate_logger(log_dir, name)
     seed = config.pop("seed", seeder())
-    trainer, data_encoder = train(name, observed, config, logger, seed)
+    trainer, data_encoder = train(
+        name,
+        observed=observed,
+        conditionals=attributes,
+        config=config,
+        logger=logger,
+        seed=seed,
+    )
     sampled = {
-        name: sample(
+        name: generate(
             trainer,
             len(observed),
             data_encoder,
@@ -89,7 +105,7 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
         combined_config.update(config)
         seed = combined_config.pop("seed", seeder())
         trainer, encoder = train(name, observed, combined_config, logger, seed)
-        sampled[name] = sample(
+        sampled[name] = generate(
             trainer,
             observed.pid.nunique(),
             encoder,
@@ -127,7 +143,7 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
         logger = initiate_logger(log_dir, run_name)
         seed = seeder()
         trainer, encoder = train(run_name, observed, config, logger, seed)
-        sampled[name] = sample(
+        sampled[name] = generate(
             trainer,
             observed.pid.nunique(),
             encoder,
@@ -166,7 +182,7 @@ def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
     for i in range(n):
         sample_dir = Path(logger.log_dir) / f"nsample{i}"
         seed = seeder()
-        sampled[name] = sample(
+        sampled[name] = generate(
             trainer, observed.pid.nunique(), encoder, config, sample_dir, seed
         )
 
@@ -208,16 +224,18 @@ def report_command(
 def train(
     name: str,
     observed: DataFrame,
+    conditionals: Optional[DataFrame],
     config: dict,
     logger: TensorBoardLogger,
-    seed: int = None,
-) -> DataFrame:
+    seed: Optional[int] = None,
+) -> Tuple[Trainer, encoders.BaseEncoder]:
     """
     Trains a model on the observed data. Return model trainer (which includes model) and encoder.
 
     Args:
         name (str): The name of the experiment.
         observed (pandas.DataFrame): The "observed" population data to train the model on.
+        conditionals (pandas.DataFrame): The "conditionals" data to train the model on.
         config (dict): A dictionary containing the configuration parameters for the experiment.
         logger (TensorBoardLogger): Logger.
 
@@ -233,9 +251,14 @@ def train(
 
     print(f"\n======= Training {name} =======")
 
-    observed_sample = data.sample_observed(observed, config)
+    observed_schedules, observed_conditionals = data.sample_data(
+        observed, conditionals, config
+    )
+
     data_encoder = build_encoder(config)
-    encoded = data_encoder.encode(observed_sample)
+    encoded = data_encoder.encode(
+        schedules=observed_schedules, conditionals=observed_conditionals
+    )
     data_loader = build_dataloader(config, encoded)
 
     experiment = build_experiment(encoded, config)
@@ -245,7 +268,72 @@ def train(
     return trainer, data_encoder
 
 
-def sample(
+def generate(
+    trainer: Trainer,
+    population: Any[int, DataFrame],
+    data_encoder: encoders.BaseEncoder,
+    config: dict,
+    write_dir: Path,
+    seed: int,
+) -> DataFrame:
+    torch.manual_seed(seed)
+    latent_dims = config["model_params"]["latent_dim"]
+    batch_size = config.get("generator_params", {}).get("batch_size", 256)
+    if isinstance(population, int):
+        print(f"\n======= Sampling {population} new schedules =======")
+        predictions = generate_n(
+            trainer,
+            n=population,
+            batch_size=batch_size,
+            latent_dims=latent_dims,
+            seed=seed,
+        )
+    elif isinstance(population, DataFrame):
+        print(
+            f"\n======= Sampling {len(population)} new schedules from attributes ======="
+        )
+        predictions = generate_from_attributes(
+            trainer,
+            attributes=population,
+            batch_size=batch_size,
+            latent_dims=latent_dims,
+            seed=seed,
+        )
+
+    synthetic = data_encoder.decode(schedules=predictions)
+    data.validate(synthetic)
+    synthesis_path = write_dir / "synthetic.csv"
+    synthetic.to_csv(synthesis_path)
+    return synthetic
+
+
+def generate_n(
+    trainer: Trainer, n: int, batch_size: int, latent_dims: int, seed: int
+) -> torch.Tensor:
+    torch.manual_seed(seed)
+    predict_loader = data.predict_dataloader(n, latent_dims, batch_size)
+    predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)
+    predictions = torch.concat(predictions)  # type: ignore
+    return predictions
+
+
+def generate_from_attributes(
+    trainer: Trainer,
+    attributes: DataFrame,
+    batch_size: int,
+    latent_dims: int,
+    seed: int,
+) -> torch.Tensor:
+    torch.manual_seed(seed)
+    predict_loader = data.predict_dataloader(
+        attributes, latent_dims, batch_size
+    )
+    predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)
+    predictions = torch.concat(predictions)  # type: ignore
+    return predictions
+
+
+def conditional_sample(
     trainer: Trainer,
     population_size: int,
     data_encoder: encoders.BaseEncoder,
@@ -260,7 +348,7 @@ def sample(
     )
     predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)
     predictions = torch.concat(predictions)  # type: ignore
-    synthetic = data_encoder.decode(encoded=predictions)
+    synthetic = data_encoder.decode(schedules=predictions)
     data.validate(synthetic)
     synthesis_path = write_dir / "synthetic.csv"
     synthetic.to_csv(synthesis_path)

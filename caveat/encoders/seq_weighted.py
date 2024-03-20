@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -6,33 +6,53 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import SequenceJitter
-from caveat.encoders import BaseEncoded, BaseEncoder
+from caveat.encoders import AttributeEncoder, BaseEncoded, BaseEncoder
 
 
 class SequenceEncoder(BaseEncoder):
     def __init__(self, max_length: int = 12, duration: int = 1440, **kwargs):
+        """Sequence Encoder for sequences of activities. Also supports conditional attributes.
+
+        Args:
+            max_length (int, optional): _description_. Defaults to 12.
+            duration (int, optional): _description_. Defaults to 1440.
+        """
         self.max_length = max_length
         self.duration = duration
         self.jitter = kwargs.get("jitter", 0)
+        self.conditionals = kwargs.get("conditionals")
         print(
-            f"SequenceEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}"
+            f"WeightedSequenceEncoder: {self.max_length=}, {self.duration=}, {self.jitter=}, {self.conditionals=}"
         )
 
-    def encode(self, data: pd.DataFrame) -> BaseEncoded:
+    def encode(
+        self, sequences: pd.DataFrame, attributes: Optional[pd.DataFrame] = None
+    ) -> BaseEncoded:
         self.sos = 0
         self.eos = 1
-        self.index_to_acts = {i + 2: a for i, a in enumerate(data.act.unique())}
+        self.index_to_acts = {
+            i + 2: a for i, a in enumerate(sequences.act.unique())
+        }
         self.index_to_acts[0] = "<SOS>"
         self.index_to_acts[1] = "<EOS>"
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
         self.encodings = len(self.index_to_acts)
-        # encoding takes place in SequenceDataset
+
+        if attributes is None and self.conditionals:
+            raise UserWarning("Conditionals provided but no attributes.")
+        if attributes is not None and self.conditionals is None:
+            raise UserWarning(
+                "Attributes provided but no conditionals configured."
+            )
+
         return SequenceDurationsWeighted(
-            data=data,
+            data=sequences,
             max_length=self.max_length,
             acts_to_index=self.acts_to_index,
             norm_duration=self.duration,
             jitter=self.jitter,
+            attributes=attributes,
+            conditionals=self.conditionals,
         )
 
     def decode(self, encoded: Tensor) -> pd.DataFrame:
@@ -81,6 +101,8 @@ class SequenceDurationsWeighted(BaseEncoded):
         acts_to_index: dict,
         norm_duration: int,
         jitter: float = 0,
+        attributes: Optional[pd.DataFrame] = None,
+        conditionals: Optional[dict] = None,
         sos: int = 0,
         eos: int = 1,
     ):
@@ -90,6 +112,10 @@ class SequenceDurationsWeighted(BaseEncoded):
             data (DataFrame): Population of sequences.
             max_length (int): Max length of sequences.
             acts_to_index (dict): Mapping of activity to index.
+            norm_duration (int): Normal day duration.
+            jitter (float, optional): Jitter to apply to sequences. Defaults to 0.
+            attributes (DataFrame, optional): Attributes to encode. Defaults to None.
+            conditionals (dict, optional): Conditionals for attribute encoding. Defaults to None.
         """
         self.max_length = max_length
         if jitter:
@@ -99,19 +125,25 @@ class SequenceDurationsWeighted(BaseEncoded):
         self.sos = sos
         self.eos = eos
         self.encodings = len(acts_to_index)
-        self.encoded, self.encoding_weights = self._encode(
+        self.encoded, self.encoding_weights = self._encode_sequences(
             data, max_length, acts_to_index, norm_duration
         )
+        if attributes is not None and conditionals is not None:
+            attribute_encoder = AttributeEncoder(conditionals)
+            self.attributes = attribute_encoder.encode(attributes)
+        else:
+            self.attributes = None
+
         self.size = len(self.encoded)
         self.weights = None
 
-    def _encode(
+    def _encode_sequences(
         self,
         data: pd.DataFrame,
         max_length: int,
         acts_to_index: dict,
         norm_duration: int,
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor]:
         data = data.copy()
         data.duration = data.duration / norm_duration
         data.act = data.act.map(acts_to_index)
@@ -161,7 +193,9 @@ class SequenceDurationsWeighted(BaseEncoded):
         if self.augment:
             sample = self.augment(sample)
         mask = self.encoding_weights[idx]
-        return (sample, mask), (sample, mask)
+        if self.attributes is None:
+            return (sample, mask), (sample, mask), None
+        return (sample, mask), (sample, mask), self.attributes[idx]
 
 
 def encode_sequence(
@@ -169,7 +203,7 @@ def encode_sequence(
     durations: list[float],
     max_length: int,
     encoding_width: int,
-    act_weights: dict,
+    act_weights: np.ndarray,
     sos: int,
     eos: int,
 ) -> Tuple[np.ndarray, np.ndarray]:

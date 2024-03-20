@@ -230,7 +230,13 @@ class BaseVAE(nn.Module):
 
         return log_probs, probs
 
-    def forward(self, x: Tensor, target=None, **kwargs) -> List[Tensor]:
+    def forward(
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target=None,
+        **kwargs,
+    ) -> List[Tensor]:
         """Forward pass, also return latent parameterization.
 
         Args:
@@ -241,7 +247,9 @@ class BaseVAE(nn.Module):
         """
         mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(z, target=target)
+        log_prob_y, prob_y = self.decode(
+            z, conditionals=conditionals, target=target
+        )
         return [log_prob_y, prob_y, mu, log_var]
 
     def loss_function(
@@ -315,7 +323,8 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
         )
 
         return {
@@ -358,7 +367,8 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
         )
 
         return {
@@ -402,7 +412,8 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
         )
 
         return {
@@ -455,7 +466,8 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
         )
 
         return {
@@ -484,7 +496,8 @@ class BaseVAE(nn.Module):
         # kld loss
         norm_kld_weight = self.kld_weight
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
+            dim=0,
         )
 
         # loss
@@ -561,7 +574,7 @@ class BaseVAE(nn.Module):
             tensor: [N, steps, acts].
         """
         z = z.to(current_device)
-        prob_samples = self.decode(z)[1]
+        prob_samples = self.decode(z, **kwargs)[1]
         return prob_samples
 
     def generate(self, x: Tensor, current_device: int, **kwargs) -> Tensor:
@@ -573,6 +586,6 @@ class BaseVAE(nn.Module):
         Returns:
             tensor: [N, steps, acts].
         """
-        prob_samples = self.forward(x)[1]
+        prob_samples = self.forward(x, **kwargs)[1]
         prob_samples = prob_samples.to(current_device)
         return prob_samples

@@ -1,3 +1,4 @@
+from caveat.encoders.attributes import AttributeEncoder
 from caveat.encoders.base import BaseEncoded, BaseEncoder
 from caveat.encoders.discrete import DiscreteEncoder, DiscreteWithPadEncoder
 from caveat.encoders.discrete_one_hot import DiscreteOneHotEncoder

@@ -92,7 +92,7 @@ def test_encoded():
     )
     encoder = seq.SequenceEncoder(max_length=length, duration=duration)
     encoded = encoder.encode(traces)
-    (left, left_mask), (right, right_mask) = encoded[0]
+    (left, left_mask), (right, right_mask), _ = encoded[0]
     assert torch.equal(left, expected)
     assert torch.equal(left_mask, expected_weights)
     assert torch.equal(right, expected)
@@ -119,11 +119,44 @@ def test_encoded_with_jitter():
     encoded = encoder.encode(traces)
     for _ in range(10):
         for i in range(len(encoded)):
-            (left, left_mask), (right, right_mask) = encoded[i]
+            (left, left_mask), (right, right_mask), _ = encoded[i]
             assert torch.equal(left, right)
             assert torch.equal(left_mask, right_mask)
             assert left.shape == (6, 2)
             assert left_mask.shape == (6,)
+
+
+def test_encode_with_attributes():
+    traces = pd.DataFrame(
+        [
+            [0, 0, 0, 4, 4],
+            [0, 1, 4, 8, 4],
+            [0, 0, 8, 10, 2],
+            [1, 0, 0, 3, 3],
+            [1, 1, 3, 7, 4],
+            [1, 0, 7, 10, 3],
+        ],
+        columns=["pid", "act", "start", "end", "duration"],
+    )
+    attributes = pd.DataFrame(
+        [[0, "m", 20], [1, "f", 34]], columns=["pid", "gender", "age"]
+    )
+    length = 6
+    duration = 10
+    expected_attr = torch.tensor([[0, 1, 0.2], [1, 0, 0.34]])
+
+    config = {
+        "conditionals": {"gender": "nominal", "age": {"ordinal": (0, 100)}}
+    }
+
+    encoder = seq.SequenceEncoder(
+        max_length=length, duration=duration, **config
+    )
+
+    encoded = encoder.encode(traces, attributes)
+    for i in range(2):
+        _, _, attributes = encoded[i]
+        assert torch.equal(attributes, expected_attr[i])
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import Optional
 
 from pandas import DataFrame
 from torch import Tensor
@@ -28,8 +29,10 @@ class BaseEncoder(ABC):
         super(BaseEncoder, self).__init__()
         self.encodings = None
 
-    def encode(self, input: DataFrame) -> BaseEncoded:
+    def encode(
+        self, schedules: DataFrame, conditionals: Optional[DataFrame]
+    ) -> BaseEncoded:
         raise NotImplementedError
 
-    def decode(self, encoded: Tensor) -> DataFrame:
+    def decode(self, schedules: Tensor) -> DataFrame:
         raise NotImplementedError
