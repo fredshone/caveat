@@ -17,6 +17,9 @@ class BaseEncoded(Dataset):
     def shape(self):
         raise NotImplementedError
 
+    def conditionals_shape(self):
+        return None
+
     def __len__(self):
         raise NotImplementedError
 

@@ -36,25 +36,21 @@ def run_command(config: dict) -> None:
     )
     write_path = log_dir / name
 
+    # load schedules data
     data_path = Path(config["data_path"])
-    observed = data.load_and_validate(data_path)
-    print(f"Loaded {len(observed)} sequences from {data_path}")
+    schedules = data.load_and_validate_schedules(data_path)
+    print(f"Loaded {len(schedules)} sequences from {data_path}")
 
-    if config.get("attributes_path"):
-        attributes = data.load_and_validate_attributes(
-            config["attributes_path"], observed
-        )
-        print(
-            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
-        )
-    else:
-        attributes = None
+    # load attributes data (conditional case)
+    attributes, synthetic_attributes = data.load_and_validate_attributes(
+        config, schedules
+    )
 
     logger = initiate_logger(log_dir, name)
     seed = config.pop("seed", seeder())
     trainer, data_encoder = train(
         name,
-        observed=observed,
+        observed=schedules,
         conditionals=attributes,
         config=config,
         logger=logger,
@@ -63,7 +59,7 @@ def run_command(config: dict) -> None:
     sampled = {
         name: generate(
             trainer,
-            len(observed),
+            len(schedules),
             data_encoder,
             config,
             Path(logger.log_dir),
@@ -71,7 +67,7 @@ def run_command(config: dict) -> None:
         )
     }
 
-    evaluate.report(observed, sampled, write_path)
+    evaluate.report(schedules, sampled, write_path)
 
 
 def batch_command(batch_config: dict, stats: bool = False) -> None:
@@ -94,7 +90,7 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
     log_dir = Path(logger_params.get("log_dir", "logs"), name)
 
     data_path = global_config["data_path"]
-    observed = data.load_and_validate(data_path)
+    observed = data.load_and_validate_schedules(data_path)
     print(f"Loaded {len(observed)} sequences from {data_path}")
 
     sampled = {}
@@ -135,7 +131,7 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
     log_dir = Path(logger_params.get("log_dir", "logs")) / name
 
     data_path = Path(config["data_path"])
-    observed = data.load_and_validate(data_path)
+    observed = data.load_and_validate_schedules(data_path)
 
     sampled = {}
     for i in range(n):
@@ -173,7 +169,7 @@ def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
     logger = initiate_logger(log_dir, name)
 
     data_path = Path(config["data_path"])
-    observed = data.load_and_validate(data_path)
+    observed = data.load_and_validate_schedules(data_path)
 
     seed = config.pop("seed", seeder())
     trainer, encoder = train(name, observed, config, logger, seed)
@@ -199,7 +195,7 @@ def report_command(
 ):
     observed_path = Path(observed_path)
     log_dir = Path(log_dir)
-    observed = data.load_and_validate(observed_path)
+    observed = data.load_and_validate_schedules(observed_path)
     sampled = {}
     if batch:
         paths = [p for p in log_dir.iterdir() if p.is_dir()]
@@ -210,7 +206,7 @@ def report_command(
         # get most recent version
         version = sorted([d for d in experiment.iterdir() if d.is_dir()])[-1]
         path = experiment / version.name / name
-        sampled[experiment.name] = data.load_and_validate(path)
+        sampled[experiment.name] = data.load_and_validate_schedules(path)
 
     evaluate.report(
         observed=observed,
@@ -301,7 +297,7 @@ def generate(
         )
 
     synthetic = data_encoder.decode(schedules=predictions)
-    data.validate(synthetic)
+    data.validate_schedules(synthetic)
     synthesis_path = write_dir / "synthetic.csv"
     synthetic.to_csv(synthesis_path)
     return synthetic
@@ -349,7 +345,7 @@ def conditional_sample(
     predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)
     predictions = torch.concat(predictions)  # type: ignore
     synthetic = data_encoder.decode(schedules=predictions)
-    data.validate(synthetic)
+    data.validate_schedules(synthetic)
     synthesis_path = write_dir / "synthetic.csv"
     synthetic.to_csv(synthesis_path)
     return synthetic
@@ -377,6 +373,7 @@ def build_experiment(dataset: encoders.BaseEncoded, config: dict) -> Experiment:
         in_shape=dataset.shape(),
         encodings=dataset.encodings,
         encoding_weights=dataset.encoding_weights,
+        conditionals_size=dataset.conditionals_shape,
         **config["model_params"],
     )
     return Experiment(model, **config["experiment_params"])

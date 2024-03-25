@@ -185,6 +185,11 @@ class SequenceDurationsWeighted(BaseEncoded):
     def shape(self):
         return self.encoded[0].shape
 
+    def conditionals_shape(self):
+        if self.attributes is None:
+            return None
+        return self.attributes[0].shape
+
     def __len__(self):
         return self.size
 

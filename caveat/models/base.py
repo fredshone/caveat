@@ -109,6 +109,7 @@ class BaseVAE(nn.Module):
         in_shape: tuple,
         encodings: int,
         encoding_weights: Optional[Tensor] = None,
+        conditionals_size: Optional[tuple] = None,
         sos: int = 0,
         **config,
     ) -> None:
@@ -118,6 +119,7 @@ class BaseVAE(nn.Module):
             in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
             encodings (int): Number of activity encodings.
             encoding_weights (tensor): Weights for activity encodings.
+            conditionals_size (int, optional): Size of conditionals encoding. Defaults to None.
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
@@ -126,6 +128,7 @@ class BaseVAE(nn.Module):
         self.in_shape = in_shape
         self.encodings = encodings
         self.encoding_weights = encoding_weights
+        self.conditionals_size = conditionals_size
 
         self.sos = sos
         self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0)
@@ -323,8 +326,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -367,8 +369,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -412,8 +413,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -466,8 +466,7 @@ class BaseVAE(nn.Module):
         norm_kld_weight = self.kld_weight * self.latent_dim
 
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         return {
@@ -496,8 +495,7 @@ class BaseVAE(nn.Module):
         # kld loss
         norm_kld_weight = self.kld_weight
         kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         # loss

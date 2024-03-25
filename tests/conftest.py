@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from caveat.data import load_and_validate
+from caveat.data import load_and_validate_schedules
 
 
 @pytest.fixture
 def observed():
     data_path = Path("tests/fixtures/synthetic_population.csv")
-    return load_and_validate(data_path)
+    return load_and_validate_schedules(data_path)
 
 
 @pytest.fixture
