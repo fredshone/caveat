@@ -74,7 +74,8 @@ def load_and_validate_attributes(
         if attributes.empty:
             raise UserWarning(f"No attributes found in {data_path}.")
         validate_attributes(attributes, config)
-        sort_attributes(attributes, schedules)
+        validate_attributes_index(attributes, schedules)
+        attributes = attributes.sort_values(by="pid")
         print(
             f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
         )
@@ -82,7 +83,7 @@ def load_and_validate_attributes(
         attributes = None
 
     # load synthetic attributes data
-    if attributes:
+    if attributes is not None:
         if config.get("synthetic_attributes_path"):
             data_path = Path(config["synthetic_attributes_path"])
             synthetic_attributes = pd.read_csv(data_path)
@@ -117,8 +118,9 @@ def validate_attributes(
     Raises:
         UserWarning: If the attributes data is missing configured conditional columns.
     """
-    required_cols = set(config.get("conditional", {}).keys()) | {"pid"}
+    required_cols = set(config.get("conditionals", {}).keys()) | {"pid"}
     found = set(attributes.columns)
+    print(f"Found attributes: {found}")
     missing = required_cols - found
     text = "Synthetic attributes" if synthetic else "Attributes"
     if missing:
@@ -132,28 +134,27 @@ def validate_attributes(
         )
 
 
-def sort_attributes(
-    attributes: pd.DataFrame, sequences: pd.DataFrame
+def validate_attributes_index(
+    attributes: pd.DataFrame, schedules: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Sort the attributes data based on the sequence data.
 
     Args:
         attributes (pd.DataFrame): The attributes data to be sorted.
-        sequences (pd.DataFrame): The sequence data.
+        schedules (pd.DataFrame): The schedules data.
 
     Returns:
         pd.DataFrame: The sorted attributes data.
 
     Raises:
-        UserWarning: If the sequence and attributes pids do not match or their datatypes do not match.
+        UserWarning: If the schedules and attributes pids do not match or their datatypes do not match.
     """
-    seq_index = sequences.pid
+    seq_index = schedules.pid
     attr_index = attributes.pid
     if not set(seq_index) == set(attr_index):
-        raise UserWarning("Sequence and attributes pids do not match")
+        raise UserWarning("Schedules and attributes pids do not match")
     if not seq_index.dtype == attr_index.dtype:
         raise UserWarning(
-            "Sequence and attributes pid datatypes do not match, this may result in 'misalignment' of schedules and attributes."
+            "Schedules and attributes pid datatypes do not match, this may result in 'misalignment' of schedules and attributes."
         )
-    attributes.sort_values(by="pid")

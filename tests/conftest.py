@@ -12,6 +12,24 @@ def observed():
 
 
 @pytest.fixture
+def schedules():
+    data_path = Path("tests/fixtures/schedules.csv")
+    return load_and_validate_schedules(data_path)
+
+
+@pytest.fixture
+def attributes():
+    data_path = Path("tests/fixtures/attributes.csv")
+    return load_and_validate_schedules(data_path)
+
+
+@pytest.fixture
+def synthetic_attributes():
+    data_path = Path("tests/fixtures/synthetic_attributes.csv")
+    return load_and_validate_schedules(data_path)
+
+
+@pytest.fixture
 def run_config_one_hot():
     return {
         "logging_params": {"log_dir": "tmp", "name": "test"},
