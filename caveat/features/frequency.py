@@ -1,7 +1,7 @@
 from numpy import array, ndarray
 from pandas import DataFrame
 
-from caveat.encoders.discrete_one_hot import descretise_population
+from caveat.encoders.one_hot import descretise_population
 
 
 def binned_activity_count(

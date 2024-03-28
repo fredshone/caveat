@@ -75,8 +75,8 @@ class DataModule(LightningDataModule):
         )
 
 
-def predict_dataloader(
-    num_samples, latent_dim, batch_size: int = 256, num_workers: int = 4
+def build_predict_dataloader(
+    num_samples, latent_dim: int, batch_size: int = 256, num_workers: int = 4
 ):
     z = torch.randn(num_samples, latent_dim)
     return DataLoader(
@@ -87,9 +87,27 @@ def predict_dataloader(
     )
 
 
-# def conditional_dataloader(
-#         attributes: torch.Tensor,
-#         la
-#         batch_size: int = 256,
-#         num_workers: int = 4,
-# )
+class ConditionalDataset(Dataset):
+    def __init__(self, attributes: torch.Tensor, latent_dim: int):
+        self.z = torch.randn(len(attributes), latent_dim)
+        self.attributes = attributes
+
+    def __len__(self):
+        return len(self.attributes)
+
+    def __getitem__(self, idx):
+        return self.z[idx], self.attributes[idx]
+
+
+def build_conditional_dataloader(
+    attributes: torch.Tensor,
+    latent_dim: int,
+    batch_size: int = 256,
+    num_workers: int = 4,
+):
+    return DataLoader(
+        ConditionalDataset(attributes, latent_dim),
+        batch_size=batch_size,
+        num_workers=num_workers,
+        persistent_workers=True,
+    )

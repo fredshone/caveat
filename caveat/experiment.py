@@ -60,7 +60,7 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, x_mask), (y, y_mask), conditionals = batch
+        (x, _), (y, y_mask), conditionals = batch
         self.curr_device = x.device
 
         results = self.forward(x, conditionals=conditionals)
@@ -84,19 +84,29 @@ class Experiment(pl.LightningModule):
 
     def on_validation_end(self) -> None:
         self.regenerate_val_batch()
-        self.sample_sequences(100)
+        self.sample_sequences()
 
     def regenerate_test_batch(self):
-        (x, _), (y, _) = next(iter(self.trainer.datamodule.test_dataloader()))
+        (x, _), (y, _), conditionals = next(
+            iter(self.trainer.datamodule.test_dataloader())
+        )
         x = x.to(self.curr_device)
         y = y.to(self.curr_device)
-        self.regenerate_batch(x, target=y, name="test_reconstructions")
+        conditionals = conditionals.to(self.curr_device)
+        self.regenerate_batch(
+            x, target=y, name="test_reconstructions", conditionals=conditionals
+        )
 
     def regenerate_val_batch(self):
-        (x, _), (y, _) = next(iter(self.trainer.datamodule.val_dataloader()))
+        (x, _), (y, _), conditionals = next(
+            iter(self.trainer.datamodule.val_dataloader())
+        )
         x = x.to(self.curr_device)
         y = y.to(self.curr_device)
-        self.regenerate_batch(x, target=y, name="reconstructions")
+        conditionals = conditionals.to(self.curr_device)
+        self.regenerate_batch(
+            x, target=y, name="reconstructions", conditionals=conditionals
+        )
 
     def regenerate_batch(
         self,
@@ -123,13 +133,12 @@ class Experiment(pl.LightningModule):
             pad_value=1,
         )
 
-    def sample_sequences(
-        self,
-        num_samples: int,
-        name: str = "samples",
-        conditionals: Optional[Tensor] = None,
-    ) -> None:
-        z = torch.randn(num_samples, self.model.latent_dim)
+    def sample_sequences(self, name: str = "samples") -> None:
+        _, _, conditionals = next(
+            iter(self.trainer.datamodule.test_dataloader())
+        )
+        conditionals = conditionals.to(self.curr_device)
+        z = torch.randn(len(conditionals), self.model.latent_dim)
         y_probs = self.model.predict_step(
             z, conditionals=conditionals, device=self.curr_device
         )
@@ -172,8 +181,10 @@ class Experiment(pl.LightningModule):
 
         return [optimizer], [scheduler]
 
-    def predict_step(self, batch):
-        return self.model.predict_step(batch, self.curr_device)
+    def predict_step(self, z: Tensor, conditionals: Optional[Tensor] = None):
+        return self.model.predict_step(
+            z, conditionals=conditionals, device=self.curr_device
+        )
 
 
 def unpack(x, y, current_device):

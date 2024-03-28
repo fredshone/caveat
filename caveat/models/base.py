@@ -561,7 +561,7 @@ class BaseVAE(nn.Module):
             durations = durations.unsqueeze(-1)
         return torch.cat((acts, durations), dim=-1)
 
-    def predict_step(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
+    def predict_step(self, z: Tensor, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -571,11 +571,11 @@ class BaseVAE(nn.Module):
         Returns:
             tensor: [N, steps, acts].
         """
-        z = z.to(current_device)
+        z = z.to(device)
         prob_samples = self.decode(z, **kwargs)[1]
         return prob_samples
 
-    def generate(self, x: Tensor, current_device: int, **kwargs) -> Tensor:
+    def generate(self, x: Tensor, device: int, **kwargs) -> Tensor:
         """Given an encoder input, return reconstructed output.
 
         Args:
@@ -585,5 +585,5 @@ class BaseVAE(nn.Module):
             tensor: [N, steps, acts].
         """
         prob_samples = self.forward(x, **kwargs)[1]
-        prob_samples = prob_samples.to(current_device)
+        prob_samples = prob_samples.to(device)
         return prob_samples

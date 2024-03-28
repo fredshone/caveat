@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from pytorch_lightning.loggers import TensorBoardLogger
+from torch import Tensor
 from torch.random import seed as seeder
 
 from caveat import cuda_available, data, encoders, evaluate, models
@@ -42,28 +43,31 @@ def run_command(config: dict) -> None:
     print(f"Loaded {len(schedules)} sequences from {data_path}")
 
     # load attributes data (conditional case)
-    attributes, synthetic_attributes = data.load_and_validate_attributes(
+    attribute_encoder, attributes, synthetic_attributes = build_attributes(
         config, schedules
     )
 
     logger = initiate_logger(log_dir, name)
     seed = config.pop("seed", seeder())
-    trainer, data_encoder = train(
-        name,
-        observed=schedules,
+    trainer, encoder = train(
+        name=name,
+        schedules=schedules,
         conditionals=attributes,
         config=config,
         logger=logger,
         seed=seed,
     )
+
+    population = len(schedules) if attributes is None else synthetic_attributes
+
     sampled = {
         name: generate(
-            trainer,
-            len(schedules),
-            data_encoder,
-            config,
-            Path(logger.log_dir),
-            seed,
+            trainer=trainer,
+            population=population,
+            encoder=encoder,
+            config=config,
+            write_dir=Path(logger.log_dir),
+            seed=seed,
         )
     }
 
@@ -219,8 +223,8 @@ def report_command(
 
 def train(
     name: str,
-    observed: DataFrame,
-    conditionals: Optional[DataFrame],
+    schedules: DataFrame,
+    conditionals: Optional[Tensor],
     config: dict,
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
@@ -230,7 +234,7 @@ def train(
 
     Args:
         name (str): The name of the experiment.
-        observed (pandas.DataFrame): The "observed" population data to train the model on.
+        schedules (pandas.DataFrame): The "observed" population data to train the model on.
         conditionals (pandas.DataFrame): The "conditionals" data to train the model on.
         config (dict): A dictionary containing the configuration parameters for the experiment.
         logger (TensorBoardLogger): Logger.
@@ -247,27 +251,26 @@ def train(
 
     print(f"\n======= Training {name} =======")
 
-    observed_schedules, observed_conditionals = data.sample_data(
-        observed, conditionals, config
-    )
+    # todo: repair sampling, needs to happen after attribute encoding therefore should sample tensors
+    # observed_schedules, observed_conditionals = data.sample_data(
+    #     observed, conditionals, config
+    # )
 
-    data_encoder = build_encoder(config)
-    encoded = data_encoder.encode(
-        schedules=observed_schedules, conditionals=observed_conditionals
-    )
+    encoder = build_encoder(config)
+    encoded = encoder.encode(schedules=schedules, conditionals=conditionals)
     data_loader = build_dataloader(config, encoded)
 
     experiment = build_experiment(encoded, config)
     trainer = build_trainer(logger, config)
     trainer.fit(experiment, datamodule=data_loader)
 
-    return trainer, data_encoder
+    return trainer, encoder
 
 
 def generate(
     trainer: Trainer,
-    population: Union[int, DataFrame],
-    data_encoder: encoders.BaseEncoder,
+    population: Union[int, Tensor],
+    encoder: encoders.BaseEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
@@ -284,9 +287,9 @@ def generate(
             latent_dims=latent_dims,
             seed=seed,
         )
-    elif isinstance(population, DataFrame):
+    elif isinstance(population, Tensor):
         print(
-            f"\n======= Sampling {len(population)} new schedules from attributes ======="
+            f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
         )
         predictions = generate_from_attributes(
             trainer,
@@ -296,7 +299,7 @@ def generate(
             seed=seed,
         )
 
-    synthetic = data_encoder.decode(schedules=predictions)
+    synthetic = encoder.decode(schedules=predictions)
     data.validate_schedules(synthetic)
     synthesis_path = write_dir / "synthetic.csv"
     synthetic.to_csv(synthesis_path)
@@ -307,24 +310,24 @@ def generate_n(
     trainer: Trainer, n: int, batch_size: int, latent_dims: int, seed: int
 ) -> torch.Tensor:
     torch.manual_seed(seed)
-    predict_loader = data.predict_dataloader(n, latent_dims, batch_size)
-    predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)
+    dataloaders = data.build_predict_dataloader(n, latent_dims, batch_size)
+    predictions = trainer.predict(ckpt_path="best", dataloaders=dataloaders)
     predictions = torch.concat(predictions)  # type: ignore
     return predictions
 
 
 def generate_from_attributes(
     trainer: Trainer,
-    attributes: DataFrame,
+    attributes: Tensor,
     batch_size: int,
     latent_dims: int,
     seed: int,
 ) -> torch.Tensor:
     torch.manual_seed(seed)
-    predict_loader = data.predict_dataloader(
+    dataloaders = data.build_conditional_dataloader(
         attributes, latent_dims, batch_size
     )
-    predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)
+    predictions = trainer.predict(ckpt_path="best", dataloaders=dataloaders)
     predictions = torch.concat(predictions)  # type: ignore
     return predictions
 
@@ -339,7 +342,7 @@ def conditional_sample(
 ) -> DataFrame:
     torch.manual_seed(seed)
     print("\n======= Sampling =======")
-    predict_loader = data.predict_dataloader(
+    predict_loader = data.build_predict_dataloader(
         population_size, config["model_params"]["latent_dim"], 256
     )
     predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)
@@ -357,8 +360,26 @@ def build_encoder(config: dict) -> encoders.BaseEncoder:
     return data_encoder
 
 
+def build_attributes(
+    config: dict, schedules: DataFrame
+) -> Tuple[
+    Optional[encoders.AttributeEncoder], Optional[Tensor], Optional[Tensor]
+]:
+    attributes, synthetic_attributes = data.load_and_validate_attributes(
+        config, schedules
+    )
+    # optionally encode attributes
+    if attributes is not None:
+        attribute_encoder = encoders.AttributeEncoder(config["conditionals"])
+        attributes = attribute_encoder.encode(attributes)
+        synthetic_attributes = attribute_encoder.encode(synthetic_attributes)
+        return attribute_encoder, attributes, synthetic_attributes
+    else:
+        return None, None, None
+
+
 def build_dataloader(
-    config: dict, dataset: encoders.BaseEncoded
+    config: dict, dataset: encoders.BaseDataset
 ) -> data.DataModule:
     data_loader_params = config.get("loader_params", {})
     datamodule = data.DataModule(data=dataset, **data_loader_params)
@@ -366,12 +387,12 @@ def build_dataloader(
     return datamodule
 
 
-def build_experiment(dataset: encoders.BaseEncoded, config: dict) -> Experiment:
+def build_experiment(dataset: encoders.BaseDataset, config: dict) -> Experiment:
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     model = model(
         in_shape=dataset.shape(),
-        encodings=dataset.encodings,
+        encodings=dataset.activity_encodings,
         encoding_weights=dataset.encoding_weights,
         conditionals_size=dataset.conditionals_shape,
         **config["model_params"],

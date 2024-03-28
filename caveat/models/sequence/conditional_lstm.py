@@ -45,7 +45,9 @@ class ConditionalLSTM(BaseVAE):
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
+    def decode(
+        self, z: Tensor, conditionals: Tensor, target=None, **kwargs
+    ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -55,7 +57,8 @@ class ConditionalLSTM(BaseVAE):
             tensor: Output sequence batch [N, steps, acts].
         """
         # add conditionlity to z
-        z = torch.cat((z, kwargs["conditionals"]), dim=-1)
+        print(z.shape, conditionals.shape)
+        z = torch.cat((z, conditionals), dim=-1)
         # initialize hidden state as inputs
         h = self.fc_hidden(z)
 

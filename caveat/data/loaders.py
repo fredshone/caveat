@@ -75,7 +75,6 @@ def load_and_validate_attributes(
             raise UserWarning(f"No attributes found in {data_path}.")
         validate_attributes(attributes, config)
         validate_attributes_index(attributes, schedules)
-        attributes = attributes.sort_values(by="pid")
         print(
             f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
         )

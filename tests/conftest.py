@@ -1,14 +1,21 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from caveat.data import load_and_validate_schedules
 
 
 @pytest.fixture
-def observed():
-    data_path = Path("tests/fixtures/synthetic_population.csv")
+def test_schedules():
+    data_path = Path("tests/fixtures/test_schedules.csv")
     return load_and_validate_schedules(data_path)
+
+
+@pytest.fixture
+def test_attributes():
+    data_path = Path("tests/fixtures/test_attributes.csv")
+    return pd.read_csv(data_path)
 
 
 @pytest.fixture
@@ -17,26 +24,28 @@ def schedules():
     return load_and_validate_schedules(data_path)
 
 
-@pytest.fixture
-def attributes():
-    data_path = Path("tests/fixtures/attributes.csv")
-    return load_and_validate_schedules(data_path)
+# @pytest.fixture
+# def attributes():
+#     data_path = Path("tests/fixtures/attributes.csv")
+#     return load_and_validate_attributes(data_path)
+
+
+# @pytest.fixture
+# def synthetic_attributes():
+#     data_path = Path("tests/fixtures/synthetic_attributes.csv")
+#     return load_and_validate_attributes(data_path)
 
 
 @pytest.fixture
-def synthetic_attributes():
-    data_path = Path("tests/fixtures/synthetic_attributes.csv")
-    return load_and_validate_schedules(data_path)
-
-
-@pytest.fixture
-def run_config_one_hot():
+def run_config_conditional_lstm():
     return {
+        "attributes_path": "tests/fixtures/test_attributes.csv",
+        "conditionals": {"age": {"ordinal": (0, 100)}, "gender": "nominal"},
         "logging_params": {"log_dir": "tmp", "name": "test"},
         "encoder_params": {
-            "name": "discrete_one_hot",
-            "step_size": 10,
-            "duration": 1440,
+            "name": "sequence",
+            "max_length": 4,
+            "norm_duration": 1440,
         },
         "loader_params": {
             "train_batch_size": 2,
@@ -48,13 +57,17 @@ def run_config_one_hot():
             "weight_decay": 0.0,
             "scheduler_gamma": 0.95,
             "kld_weight": 0.025,
+            "duration_weight": 10,
         },
         "trainer_params": {"max_epochs": 1, "min_epochs": 1},
         "seed": 1234,
         "model_params": {
-            "name": "convOH",
-            "hidden_layers": [1],
+            "name": "conditional_LSTM",
+            "hidden_layers": 1,
+            "hidden_size": 2,
             "latent_dim": 2,
+            "teacher_forcing_ratio": 0.5,
+            "use_mask": True,
             "dropout": 0.1,
         },
     }

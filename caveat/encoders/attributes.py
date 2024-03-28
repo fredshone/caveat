@@ -19,18 +19,16 @@ class AttributeEncoder:
                 if v.get("ordinal"):
                     if not isinstance(v.get("ordinal"), tuple):
                         raise UserWarning(
-                            f"Ordinal encoding must be a tuple of (min, max)"
+                            "Ordinal encoding must be a tuple of (min, max)"
                         )
                     min, max = v["ordinal"]
                     encoded.append(ordinal_encode(data[k], min, max))
                 elif v.get("nominal"):
                     if not isinstance(v.get("nominal"), dict):
                         raise UserWarning(
-                            f"Nominal encoding must be a dict of categories to index"
+                            "Nominal encoding must be a dict of categories to index"
                         )
-                    nominal_encoded, _ = nominal_encode(
-                        data[k], v["nominal"]
-                    )
+                    nominal_encoded, _ = nominal_encode(data[k], v["nominal"])
                     encoded.append(nominal_encoded)
                 else:
                     raise UserWarning(
@@ -38,7 +36,9 @@ class AttributeEncoder:
                     )
 
             elif v == "nominal":  # Undefined nominal encoding
-                nominal_encoded, nominal_encodings = nominal_encode(data[k], None)
+                nominal_encoded, nominal_encodings = nominal_encode(
+                    data[k], None
+                )
                 self.config[k] = {"nominal": nominal_encodings}
                 encoded.append(nominal_encoded)
 
