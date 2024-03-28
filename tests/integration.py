@@ -48,12 +48,12 @@ def test_lstm(tmp_path, test_schedules, run_config_lstm):
 
 
 def test_conditional_lstm(
-    tmp_path, test_schedules, test_attributes, run_config_conditional_lstm
+    tmp_path, test_schedules, run_config_conditional_lstm
 ):
     logger = initiate_logger(tmp_path, "test")
 
     schedule_encoder = build_encoder(run_config_conditional_lstm)
-    _, attributes, _ = build_attributes(
+    attributes, _ = build_attributes(
         run_config_conditional_lstm, test_schedules
     )
     encoded = schedule_encoder.encode(test_schedules, conditionals=attributes)

@@ -43,9 +43,11 @@ def run_command(config: dict) -> None:
     print(f"Loaded {len(schedules)} sequences from {data_path}")
 
     # load attributes data (conditional case)
-    attribute_encoder, attributes, synthetic_attributes = build_attributes(
-        config, schedules
-    )
+    attributes, synthetic_attributes = build_attributes(config, schedules)
+    if attributes is not None:
+        print(
+            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
+        )
 
     logger = initiate_logger(log_dir, name)
     seed = config.pop("seed", seeder())
@@ -94,8 +96,18 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
     log_dir = Path(logger_params.get("log_dir", "logs"), name)
 
     data_path = global_config["data_path"]
-    observed = data.load_and_validate_schedules(data_path)
-    print(f"Loaded {len(observed)} sequences from {data_path}")
+    schedules = data.load_and_validate_schedules(data_path)
+    print(f"Loaded {len(schedules)} sequences from {data_path}")
+
+    # load attributes data (conditional case)
+    attributes, synthetic_attributes = build_attributes(
+        global_config, schedules
+    )
+    if attributes is not None:
+        print(
+            f"Loaded {len(attributes)} attributes from {global_config['attributes_path']}"
+        )
+    population = len(schedules) if attributes is None else synthetic_attributes
 
     sampled = {}
     for name, config in batch_config.items():
@@ -104,17 +116,24 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
         combined_config = global_config.copy()
         combined_config.update(config)
         seed = combined_config.pop("seed", seeder())
-        trainer, encoder = train(name, observed, combined_config, logger, seed)
+        trainer, encoder = train(
+            name=name,
+            schedules=schedules,
+            conditionals=attributes,
+            config=combined_config,
+            logger=logger,
+            seed=seed,
+        )
         sampled[name] = generate(
-            trainer,
-            observed.pid.nunique(),
-            encoder,
-            combined_config,
-            Path(logger.log_dir),
-            seed,
+            trainer=trainer,
+            population=population,
+            encoder=encoder,
+            config=combined_config,
+            write_dir=Path(logger.log_dir),
+            seed=seed,
         )
 
-    evaluate.report(observed, sampled, log_dir, report_stats=stats)
+    evaluate.report(schedules, sampled, log_dir, report_stats=stats)
 
 
 def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
@@ -135,24 +154,32 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
     log_dir = Path(logger_params.get("log_dir", "logs")) / name
 
     data_path = Path(config["data_path"])
-    observed = data.load_and_validate_schedules(data_path)
+    schedules = data.load_and_validate_schedules(data_path)
+
+    # load attributes data (conditional case)
+    attributes, synthetic_attributes = build_attributes(config, schedules)
+    if attributes is not None:
+        print(
+            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
+        )
+    population = len(schedules) if attributes is None else synthetic_attributes
 
     sampled = {}
     for i in range(n):
         run_name = f"{name}_nrun{i}"
         logger = initiate_logger(log_dir, run_name)
         seed = seeder()
-        trainer, encoder = train(run_name, observed, config, logger, seed)
+        trainer, encoder = train(run_name, schedules, config, logger, seed)
         sampled[name] = generate(
-            trainer,
-            observed.pid.nunique(),
-            encoder,
-            config,
-            Path(logger.log_dir),
-            seed,
+            trainer=trainer,
+            population=population,
+            encoder=encoder,
+            config=config,
+            write_dir=Path(logger.log_dir),
+            seed=seed,
         )
 
-    evaluate.report(observed, sampled, log_dir, report_stats=stats)
+    evaluate.report(schedules, sampled, log_dir, report_stats=stats)
 
 
 def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
@@ -362,9 +389,7 @@ def build_encoder(config: dict) -> encoders.BaseEncoder:
 
 def build_attributes(
     config: dict, schedules: DataFrame
-) -> Tuple[
-    Optional[encoders.AttributeEncoder], Optional[Tensor], Optional[Tensor]
-]:
+) -> Tuple[Optional[Tensor], Optional[Tensor]]:
     attributes, synthetic_attributes = data.load_and_validate_attributes(
         config, schedules
     )
@@ -373,9 +398,9 @@ def build_attributes(
         attribute_encoder = encoders.AttributeEncoder(config["conditionals"])
         attributes = attribute_encoder.encode(attributes)
         synthetic_attributes = attribute_encoder.encode(synthetic_attributes)
-        return attribute_encoder, attributes, synthetic_attributes
+        return attributes, synthetic_attributes
     else:
-        return None, None, None
+        return None, None
 
 
 def build_dataloader(
