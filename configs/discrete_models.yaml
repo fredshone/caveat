@@ -1,5 +1,5 @@
 global:
-  data_path: C:\Users\DAF3\Data\NTS\processed\nts_2021_acts_home_based.csv
+  schedules_path: C:\Users\DAF3\Data\NTS\processed\nts_2021_acts_home_based.csv
   logging_params:
     log_dir: experiments
     name: discrete_mods_LR

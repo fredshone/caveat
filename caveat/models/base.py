@@ -131,7 +131,7 @@ class BaseVAE(nn.Module):
         self.conditionals_size = conditionals_size
 
         self.sos = sos
-        self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0)
+        self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0.5)
         print(f"Using teacher forcing ratio: {self.teacher_forcing_ratio}")
         self.kld_weight = config.get("kld_weight", 0.0001)
         print(f"Using KLD weight: {self.kld_weight}")

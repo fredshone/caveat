@@ -34,7 +34,7 @@ def test_encode_nominal_with_encodings():
 
 
 def test_encoder_ordinal():
-    config = {"age": {"ordinal": (0, 100)}}
+    config = {"age": {"ordinal": [0, 100]}}
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
@@ -110,7 +110,7 @@ def test_encoder_bad_config():
 
 
 def test_encoder_mixed():
-    config = {"gender": "nominal", "age": {"ordinal": (0, 100)}}
+    config = {"gender": "nominal", "age": {"ordinal": [0, 100]}}
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )

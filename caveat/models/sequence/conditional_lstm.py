@@ -11,6 +11,10 @@ class ConditionalLSTM(BaseVAE):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)
+        if self.conditionals_size is None:
+            raise UserWarning(
+                "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
+            )
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
@@ -57,7 +61,6 @@ class ConditionalLSTM(BaseVAE):
             tensor: Output sequence batch [N, steps, acts].
         """
         # add conditionlity to z
-        print(z.shape, conditionals.shape)
         z = torch.cat((z, conditionals), dim=-1)
         # initialize hidden state as inputs
         h = self.fc_hidden(z)

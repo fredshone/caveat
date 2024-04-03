@@ -38,9 +38,9 @@ def run_command(config: dict) -> None:
     write_path = log_dir / name
 
     # load schedules data
-    data_path = Path(config["data_path"])
-    schedules = data.load_and_validate_schedules(data_path)
-    print(f"Loaded {len(schedules)} sequences from {data_path}")
+    schedules_path = Path(config["schedules_path"])
+    schedules = data.load_and_validate_schedules(schedules_path)
+    print(f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}")
 
     # load attributes data (conditional case)
     attributes, synthetic_attributes = build_attributes(config, schedules)
@@ -60,12 +60,14 @@ def run_command(config: dict) -> None:
         seed=seed,
     )
 
-    population = len(schedules) if attributes is None else synthetic_attributes
+    synthetic_population = (
+        schedules.pid.nunique() if attributes is None else synthetic_attributes
+    )
 
     sampled = {
         name: generate(
             trainer=trainer,
-            population=population,
+            population=synthetic_population,
             encoder=encoder,
             config=config,
             write_dir=Path(logger.log_dir),
@@ -95,20 +97,6 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
     )
     log_dir = Path(logger_params.get("log_dir", "logs"), name)
 
-    data_path = global_config["data_path"]
-    schedules = data.load_and_validate_schedules(data_path)
-    print(f"Loaded {len(schedules)} sequences from {data_path}")
-
-    # load attributes data (conditional case)
-    attributes, synthetic_attributes = build_attributes(
-        global_config, schedules
-    )
-    if attributes is not None:
-        print(
-            f"Loaded {len(attributes)} attributes from {global_config['attributes_path']}"
-        )
-    population = len(schedules) if attributes is None else synthetic_attributes
-
     sampled = {}
     for name, config in batch_config.items():
         name = str(name)
@@ -116,6 +104,27 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
         combined_config = global_config.copy()
         combined_config.update(config)
         seed = combined_config.pop("seed", seeder())
+
+        # load schedules data
+        schedules_path = global_config["schedules_path"]
+        schedules = data.load_and_validate_schedules(schedules_path)
+        print(
+            f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}"
+        )
+
+        # load attributes data (conditional case)
+        attributes, synthetic_attributes = build_attributes(
+            combined_config, schedules
+        )
+        if attributes is not None:
+            print(
+                f"Loaded {len(attributes)} attributes from {combined_config['attributes_path']}"
+            )
+        synthetic_population = (
+            schedules.pid.nunique()
+            if attributes is None
+            else synthetic_attributes
+        )
         trainer, encoder = train(
             name=name,
             schedules=schedules,
@@ -126,7 +135,7 @@ def batch_command(batch_config: dict, stats: bool = False) -> None:
         )
         sampled[name] = generate(
             trainer=trainer,
-            population=population,
+            population=synthetic_population,
             encoder=encoder,
             config=combined_config,
             write_dir=Path(logger.log_dir),
@@ -153,8 +162,10 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
     )
     log_dir = Path(logger_params.get("log_dir", "logs")) / name
 
-    data_path = Path(config["data_path"])
-    schedules = data.load_and_validate_schedules(data_path)
+    # load schedules data
+    schedules_path = Path(config["schedules_path"])
+    schedules = data.load_and_validate_schedules(schedules_path)
+    print(f"Loaded {len(schedules)} schedules from {schedules_path}")
 
     # load attributes data (conditional case)
     attributes, synthetic_attributes = build_attributes(config, schedules)
@@ -162,17 +173,26 @@ def nrun_command(config: dict, n: int = 5, stats: bool = False) -> None:
         print(
             f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
         )
-    population = len(schedules) if attributes is None else synthetic_attributes
+    synthetic_population = (
+        schedules.pid.nunique() if attributes is None else synthetic_attributes
+    )
 
     sampled = {}
     for i in range(n):
         run_name = f"{name}_nrun{i}"
         logger = initiate_logger(log_dir, run_name)
         seed = seeder()
-        trainer, encoder = train(run_name, schedules, config, logger, seed)
+        trainer, encoder = train(
+            name=run_name,
+            schedules=schedules,
+            conditionals=attributes,
+            config=config,
+            logger=logger,
+            seed=seed,
+        )
         sampled[name] = generate(
             trainer=trainer,
-            population=population,
+            population=synthetic_population,
             encoder=encoder,
             config=config,
             write_dir=Path(logger.log_dir),
@@ -199,21 +219,45 @@ def nsample_command(config: dict, n: int = 5, stats: bool = False) -> None:
     log_dir = Path(logger_params.get("log_dir", "logs"))
     logger = initiate_logger(log_dir, name)
 
-    data_path = Path(config["data_path"])
-    observed = data.load_and_validate_schedules(data_path)
+    # load schedules data
+    schedules_path = Path(config["schedules_path"])
+    schedules = data.load_and_validate_schedules(schedules_path)
+    print(f"Loaded {len(schedules)} schedules from {schedules_path}")
+
+    # load attributes data (conditional case)
+    attributes, synthetic_attributes = build_attributes(config, schedules)
+    if attributes is not None:
+        print(
+            f"Loaded {schedules.pid.nunique()} attributes from {config['attributes_path']}"
+        )
+    synthetic_population = (
+        schedules.pid.nunique() if attributes is None else synthetic_attributes
+    )
 
     seed = config.pop("seed", seeder())
-    trainer, encoder = train(name, observed, config, logger, seed)
+    trainer, encoder = train(
+        name=name,
+        schedules=schedules,
+        conditionals=attributes,
+        config=config,
+        logger=logger,
+        seed=seed,
+    )
 
     sampled = {}
     for i in range(n):
         sample_dir = Path(logger.log_dir) / f"nsample{i}"
         seed = seeder()
         sampled[name] = generate(
-            trainer, observed.pid.nunique(), encoder, config, sample_dir, seed
+            trainer=trainer,
+            population=synthetic_population,
+            encoder=encoder,
+            config=config,
+            write_dir=sample_dir,
+            seed=seed,
         )
 
-    evaluate.report(observed, sampled, log_dir, report_stats=stats)
+    evaluate.report(schedules, sampled, log_dir, report_stats=stats)
 
 
 def report_command(
@@ -277,11 +321,6 @@ def train(
     torch.cuda.empty_cache()
 
     print(f"\n======= Training {name} =======")
-
-    # todo: repair sampling, needs to happen after attribute encoding therefore should sample tensors
-    # observed_schedules, observed_conditionals = data.sample_data(
-    #     observed, conditionals, config
-    # )
 
     encoder = build_encoder(config)
     encoded = encoder.encode(schedules=schedules, conditionals=conditionals)
@@ -395,7 +434,10 @@ def build_attributes(
     )
     # optionally encode attributes
     if attributes is not None:
-        attribute_encoder = encoders.AttributeEncoder(config["conditionals"])
+        conditionals_config = config.get("conditionals", None)
+        if conditionals_config is None:
+            raise UserWarning("Config must contain conditionals configuration.")
+        attribute_encoder = encoders.AttributeEncoder(conditionals_config)
         attributes = attribute_encoder.encode(attributes)
         synthetic_attributes = attribute_encoder.encode(synthetic_attributes)
         return attributes, synthetic_attributes

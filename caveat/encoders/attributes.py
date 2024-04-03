@@ -17,9 +17,9 @@ class AttributeEncoder:
 
             if isinstance(v, dict):  # Defined encoding
                 if v.get("ordinal"):
-                    if not isinstance(v.get("ordinal"), tuple):
+                    if not isinstance(v.get("ordinal"), list):
                         raise UserWarning(
-                            "Ordinal encoding must be a tuple of (min, max)"
+                            "Ordinal encoding must be a list of (min, max)"
                         )
                     min, max = v["ordinal"]
                     encoded.append(ordinal_encode(data[k], min, max))

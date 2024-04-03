@@ -35,6 +35,8 @@ class SequenceEncoder(BaseEncoder):
         self.index_to_acts[1] = "<EOS>"
         acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
+        self.encodings = len(self.index_to_acts)
+
         # prepare schedules dataframe
         schedules = schedules.copy()
         schedules.duration = schedules.duration / self.norm_duration
@@ -95,7 +97,7 @@ class SequenceEncoder(BaseEncoder):
 
         return (torch.from_numpy(encoded), torch.from_numpy(weights))
 
-    def decode(self, encoded: Tensor) -> pd.DataFrame:
+    def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -103,18 +105,20 @@ class SequenceEncoder(BaseEncoder):
         enumeration of seq is used for pid.
 
         Args:
-            encoded (Tensor): _description_
+            schedules (Tensor): _description_
 
         Returns:
             pd.DataFrame: _description_
         """
-        encoded, durations = torch.split(encoded, [self.encodings, 1], dim=-1)
-        encoded = encoded.argmax(dim=-1).numpy()
+        schedules, durations = torch.split(
+            schedules, [self.encodings, 1], dim=-1
+        )
+        schedules = schedules.argmax(dim=-1).numpy()
         decoded = []
 
-        for pid in range(len(encoded)):
+        for pid in range(len(schedules)):
             act_start = 0
-            for act_idx, duration in zip(encoded[pid], durations[pid]):
+            for act_idx, duration in zip(schedules[pid], durations[pid]):
                 if int(act_idx) == self.sos:
                     continue
                 if int(act_idx) == self.eos:
@@ -130,7 +134,9 @@ class SequenceEncoder(BaseEncoder):
                 )
                 act_start += duration
 
-        return pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
+        df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
+        df["duration"] = df.end - df.start
+        return df
 
 
 def encode_sequence(

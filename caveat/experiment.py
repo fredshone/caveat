@@ -181,7 +181,8 @@ class Experiment(pl.LightningModule):
 
         return [optimizer], [scheduler]
 
-    def predict_step(self, z: Tensor, conditionals: Optional[Tensor] = None):
+    def predict_step(self, x):
+        z, conditionals = x
         return self.model.predict_step(
             z, conditionals=conditionals, device=self.curr_device
         )

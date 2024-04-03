@@ -49,6 +49,8 @@ def validate_schedules(data: pd.DataFrame):
     Please add missing: {missing}.
     """
         )
+    if "duration" not in data.columns:
+        data["duration"] = data.end - data.start
 
 
 def load_and_validate_attributes(
