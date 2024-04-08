@@ -55,7 +55,7 @@ class DiscreteEncoder(BaseEncoder):
             conditionals=conditionals,
         )
 
-    def decode(self, encoded: Tensor) -> pd.DataFrame:
+    def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode decretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -70,14 +70,14 @@ class DiscreteEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        encoded = torch.argmax(encoded, dim=-1)
+        schedules = torch.argmax(schedules, dim=-1)
         decoded = []
 
-        for pid in range(len(encoded)):
+        for pid in range(len(schedules)):
             current_act = None
             act_start = 0
 
-            for step, act_idx in enumerate(encoded[pid]):
+            for step, act_idx in enumerate(schedules[pid]):
                 if int(act_idx) != current_act and current_act is not None:
                     decoded.append(
                         [
@@ -151,7 +151,7 @@ class DiscreteEncoderPadded(BaseEncoder):
             conditionals=conditionals,
         )
 
-    def decode(self, encoded: Tensor) -> pd.DataFrame:
+    def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode disretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -166,14 +166,14 @@ class DiscreteEncoderPadded(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        encoded = torch.argmax(encoded, dim=-1)
+        schedules = torch.argmax(schedules, dim=-1)
         decoded = []
 
-        for pid in range(len(encoded)):
+        for pid in range(len(schedules)):
             current_act = None
             act_start = 0
 
-            for step, act_idx in enumerate(encoded[pid]):
+            for step, act_idx in enumerate(schedules[pid]):
                 if int(act_idx) != current_act and current_act is not None:
                     decoded.append(
                         [

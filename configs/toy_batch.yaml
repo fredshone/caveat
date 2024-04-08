@@ -1,5 +1,5 @@
 global:
-  schedules_path: "examples/data/synthetic_population.csv"
+  schedules_path: "examples/data/synthetic_schedules.csv"
   logging_params:
     save_dir: "logs"
     name: "toy_batch"

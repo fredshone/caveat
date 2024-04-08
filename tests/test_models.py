@@ -1,6 +1,6 @@
 import torch
 
-from caveat.models.discrete.conv2d import ConvOneHot
+from caveat.models.ss.conv2d import ConvOneHot
 from caveat.models.discrete.embed_conv import Conv
 from caveat.models.discrete.lstm_discrete import LSTM_Discrete
 from caveat.models.discrete.transformer_discrete import AttentionDiscrete

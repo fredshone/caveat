@@ -1,4 +1,4 @@
-from .discrete.conv2d import ConvOneHot
+from .ss.conv2d import ConvOneHot
 from .discrete.embed_conv import Conv
 from .discrete.lstm_discrete import LSTM_Discrete
 from .discrete.transformer_discrete import AttentionDiscrete

@@ -1,13 +1,13 @@
 logging_params:
-  save_dir: "logs_cond"
+  save_dir: "logs"
   name: "test"
 
-schedules_path: "examples/tmp/schedules.csv"
-attributes_path: "examples/tmp/attributes.csv"
+schedules_path: "examples/data/synthetic_schedules.csv"
+attributes_path: "examples/data/synthetic_attributes.csv"
 
 conditionals:
   gender: nominal
-  age: {ordinal: [0, 100]}
+  age: {ordinal: [0,100]}
   employment: nominal
 
 encoder_params:
@@ -18,14 +18,14 @@ encoder_params:
 
 model_params:
   name: "conditional_LSTM"
-  hidden_layers: 4
-  hidden_size: 128
+  hidden_layers: 3
+  hidden_size: 64
   latent_dim: 6
   dropout: 0.2
 
 loader_params:
-  train_batch_size: 256
-  val_batch_size:  256
+  train_batch_size: 128
+  val_batch_size:  128
   num_workers: 3
 
 experiment_params:
@@ -35,7 +35,7 @@ experiment_params:
   kld_weight: 0.00025
 
 trainer_params:
-  max_epochs: 100
+  max_epochs: 50
 
 seed: 1234
   

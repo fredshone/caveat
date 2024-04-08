@@ -40,7 +40,7 @@ def schedules():
 def run_config_conditional_lstm():
     return {
         "attributes_path": "tests/fixtures/test_attributes.csv",
-        "conditionals": {"age": {"ordinal": (0, 100)}, "gender": "nominal"},
+        "conditionals": {"age": {"ordinal": [0, 100]}, "gender": "nominal"},
         "logging_params": {"log_dir": "tmp", "name": "test"},
         "encoder_params": {
             "name": "sequence",

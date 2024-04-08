@@ -153,8 +153,9 @@ def validate_attributes_index(
     """
     seq_index = schedules.pid
     attr_index = attributes.pid
-    if not set(seq_index) == set(attr_index):
-        raise UserWarning("Schedules and attributes pids do not match")
+    print(set(seq_index) - set(attr_index))
+    if not set(seq_index).issubset(set(attr_index)):
+        raise UserWarning("Missing attributes.")
     if not seq_index.dtype == attr_index.dtype:
         raise UserWarning(
             "Schedules and attributes pid datatypes do not match, this may result in 'misalignment' of schedules and attributes."
