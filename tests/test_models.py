@@ -5,7 +5,7 @@ from caveat.models.discrete.embed_conv import Conv
 from caveat.models.discrete.lstm_discrete import LSTM_Discrete
 from caveat.models.discrete.transformer_discrete import AttentionDiscrete
 from caveat.models.sequence.conditional_lstm import ConditionalLSTM
-from caveat.models.sequence.gru import GRU
+from caveat.models.ss.gru import GRU
 from caveat.models.sequence.lstm import LSTM
 
 
