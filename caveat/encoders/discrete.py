@@ -1,13 +1,12 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
 import torch
 from torch import Tensor
-from torch.nn.functional import pad
 
 from caveat.data.augment import DiscreteJitter
-from caveat.encoders import BaseEncoded, BaseEncoder
+from caveat.encoders import BaseDataset, BaseEncoder, PaddedDatatset
 
 
 class DiscreteEncoder(BaseEncoder):
@@ -20,18 +19,43 @@ class DiscreteEncoder(BaseEncoder):
             f"DiscreteEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
         )
 
-    def encode(self, data: pd.DataFrame) -> BaseEncoded:
-        self.index_to_acts = {i: a for i, a in enumerate(data.act.unique())}
+    def encode(
+        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+    ) -> BaseDataset:
+        self.index_to_acts = {
+            i: a for i, a in enumerate(schedules.act.unique())
+        }
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-        return DiscreteEncoded(
-            data,
-            duration=self.duration,
-            step_size=self.step_size,
-            class_map=self.acts_to_index,
-            jitter=self.jitter,
+
+        schedules = schedules.copy()
+        schedules.act = schedules.act.map(self.acts_to_index)
+        activity_encodings = schedules.act.nunique()
+
+        # calc weightings
+        weights = (
+            schedules.groupby("act", observed=True).duration.sum().to_dict()
+        )
+        weights = np.array([weights[k] for k in range(len(weights))])
+        encoding_weights = torch.from_numpy(1 / weights).float()
+        encoded = discretise_population(
+            schedules, duration=self.duration, step_size=self.step_size
+        )
+        masks = torch.ones(encoded.shape)
+
+        augment = (
+            DiscreteJitter(self.step_size, self.jitter) if self.jitter else None
         )
 
-    def decode(self, encoded: Tensor) -> pd.DataFrame:
+        return BaseDataset(
+            schedules=encoded,
+            masks=masks,
+            activity_encodings=activity_encodings,
+            activity_weights=encoding_weights,
+            augment=augment,
+            conditionals=conditionals,
+        )
+
+    def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode decretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -46,14 +70,14 @@ class DiscreteEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        encoded = torch.argmax(encoded, dim=-1)
+        schedules = torch.argmax(schedules, dim=-1)
         decoded = []
 
-        for pid in range(len(encoded)):
+        for pid in range(len(schedules)):
             current_act = None
             act_start = 0
 
-            for step, act_idx in enumerate(encoded[pid]):
+            for step, act_idx in enumerate(schedules[pid]):
                 if int(act_idx) != current_act and current_act is not None:
                     decoded.append(
                         [
@@ -77,79 +101,57 @@ class DiscreteEncoder(BaseEncoder):
         return pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
 
 
-class DiscreteEncoded(BaseEncoded):
-    def __init__(
-        self,
-        data: pd.DataFrame,
-        duration: int,
-        step_size: int,
-        class_map: dict,
-        jitter: int = 0,
-    ):
-        """Torch Dataset for discretised sequence data.
-
-        Args:
-            data (pd.DataFrame): _description_
-            duration (int): _description_
-            step_size (int): _description_
-            class_map (dict): _description_
-            jitter (int, optional): _description_. Defaults to 0.
-        """
-        if jitter:
-            self.augment = DiscreteJitter(step_size, jitter)
-        else:
-            self.augment = None
-
-        data = data.copy()
-        data.act = data.act.map(class_map)
-
-        self.encodings = data.act.nunique()
-        # calc weightings
-        weights = data.groupby("act", observed=True).duration.sum().to_dict()
-        weights = np.array([weights[k] for k in range(len(weights))])
-        self.encoding_weights = torch.from_numpy(1 / weights).float()
-        self.encoded = discretise_population(
-            data, duration=duration, step_size=step_size
-        )
-        self.mask = torch.ones((1, self.encoded.shape[-1]))
-        self.size = len(self.encoded)
-
-    def shape(self):
-        return self.encoded[0].shape
-
-    def __len__(self):
-        return self.size
-
-    def __getitem__(self, idx):
-        sample = self.encoded[idx]
-        if self.augment:
-            sample = self.augment(sample)
-        return (sample, self.mask), (sample, self.mask)
-
-
-class DiscreteWithPadEncoder(BaseEncoder):
+class DiscreteEncoderPadded(BaseEncoder):
     def __init__(self, duration: int = 1440, step_size: int = 10, **kwargs):
         self.duration = duration
         self.step_size = step_size
         self.steps = duration // step_size
         self.jitter = kwargs.get("jitter", 0)
         print(
-            f"DiscreteWithPadEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
+            f"DiscreteEncoderPadded: {self.duration=}, {self.step_size=}, {self.jitter=}"
         )
 
-    def encode(self, data: pd.DataFrame) -> BaseEncoded:
-        self.index_to_acts = {i + 1: a for i, a in enumerate(data.act.unique())}
+    def encode(
+        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+    ) -> PaddedDatatset:
+        self.index_to_acts = {
+            i + 1: a for i, a in enumerate(schedules.act.unique())
+        }
         self.index_to_acts[0] = "<PAD>"
-        self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-        return DiscretePadEncoded(
-            data,
-            duration=self.duration,
-            step_size=self.step_size,
-            class_map=self.acts_to_index,
-            jitter=self.jitter,
+        acts_to_index = {a: i for i, a in self.index_to_acts.items()}
+
+        schedules = schedules.copy()
+        schedules.act = schedules.act.map(acts_to_index)
+        activity_encodings = schedules.act.nunique() + 1  # <PAD>
+
+        # calc weightings
+        weights = (
+            schedules.groupby("act", observed=True).duration.sum().to_dict()
+        )
+        weights[0] = (
+            schedules.pid.nunique() * 60
+        )  # pad weight is equal to 1 hour
+        weights = np.array([weights[k] for k in range(len(weights))])
+        activity_weights = torch.from_numpy(1 / (weights)).float()
+        encoded = discretise_population(
+            schedules, duration=self.duration, step_size=self.step_size
+        )
+        masks = torch.ones((encoded.shape[0], encoded.shape[-1] + 1))
+
+        augment = (
+            DiscreteJitter(self.step_size, self.jitter) if self.jitter else None
         )
 
-    def decode(self, encoded: Tensor) -> pd.DataFrame:
+        return PaddedDatatset(
+            schedules=encoded,
+            masks=masks,
+            activity_encodings=activity_encodings,
+            activity_weights=activity_weights,
+            augment=augment,
+            conditionals=conditionals,
+        )
+
+    def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode disretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -164,14 +166,14 @@ class DiscreteWithPadEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        encoded = torch.argmax(encoded, dim=-1)
+        schedules = torch.argmax(schedules, dim=-1)
         decoded = []
 
-        for pid in range(len(encoded)):
+        for pid in range(len(schedules)):
             current_act = None
             act_start = 0
 
-            for step, act_idx in enumerate(encoded[pid]):
+            for step, act_idx in enumerate(schedules[pid]):
                 if int(act_idx) != current_act and current_act is not None:
                     decoded.append(
                         [
@@ -187,70 +189,12 @@ class DiscreteWithPadEncoder(BaseEncoder):
         return pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
 
 
-class DiscretePadEncoded(BaseEncoded):
-    def __init__(
-        self,
-        data: pd.DataFrame,
-        duration: int,
-        step_size: int,
-        class_map: dict,
-        jitter: int = 0,
-    ):
-        """Torch Dataset for discretised sequence data with padding.
-
-        Args:
-            data (pd.DataFrame): _description_
-            duration (int): _description_
-            step_size (int): _description_
-            class_map (dict): _description_
-            jitter (int, optional): _description_. Defaults to 0.
-        """
-        super().__init__()
-
-        if jitter:
-            self.augment = DiscreteJitter(step_size, jitter)
-        else:
-            self.augment = None
-
-        data = data.copy()
-        data.act = data.act.map(class_map)
-        self.encodings = data.act.nunique() + 1  # <PAD>
-
-        # calc weightings
-        weights = data.groupby("act", observed=True).duration.sum().to_dict()
-        weights[0] = data.pid.nunique() * 60  # pad weight is equal to 1 hour
-        weights = np.array([weights[k] for k in range(len(weights))])
-        self.encoding_weights = torch.from_numpy(1 / (weights)).float()
-        self.encoded = discretise_population(
-            data, duration=duration, step_size=step_size
-        )
-        self.size = len(self.encoded)
-
-        self._shape = torch.Size([self.encoded.shape[-1] + 1])
-
-        self.mask = torch.ones((1, self.encoded.shape[-1] + 1))
-
-    def shape(self):
-        return self._shape
-
-    def __len__(self):
-        return self.size
-
-    def __getitem__(self, idx):
-        sample = self.encoded[idx]
-        if self.augment:
-            sample = self.augment(sample)
-        pad_left = pad(sample, (1, 0))
-        pad_right = pad(sample, (0, 1))
-        return ((pad_left, self.mask), (pad_right, self.mask))
-
-
 def discretise_population(
     data: pd.DataFrame, duration: int, step_size: int
 ) -> torch.Tensor:
     """Convert given population of activity traces into vector [N, L] of classes.
     N is the population size.
-    l is time steps.
+    L is time steps.
 
     Args:
         data (pd.DataFrame): _description_

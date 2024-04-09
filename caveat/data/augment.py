@@ -1,8 +1,16 @@
 import numpy as np
-from torch import rand
+from torch import rand, Tensor
 
 
-class SequenceJitter:
+class ScheduleAugment:
+    def __init__(self) -> None:
+        raise NotImplementedError
+
+    def __call__(self, schedule: Tensor) -> Tensor:
+        raise NotImplementedError
+
+
+class SequenceJitter(ScheduleAugment):
     def __init__(self, jitter: float = 0.1):
         """Augment a sequence by adding jitter to the duration of each activity.
         Note that jitter defines the maximum delay or advance of the activity duration
@@ -28,7 +36,7 @@ class SequenceJitter:
         return new
 
 
-class DiscreteSingleJitter:
+class DiscreteSingleJitter(ScheduleAugment):
     def __init__(self, step_size: int, jitter: int = 0):
 
         self.step_size = step_size
@@ -71,7 +79,7 @@ class DiscreteSingleJitter:
         return sequence
 
 
-class DiscreteJitter:
+class DiscreteJitter(ScheduleAugment):
     def __init__(self, step_size: int, jitter: int = 0):
 
         self.step_size = step_size

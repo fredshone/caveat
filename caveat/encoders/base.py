@@ -1,35 +1,97 @@
 from abc import ABC
+from typing import Optional
 
 from pandas import DataFrame
 from torch import Tensor
+from torch.nn.functional import pad
 from torch.utils.data import Dataset
 
+from caveat.data import ScheduleAugment
 
-class BaseEncoded(Dataset):
-    def __init__(self):
-        """Base encoded sequence Dataset."""
-        super(BaseEncoded, self).__init__()
-        self.encodings: int
-        self.encoding_weights: Tensor
-        self.masks: Tensor
-
-    def shape(self):
-        raise NotImplementedError
-
-    def __len__(self):
-        raise NotImplementedError
-
-    def __getitem__(self, idx):
-        raise NotImplementedError
+from .attributes import AttributeEncoder
 
 
 class BaseEncoder(ABC):
-    def __init__(self) -> None:
-        super(BaseEncoder, self).__init__()
-        self.encodings = None
+    conditionals_encoder = AttributeEncoder
 
-    def encode(self, input: DataFrame) -> BaseEncoded:
+    def __init__(self, schedules: DataFrame, **kwargs) -> None:
         raise NotImplementedError
 
-    def decode(self, encoded: Tensor) -> DataFrame:
+    def encode(
+        self, schedules: DataFrame, conditionals: Optional[Tensor]
+    ) -> Dataset:
         raise NotImplementedError
+
+    def decode(self, schedules: Tensor) -> DataFrame:
+        raise NotImplementedError
+
+
+class BaseDataset(Dataset):
+    def __init__(
+        self,
+        schedules: Tensor,
+        masks: Optional[Tensor],
+        activity_encodings: int,
+        activity_weights: Optional[Tensor],
+        augment: Optional[ScheduleAugment],
+        conditionals: Optional[Tensor],
+    ):
+        super(BaseDataset, self).__init__()
+        self.schedules = schedules
+        self.masks = masks
+        self.activity_encodings = activity_encodings
+        self.encoding_weights = activity_weights
+        self.augment = augment
+        self.conditionals = conditionals
+        self.conditionals_shape = (
+            conditionals.shape[-1] if conditionals is not None else None
+        )
+
+    def shape(self):
+        return self.schedules[0].shape
+
+    def __len__(self):
+        return len(self.schedules)
+
+    def __getitem__(self, idx):
+        sample = self.schedules[idx]
+        if self.augment:
+            sample = self.augment(sample)
+
+        if self.masks is not None:
+            mask = self.masks[idx]
+        else:
+            mask = None
+
+        if self.conditionals is not None:
+            conditionals = self.conditionals[idx]
+        else:
+            conditionals = Tensor([])
+
+        return (sample, mask), (sample, mask), conditionals
+
+
+class PaddedDatatset(BaseDataset):
+
+    def shape(self):
+        return self.schedules[0].shape[0] + 1
+
+    def __getitem__(self, idx):
+        sample = self.schedules[idx]
+        print(sample.shape)
+        if self.augment:
+            sample = self.augment(sample)
+
+        if self.masks is not None:
+            mask = self.masks[idx]
+        else:
+            mask = None
+
+        if self.conditionals is not None:
+            conditionals = self.conditionals[idx]
+        else:
+            conditionals = Tensor([])
+
+        pad_left = pad(sample, (1, 0))
+        pad_right = pad(sample, (0, 1))
+        return (pad_left, mask), (pad_right, mask), conditionals

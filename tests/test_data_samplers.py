@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from caveat.data.samplers import biased_sample, random_sample, sample_observed
+from caveat.data.samplers import biased_sample, random_sample, sample_sequences
 
 
 def test_random_sample():
@@ -58,7 +58,7 @@ def test_configuration_none_sample():
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
-    assert (sample_observed(data, config) == data).all().all()
+    assert (sample_sequences(data, config) == data).all().all()
 
 
 def test_configuration_random_sample():
@@ -74,7 +74,7 @@ def test_configuration_random_sample():
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
-    assert sample_observed(data, config).empty
+    assert sample_sequences(data, config).empty
     assert not data.empty
 
 
@@ -91,5 +91,5 @@ def test_configuration_biased_sample():
         ],
         columns=["pid", "act", "start", "end", "duration"],
     )
-    assert sample_observed(data, config).empty
+    assert sample_sequences(data, config).empty
     assert not data.empty

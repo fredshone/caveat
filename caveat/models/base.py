@@ -109,6 +109,7 @@ class BaseVAE(nn.Module):
         in_shape: tuple,
         encodings: int,
         encoding_weights: Optional[Tensor] = None,
+        conditionals_size: Optional[tuple] = None,
         sos: int = 0,
         **config,
     ) -> None:
@@ -118,6 +119,7 @@ class BaseVAE(nn.Module):
             in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
             encodings (int): Number of activity encodings.
             encoding_weights (tensor): Weights for activity encodings.
+            conditionals_size (int, optional): Size of conditionals encoding. Defaults to None.
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
@@ -126,9 +128,10 @@ class BaseVAE(nn.Module):
         self.in_shape = in_shape
         self.encodings = encodings
         self.encoding_weights = encoding_weights
+        self.conditionals_size = conditionals_size
 
         self.sos = sos
-        self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0)
+        self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0.5)
         print(f"Using teacher forcing ratio: {self.teacher_forcing_ratio}")
         self.kld_weight = config.get("kld_weight", 0.0001)
         print(f"Using KLD weight: {self.kld_weight}")
@@ -230,7 +233,13 @@ class BaseVAE(nn.Module):
 
         return log_probs, probs
 
-    def forward(self, x: Tensor, target=None, **kwargs) -> List[Tensor]:
+    def forward(
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target=None,
+        **kwargs,
+    ) -> List[Tensor]:
         """Forward pass, also return latent parameterization.
 
         Args:
@@ -241,7 +250,9 @@ class BaseVAE(nn.Module):
         """
         mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(z, target=target)
+        log_prob_y, prob_y = self.decode(
+            z, conditionals=conditionals, target=target
+        )
         return [log_prob_y, prob_y, mu, log_var]
 
     def loss_function(
@@ -550,7 +561,7 @@ class BaseVAE(nn.Module):
             durations = durations.unsqueeze(-1)
         return torch.cat((acts, durations), dim=-1)
 
-    def predict_step(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
+    def predict_step(self, z: Tensor, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -560,11 +571,11 @@ class BaseVAE(nn.Module):
         Returns:
             tensor: [N, steps, acts].
         """
-        z = z.to(current_device)
-        prob_samples = self.decode(z)[1]
+        z = z.to(device)
+        prob_samples = self.decode(z, **kwargs)[1]
         return prob_samples
 
-    def generate(self, x: Tensor, current_device: int, **kwargs) -> Tensor:
+    def generate(self, x: Tensor, device: int, **kwargs) -> Tensor:
         """Given an encoder input, return reconstructed output.
 
         Args:
@@ -573,6 +584,6 @@ class BaseVAE(nn.Module):
         Returns:
             tensor: [N, steps, acts].
         """
-        prob_samples = self.forward(x)[1]
-        prob_samples = prob_samples.to(current_device)
+        prob_samples = self.forward(x, **kwargs)[1]
+        prob_samples = prob_samples.to(device)
         return prob_samples

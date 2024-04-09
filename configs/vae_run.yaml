@@ -1,4 +1,4 @@
-data_path: "examples/tmp/nts_toy_population.csv"
+schedules_path: "examples/tmp/nts_toy_population.csv"
 
 logging_params:
   log_dir: "logs"
