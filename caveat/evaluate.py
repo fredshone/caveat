@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, concat
@@ -143,36 +143,168 @@ time_jobs = [
 ]
 
 
-def report(
-    observed: DataFrame,
-    sampled: dict[str, DataFrame],
-    log_dir: Optional[Path] = None,
-    head: int = 10,
-    verbose: bool = True,
-    report_stats: bool = False,
+def evaluate_subsampled(
+    synthetic_schedules: dict[str, DataFrame],
+    synthetic_attributes: dict[str, DataFrame],
+    target_schedules: DataFrame,
+    target_attributes: DataFrame,
+    split_on: List[str],
+    report_stats: bool = True,
 ):
-    descriptions = DataFrame()
-    distances = DataFrame()
+    descriptions = []
+    distances = []
+    for split in split_on:
+        target_cats = target_attributes[split].unique()
+        for cat in target_cats:
+            target_pids = target_attributes[target_attributes[split] == cat].pid
+            sub_target = target_schedules[
+                target_schedules.pid.isin(target_pids)
+            ]
+            sub_schedules = {}
+            for model, attributes in synthetic_attributes.items():
+                sample_pids = attributes[attributes[split] == cat].pid
+                sample_schedules = synthetic_schedules[model]
+                sub_schedules[model] = sample_schedules[
+                    sample_schedules.pid.isin(sample_pids)
+                ]
 
+            sub_reports = process(
+                synthetic_schedules=sub_schedules, target_schedules=sub_target
+            )
+            for r in sub_reports:  # add sub pop to index
+                names = list(r.index.names) + ["sub_pop"]
+                r.index = MultiIndex.from_tuples(
+                    [(*i, f"{split}={cat}") for i in r.index], names=names
+                )
+            descriptions.append(sub_reports)
+            distances.append(sub_reports)
+    frames = describe(descriptions, distances, report_stats=report_stats)
+
+    if report_stats:
+        columns = list(synthetic_schedules.keys())
+        for frame in frames.values():
+            add_stats(data=frame, columns=columns)
+
+    return frames
+
+
+def evaluate(
+    synthetic_schedules: dict[str, DataFrame],
+    target_schedules: DataFrame,
+    report_stats: bool = True,
+):
+    descriptions, distances = process(synthetic_schedules, target_schedules)
+    frames = describe(descriptions, distances)
+
+    if report_stats:
+        columns = list(synthetic_schedules.keys())
+        for frame in frames.values():
+            add_stats(data=frame, columns=columns)
+
+    return frames
+
+
+def process(
+    synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
+) -> Tuple[DataFrame, DataFrame]:
+    # evaluate creativity
+    descriptions, distances = eval_creativity(
+        synthetic_schedules=synthetic_schedules,
+        target_schedules=target_schedules,
+    )
+
+    for domain, jobs in [
+        ("structure", structure_jobs),
+        ("frequency", frequency_jobs),
+        ("participation_probs", participation_prob_jobs),
+        ("participation_rates", participation_rate_jobs),
+        ("transitions", transition_jobs),
+        ("timing", time_jobs),
+    ]:
+        for feature, size, description_job, distance_job in jobs:
+            feature_descriptions, feature_distances = eval_correctness(
+                synthetic_schedules,
+                target_schedules,
+                domain,
+                feature,
+                size,
+                description_job,
+                distance_job,
+            )
+            descriptions = concat([descriptions, feature_descriptions], axis=0)
+            distances = concat([distances, feature_distances], axis=0)
+
+    # remove nans
+    descriptions = descriptions.fillna(0)
+    distances = distances.fillna(0)
+    return descriptions, distances
+
+
+def describe(
+    descriptions: DataFrame, distances: DataFrame
+) -> dict[str, DataFrame]:
+    # features
+    features_descriptions = (
+        descriptions.drop("description", axis=1)
+        .groupby(["domain", "feature"])
+        .apply(weighted_av)
+    )
+    features_descriptions["description"] = (
+        descriptions["description"].groupby(["domain", "feature"]).first()
+    )
+
+    features_distances = (
+        distances.drop("distance", axis=1)
+        .groupby(["domain", "feature"])
+        .apply(weighted_av)
+    )
+    features_distances["distance"] = (
+        distances["distance"].groupby(["domain", "feature"]).first()
+    )
+
+    # themes
+    domain_descriptions = (
+        features_descriptions.drop("description", axis=1)
+        .groupby("domain")
+        .mean()
+    )
+    domain_distances = (
+        features_distances.drop("distance", axis=1).groupby("domain").mean()
+    )
+
+    frames = {
+        "descriptions": descriptions,
+        "feature_descriptions": features_descriptions,
+        "domain_descriptions": domain_descriptions,
+        "distances": distances,
+        "feature_distances": features_distances,
+        "domain_distances": domain_distances,
+    }
+    return frames
+
+
+def eval_creativity(
+    synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
+) -> Tuple[DataFrame, DataFrame]:
     # Evaluate Creativity
-    observed_hash = creativity.hash_population(observed)
-    observed_diversity = creativity.diversity(observed, observed_hash)
+    observed_hash = creativity.hash_population(target_schedules)
+    observed_diversity = creativity.diversity(target_schedules, observed_hash)
     creativity_descriptions = DataFrame(
         {
-            "feature count": [observed.pid.nunique()] * 2,
+            "feature count": [target_schedules.pid.nunique()] * 2,
             "observed": [observed_diversity, 1],
         }
     )
     creativity_distance = DataFrame(
         {
-            "feature count": [observed.pid.nunique()] * 2,
+            "feature count": [target_schedules.pid.nunique()] * 2,
             "observed": [1 - observed_diversity, 0],
         }
     )
 
     creativity_descs = []
     creativity_dists = []
-    for model, y in sampled.items():
+    for model, y in synthetic_schedules.items():
         y_hash = creativity.hash_population(y)
         y_diversity = creativity.diversity(y, y_hash)
         creativity_descs.append(
@@ -196,7 +328,7 @@ def report(
     creativity_dists.append(
         Series(["prob. not unique", "prob. conservative"], name="distance")
     )
-
+    # combinbe
     descriptions = concat(
         [creativity_descriptions, concat(creativity_descs, axis=1)], axis=1
     )
@@ -214,198 +346,147 @@ def report(
         ],
         names=["domain", "feature", "segment"],
     )
+    return descriptions, distances
 
-    # Evaluate Correctness
-    for domain, jobs in [
-        ("structure", structure_jobs),
-        ("frequency", frequency_jobs),
-        ("participation_probs", participation_prob_jobs),
-        ("participation_rates", participation_rate_jobs),
-        ("transitions", transition_jobs),
-        ("timing", time_jobs),
-    ]:
-        for feature, size, description_job, distance_job in jobs:
-            # unpack tuples
-            feature_name, feature = feature
-            print(f"Calculating {feature_name}...")
-            description_name, describe = description_job
-            distance_name, distance_metric = distance_job
 
-            # build observed features
-            observed_features = feature(observed)
+def eval_correctness(
+    synthetic_schedules: dict[str, DataFrame],
+    target_schedules: DataFrame,
+    domain: str,
+    feature: Tuple[str, Callable],
+    size: Callable,
+    description_job: Tuple[str, Callable],
+    distance_job: Tuple[str, Callable],
+) -> Tuple[DataFrame, DataFrame]:
+    # unpack tuples
+    feature_name, feature = feature
+    description_name, describe = description_job
+    distance_name, distance_metric = distance_job
 
-            # need to create a default feature for missing sampled features
-            default = extract_default(observed_features)
+    # build observed features
+    observed_features = feature(target_schedules)
 
-            # create an observed feature count and description
-            feature_weight = size(observed_features)
-            feature_weight.name = "feature count"
+    # need to create a default feature for missing sampled features
+    default = extract_default(observed_features)
 
-            description_job = describe(observed_features)
-            feature_descriptions = DataFrame(
-                {"feature count": feature_weight, "observed": description_job}
-            )
+    # create an observed feature count and description
+    feature_weight = size(observed_features)
+    feature_weight.name = "feature count"
 
-            # sort by count and description, drop description and add distance description
-            feature_descriptions = feature_descriptions.sort_values(
-                ascending=False, by=["feature count", "observed"]
-            )
-
-            feature_distances = feature_descriptions.copy()
-
-            # iterate through samples
-            for model, y in sampled.items():
-                synth_features = feature(y)
-                feature_descriptions = concat(
-                    [
-                        feature_descriptions,
-                        describe_feature(model, synth_features, describe),
-                    ],
-                    axis=1,
-                )
-
-                # report sampled distances
-                feature_distances = concat(
-                    [
-                        feature_distances,
-                        score_features(
-                            model,
-                            observed_features,
-                            synth_features,
-                            distance_metric,
-                            default,
-                        ),
-                    ],
-                    axis=1,
-                )
-
-            # add domain and feature name to index
-            feature_descriptions["description"] = description_name
-            feature_distances["distance"] = distance_name
-            feature_descriptions.index = MultiIndex.from_tuples(
-                [(domain, feature_name, f) for f in feature_descriptions.index],
-                name=["domain", "feature", "segment"],
-            )
-            feature_distances.index = MultiIndex.from_tuples(
-                [(domain, feature_name, f) for f in feature_distances.index],
-                name=["domain", "feature", "segment"],
-            )
-            descriptions = concat([descriptions, feature_descriptions], axis=0)
-            distances = concat([distances, feature_distances], axis=0)
-
-    # remove nans
-    descriptions = descriptions.fillna(0)
-    distances = distances.fillna(0)
-
-    # features
-    features_descriptions = (
-        descriptions.drop("description", axis=1)
-        .groupby(["domain", "feature"])
-        .apply(weighted_av)
-    )
-    features_descriptions["description"] = (
-        descriptions["description"].groupby(["domain", "feature"]).first()
+    description_job = describe(observed_features)
+    feature_descriptions = DataFrame(
+        {"feature count": feature_weight, "observed": description_job}
     )
 
-    features_distances = (
-        distances.drop("distance", axis=1)
-        .groupby(["domain", "feature"])
-        .apply(weighted_av)
-    )
-    features_distances["distance"] = (
-        distances["distance"].groupby(["domain", "feature"]).first()
+    # sort by count and description, drop description and add distance description
+    feature_descriptions = feature_descriptions.sort_values(
+        ascending=False, by=["feature count", "observed"]
     )
 
-    # rank
-    feature_ranks = features_distances.drop(
-        ["observed", "distance"], axis=1
-    ).rank(axis=1, method="min")
-    col_ranks = feature_ranks.sum(axis=0)
-    ranked = [i for _, i in sorted(zip(col_ranks, col_ranks.index))]
-    feature_ranks = feature_ranks[ranked]
+    feature_distances = feature_descriptions.copy()
 
-    # themes
-    domain_descriptions = (
-        features_descriptions.drop("description", axis=1)
-        .groupby("domain")
-        .mean()
-    )
-    domain_distances = (
-        features_distances.drop("distance", axis=1).groupby("domain").mean()
-    )
+    # iterate through samples
+    for model, y in synthetic_schedules.items():
+        print(model, feature_name)
+        synth_features = feature(y)
+        feature_descriptions = concat(
+            [
+                feature_descriptions,
+                describe_feature(model, synth_features, describe),
+            ],
+            axis=1,
+        )
 
-    # rank
-    domain_ranks = domain_distances.drop("observed", axis=1).rank(
+        # report sampled distances
+        feature_distances = concat(
+            [
+                feature_distances,
+                score_features(
+                    model,
+                    observed_features,
+                    synth_features,
+                    distance_metric,
+                    default,
+                ),
+            ],
+            axis=1,
+        )
+
+    # add domain and feature name to index
+    feature_descriptions["description"] = description_name
+    feature_distances["distance"] = distance_name
+    feature_descriptions.index = MultiIndex.from_tuples(
+        [(domain, feature_name, f) for f in feature_descriptions.index],
+        name=["domain", "feature", "segment"],
+    )
+    feature_distances.index = MultiIndex.from_tuples(
+        [(domain, feature_name, f) for f in feature_distances.index],
+        name=["domain", "feature", "segment"],
+    )
+    return feature_descriptions, feature_distances
+
+
+def rank(data: DataFrame) -> DataFrame:
+    # feature rank
+    rank = data.drop(["observed", "distance"], axis=1, errors="ignore").rank(
         axis=1, method="min"
     )
-    col_ranks = domain_ranks.sum(axis=0)
+    col_ranks = rank.sum(axis=0)
     ranked = [i for _, i in sorted(zip(col_ranks, col_ranks.index))]
-    domain_ranks = domain_ranks[ranked]
+    return rank[ranked]
 
-    if report_stats:
-        select = list(sampled.keys())
-        descriptions["mean"] = descriptions[select].mean(axis=1)
-        descriptions["std"] = descriptions[select].std(axis=1)
-        features_descriptions["mean"] = features_descriptions[select].mean(
-            axis=1
+
+def report(
+    frames: dict[str, DataFrame],
+    log_dir: Optional[Path] = None,
+    head: Optional[int] = None,
+    verbose: bool = True,
+    suffix: str = "",
+):
+    if head is not None:
+        frames["descriptions_short"] = (
+            frames["descriptions"].groupby(["domain", "feature"]).head(head)
         )
-        features_descriptions["std"] = features_descriptions[select].std(axis=1)
-        domain_descriptions["mean"] = domain_descriptions[select].mean(axis=1)
-        domain_descriptions["std"] = domain_descriptions[select].std(axis=1)
-        distances["mean"] = distances[select].mean(axis=1)
-        distances["std"] = distances[select].std(axis=1)
-        features_distances["mean"] = features_distances[select].mean(axis=1)
-        features_distances["std"] = features_distances[select].std(axis=1)
-        domain_distances["mean"] = domain_distances[select].mean(axis=1)
-        domain_distances["std"] = domain_distances[select].std(axis=1)
+        frames["distances_short"] = (
+            frames["distances"].groupby(["domain", "feature"]).head(head)
+        )
+    else:
+        # default to full
+        frames["descriptions_short"] = frames["descriptions"]
+        frames["distances_short"] = frames["distances"]
 
     if log_dir is not None:
-        descriptions.to_csv(Path(log_dir, "descriptions.csv"))
-        features_descriptions.to_csv(Path(log_dir, "feature_descriptions.csv"))
-        domain_descriptions.to_csv(Path(log_dir, "domain_descriptions.csv"))
-        distances.to_csv(Path(log_dir, "evaluation.csv"))
-        features_distances.to_csv(Path(log_dir, "feature_evaluation.csv"))
-        domain_distances.to_csv(Path(log_dir, "domain_evaluation.csv"))
-
-    if head is not None:
-        descriptions_short = descriptions.groupby(["domain", "feature"]).head(
-            head
-        )
-        distances_short = distances.groupby(["domain", "feature"]).head(head)
-        if log_dir is not None:
-            descriptions_short.to_csv(Path(log_dir, "descriptions_short.csv"))
-            distances_short.to_csv(Path(log_dir, "evaluation_short.csv"))
-    else:
-        descriptions_short = descriptions
-        distances_short = distances
+        for name, frame in frames.items():
+            frame.to_csv(Path(log_dir, f"{name}{suffix}.csv"))
 
     if verbose:
         print("\nDescriptions:")
-        print(
-            descriptions_short.to_markdown(
-                tablefmt="fancy_grid", floatfmt=".3f"
-            )
-        )
+        print_markdown(frames["descriptions_short"])
         print("\nEvalutions (Distance):")
-        print(
-            distances_short.to_markdown(tablefmt="fancy_grid", floatfmt=".3f")
-        )
+        print_markdown(frames["distances_short"])
+
     print("\nFeature Descriptions:")
-    print(
-        features_descriptions.to_markdown(tablefmt="fancy_grid", floatfmt=".3f")
-    )
+    print_markdown(frames["feature_descriptions"])
     print("\nFeature Evaluations (Distance):")
-    print(features_distances.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
+    print_markdown(frames["feature_distances"])
     print("\nFeature Evaluations (Ranked):")
-    print(feature_ranks.to_markdown(tablefmt="fancy_grid"))
+    print_markdown(rank(frames["feature_distances"]))
+
     print("\nDomain Descriptions:")
-    print(
-        domain_descriptions.to_markdown(tablefmt="fancy_grid", floatfmt=".3f")
-    )
+    print_markdown(frames["domain_descriptions"])
     print("\nDomain Evaluations (Distance):")
-    print(domain_distances.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
+    print_markdown(frames["domain_distances"])
     print("\nDomain Evaluations (Ranked):")
-    print(domain_ranks.to_markdown(tablefmt="fancy_grid"))
+    print_markdown(rank(frames["domain_distances"]))
+
+
+def add_stats(data: DataFrame, columns: dict[str, DataFrame]):
+    data["mean"] = data[columns].mean(axis=1)
+    data["std"] = data[columns].std(axis=1)
+
+
+def print_markdown(data: DataFrame):
+    print(data.to_markdown(tablefmt="fancy_grid", floatfmt=".3f"))
 
 
 def describe_feature(

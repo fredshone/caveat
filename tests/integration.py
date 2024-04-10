@@ -1,9 +1,9 @@
 from caveat.run import (
-    build_attributes,
     build_dataloader,
     build_encoder,
     build_experiment,
     build_trainer,
+    encode_attributes,
     initiate_logger,
 )
 
@@ -53,7 +53,7 @@ def test_conditional_lstm(
     logger = initiate_logger(tmp_path, "test")
 
     schedule_encoder = build_encoder(run_config_conditional_lstm)
-    attributes, _ = build_attributes(
+    attributes, _ = encode_attributes(
         run_config_conditional_lstm, test_schedules
     )
     encoded = schedule_encoder.encode(test_schedules, conditionals=attributes)

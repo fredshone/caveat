@@ -2,8 +2,8 @@ from numpy import array
 from pandas import DataFrame, Series
 
 from caveat.distance.scalar import mae
+from caveat.evaluate import evaluate, extract_default, score_features
 from caveat.features.times import start_times_by_act
-from caveat.evaluate import extract_default, report, score_features
 
 
 def test_describe_feature():
@@ -102,4 +102,4 @@ def test_report():
             {"pid": 1, "act": "work", "start": 10, "end": 24, "duration": 14},
         ]
     )
-    report(observed, {"y": y}, None)
+    evaluate({"y": y}, observed, None)
