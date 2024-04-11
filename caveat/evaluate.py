@@ -208,7 +208,7 @@ def process(
     synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
 ) -> Tuple[DataFrame, DataFrame]:
     # evaluate creativity
-    descriptions, distances = eval_creativity(
+    descriptions, distances = eval_models_creativity(
         synthetic_schedules=synthetic_schedules,
         target_schedules=target_schedules,
     )
@@ -222,7 +222,7 @@ def process(
         ("timing", time_jobs),
     ]:
         for feature, size, description_job, distance_job in jobs:
-            feature_descriptions, feature_distances = eval_correctness(
+            feature_descriptions, feature_distances = eval_models_correctness(
                 synthetic_schedules,
                 target_schedules,
                 domain,
@@ -283,7 +283,7 @@ def describe(
     return frames
 
 
-def eval_creativity(
+def eval_models_creativity(
     synthetic_schedules: dict[str, DataFrame], target_schedules: DataFrame
 ) -> Tuple[DataFrame, DataFrame]:
     # Evaluate Creativity
@@ -349,7 +349,7 @@ def eval_creativity(
     return descriptions, distances
 
 
-def eval_correctness(
+def eval_models_correctness(
     synthetic_schedules: dict[str, DataFrame],
     target_schedules: DataFrame,
     domain: str,
@@ -507,6 +507,7 @@ def score_features(
     default: tuple[np.array, np.array],
 ):
     index = set(a.keys()) | set(b.keys())
+    print(len(index), len(a), len(b))
     metrics = Series(
         {k: distance(a.get(k, default), b.get(k, default)) for k in index},
         name=model,

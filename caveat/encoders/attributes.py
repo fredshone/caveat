@@ -75,7 +75,7 @@ def nominal_encode(data: pd.Series, encodings: Optional[dict] = None) -> Tensor:
     else:
         nominals = pd.Categorical(data)
         encodings = {e: i for i, e in enumerate(nominals.categories)}
-    nominals = Tensor(nominals.codes).long()
+    nominals = torch.tensor(nominals.codes).long()
     nominals = torch.nn.functional.one_hot(
         nominals, num_classes=len(encodings)
     ).float()

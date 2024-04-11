@@ -23,6 +23,9 @@ def emd2d(
     bk, bw = b
     aw = aw / aw.sum()
     bw = bw / bw.sum()
+    print(ak.shape, bk.shape, aw.shape, bw.shape)
+    print(ak.sum(), bk.sum(), aw.sum(), bw.sum())
+    
     d = dist(ak, bk, metric="cityblock")
     return emd2(aw, bw, d, check_marginals=False)
 
