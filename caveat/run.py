@@ -15,6 +15,8 @@ from torch import Tensor
 from torch.random import seed as seeder
 
 from caveat import cuda_available, data, encoders, evaluate, models
+from caveat.data.module import DataModule
+from caveat.encoders import BaseDataset, BaseEncoder
 from caveat.experiment import Experiment
 
 
@@ -38,51 +40,45 @@ def run_command(
         )
     )
     write_path = log_dir / name
-
-    # load schedules data
-    schedules_path = Path(config["schedules_path"])
-    schedules = data.load_and_validate_schedules(schedules_path)
-    print(f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}")
-
-    # load attributes data (conditional case)
-    attributes, synthetic_attributes = data.load_and_validate_attributes(
-        config, schedules
-    )
-    # encode attributes
-    conditionals, synthetic_conditionals = encode_attributes(
-        attributes, synthetic_attributes, config
-    )
-    if conditionals is not None:
-        print(
-            f"Loaded {len(conditionals)} attributes from {config['attributes_path']}"
-        )
-
     logger = initiate_logger(log_dir, name)
     seed = config.pop("seed", seeder())
-    trainer, encoder = train(
+
+    # load data
+    schedules, attributes, synthetic_attributes = load_data(config)
+
+    # encode data
+    schedule_encoder, encoded_schedules, data_loader, synthetic_conditionals = (
+        encode_data(schedules, attributes, synthetic_attributes, config)
+    )
+
+    # train
+    trainer = train(
         name=name,
-        schedules=schedules,
-        conditionals=conditionals,
+        data_loader=data_loader,
+        encoded=encoded_schedules,
         config=config,
         logger=logger,
         seed=seed,
     )
 
+    # prepare synthetic attributes
     synthetic_population = (
         schedules.pid.nunique()
         if synthetic_conditionals is None
         else synthetic_conditionals
     )
 
+    # generate synthetic schedules
     synthetic_schedules = generate(
         trainer=trainer,
         population=synthetic_population,
-        encoder=encoder,
+        encoder=schedule_encoder,
         config=config,
         write_dir=Path(logger.log_dir),
         seed=seed,
     )
 
+    # evaluate synthetic schedules
     evaluate_synthetics(
         synthetic_schedules={name: synthetic_schedules},
         synthetic_attributes={name: synthetic_attributes},
@@ -122,53 +118,52 @@ def batch_command(
     for name, config in batch_config.items():
         name = str(name)
         logger = initiate_logger(log_dir, name)
+
+        # build config for this run
         combined_config = global_config.copy()
         combined_config.update(config)
         seed = combined_config.pop("seed", seeder())
 
-        # load schedules data
-        schedules_path = global_config["schedules_path"]
-        schedules = data.load_and_validate_schedules(schedules_path)
-        print(
-            f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}"
-        )
+        # load data
+        schedules, attributes, synthetic_attributes = load_data(combined_config)
 
-        # load attributes data (conditional case)
-        attributes, synthetic_attributes = data.load_and_validate_attributes(
-            combined_config, schedules
-        )
-        # encode attributes
-        conditionals, synthetic_conditionals = encode_attributes(
-            attributes, synthetic_attributes, combined_config
-        )
-        if attributes is not None:
-            print(
-                f"Loaded {len(attributes)} attributes from {combined_config['attributes_path']}"
-            )
+        # encode data
+        (
+            schedule_encoder,
+            encoded_schedules,
+            data_loader,
+            synthetic_conditionals,
+        ) = encode_data(schedules, attributes, synthetic_attributes, config)
+
+        # record synthetic attributes for evaluation
         synthetic_attributes_all[name] = synthetic_attributes
 
+        # train
+        trainer = train(
+            name=name,
+            data_loader=data_loader,
+            encoded=encoded_schedules,
+            config=combined_config,
+            logger=logger,
+            seed=seed,
+        )
+        # prepare synthetic attributes
         synthetic_population = (
             schedules.pid.nunique()
             if synthetic_conditionals is None
             else synthetic_conditionals
         )
-        trainer, encoder = train(
-            name=name,
-            schedules=schedules,
-            conditionals=conditionals,
-            config=combined_config,
-            logger=logger,
-            seed=seed,
-        )
+        # generate synthetic schedules
         synthetic_schedules[name] = generate(
             trainer=trainer,
             population=synthetic_population,
-            encoder=encoder,
+            encoder=schedule_encoder,
             config=combined_config,
             write_dir=Path(logger.log_dir),
             seed=seed,
         )
 
+    # evaluate synthetic schedules
     evaluate_synthetics(
         synthetic_schedules=synthetic_schedules,
         synthetic_attributes=synthetic_attributes_all,
@@ -200,22 +195,18 @@ def nrun_command(
     )
     log_dir = Path(logger_params.get("log_dir", "logs")) / name
 
-    # load schedules data
-    schedules_path = Path(config["schedules_path"])
-    schedules = data.load_and_validate_schedules(schedules_path)
-    print(f"Loaded {len(schedules)} schedules from {schedules_path}")
+    # load data
+    schedules, attributes, synthetic_attributes = load_data(config)
 
-    # load attributes data (conditional case)
-    attributes, synthetic_attributes = data.load_and_validate_attributes(
-        config, schedules
-    )
-    conditionals, synthetic_conditionals = encode_attributes(
-        attributes, synthetic_attributes, config
-    )
-    if attributes is not None:
-        print(
-            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
-        )
+    # encode data
+    (
+        schedule_encoder,
+        encoded_schedules,
+        data_loader,
+        synthetic_conditionals,
+    ) = encode_data(schedules, attributes, synthetic_attributes, config)
+
+    # prepare synthetic attributes
     synthetic_population = (
         schedules.pid.nunique()
         if synthetic_conditionals is None
@@ -229,10 +220,10 @@ def nrun_command(
         run_name = f"{name}_nrun{i}"
         logger = initiate_logger(log_dir, run_name)
         seed = seeder()
-        trainer, encoder = train(
+        trainer = train(
             name=run_name,
-            schedules=schedules,
-            conditionals=conditionals,
+            data_loader=data_loader,
+            encoded=encoded_schedules,
             config=config,
             logger=logger,
             seed=seed,
@@ -240,7 +231,7 @@ def nrun_command(
         synthetic_schedules[run_name] = generate(
             trainer=trainer,
             population=synthetic_population,
-            encoder=encoder,
+            encoder=schedule_encoder,
             config=config,
             write_dir=Path(logger.log_dir),
             seed=seed,
@@ -276,26 +267,17 @@ def nsample_command(
         )
     )
     log_dir = Path(logger_params.get("log_dir", "logs"))
-    logger = initiate_logger(log_dir, name)
+    training_logger = initiate_logger(log_dir, name)
 
-    # load schedules data
-    schedules_path = Path(config["schedules_path"])
-    schedules = data.load_and_validate_schedules(schedules_path)
-    print(f"Loaded {len(schedules)} schedules from {schedules_path}")
+    # load data
+    schedules, attributes, synthetic_attributes = load_data(config)
 
-    # load attributes data (conditional case)
-    attributes, synthetic_attributes = data.load_and_validate_attributes(
-        config, schedules
+    # encode data
+    schedule_encoder, encoded_schedules, data_loader, synthetic_conditionals = (
+        encode_data(schedules, attributes, synthetic_attributes, config)
     )
 
-    # encode attributes
-    conditionals, synthetic_conditionals = encode_attributes(
-        attributes, synthetic_attributes, config
-    )
-    if attributes is not None:
-        print(
-            f"Loaded {schedules.pid.nunique()} attributes from {config['attributes_path']}"
-        )
+    # prepare synthetic attributes
     synthetic_population = (
         schedules.pid.nunique()
         if synthetic_conditionals is None
@@ -303,12 +285,14 @@ def nsample_command(
     )
 
     seed = config.pop("seed", seeder())
-    trainer, encoder = train(
+
+    # train
+    trainer = train(
         name=name,
-        schedules=schedules,
-        conditionals=conditionals,
+        data_loader=data_loader,
+        encoded=encoded_schedules,
         config=config,
-        logger=logger,
+        logger=training_logger,
         seed=seed,
     )
 
@@ -316,14 +300,14 @@ def nsample_command(
     all_synthetic_attributes = {}
 
     for i in range(n):
-        sample_dir = Path(logger.log_dir) / f"nsample{i}"
+        logger = initiate_logger(training_logger.log_dir, f"nsample{i}")
         seed = seeder()
         synthetic_schedules[f"nsample{i}"] = generate(
             trainer=trainer,
             population=synthetic_population,
-            encoder=encoder,
+            encoder=schedule_encoder,
             config=config,
-            write_dir=sample_dir,
+            write_dir=Path(logger.log_dir),
             seed=seed,
         )
         all_synthetic_attributes[f"nsample{i}"] = synthetic_attributes
@@ -374,10 +358,57 @@ def report_command(
     evaluate.report(reports, log_dir=log_dir, head=head, verbose=verbose)
 
 
+def load_data(config: dict) -> Tuple[DataFrame, DataFrame, DataFrame]:
+    # load schedules data
+    schedules_path = Path(config["schedules_path"])
+    schedules = data.load_and_validate_schedules(schedules_path)
+    print(f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}")
+
+    # load attributes data (conditional case)
+    attributes, synthetic_attributes = data.load_and_validate_attributes(
+        config, schedules
+    )
+    if attributes is not None:
+        print(
+            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
+        )
+    return schedules, attributes, synthetic_attributes
+
+
+def encode_data(
+    schedules: DataFrame,
+    attributes: Optional[DataFrame],
+    synthetic_attributes: Optional[DataFrame],
+    config: dict,
+) -> Tuple[BaseEncoder, BaseDataset, DataModule, Tensor]:
+
+    # optionally encode attributes
+    if attributes is not None:
+        conditionals_config = config.get("conditionals", None)
+        if conditionals_config is None:
+            raise UserWarning("Config must contain conditionals configuration.")
+        attribute_encoder = encoders.AttributeEncoder(conditionals_config)
+        attributes = attribute_encoder.encode(attributes)
+        synthetic_attributes = attribute_encoder.encode(synthetic_attributes)
+
+    # encode schedules
+    schedule_encoder = build_encoder(config)
+    encoded_schedules = schedule_encoder.encode(
+        schedules=schedules, conditionals=attributes
+    )
+    data_loader = build_dataloader(config, encoded_schedules)
+    return (
+        schedule_encoder,
+        encoded_schedules,
+        data_loader,
+        synthetic_attributes,
+    )
+
+
 def train(
     name: str,
-    schedules: DataFrame,
-    conditionals: Optional[Tensor],
+    data_loader: DataModule,
+    encoded: BaseDataset,
     config: dict,
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
@@ -395,6 +426,8 @@ def train(
     Returns:
         Tuple(pytorch.Trainer, BaseEncoder).
     """
+    print(f"\n======= Training {name} =======")
+
     torch.manual_seed(seed)
 
     if cuda_available():
@@ -402,17 +435,11 @@ def train(
 
     torch.cuda.empty_cache()
 
-    print(f"\n======= Training {name} =======")
-
-    encoder = build_encoder(config)
-    encoded = encoder.encode(schedules=schedules, conditionals=conditionals)
-    data_loader = build_dataloader(config, encoded)
-
     experiment = build_experiment(encoded, config)
     trainer = build_trainer(logger, config)
     trainer.fit(experiment, datamodule=data_loader)
 
-    return trainer, encoder
+    return trainer
 
 
 def generate(
@@ -498,7 +525,7 @@ def evaluate_synthetics(
             split_on=split_on,
             report_stats=stats,
         )
-        evaluate.report(
+        evaluate.report_splits(
             sub_reports,
             log_dir=write_path,
             head=head,
@@ -566,24 +593,6 @@ def build_encoder(config: dict) -> encoders.BaseEncoder:
     encoder_name = config["encoder_params"]["name"]
     data_encoder = encoders.library[encoder_name](**config["encoder_params"])
     return data_encoder
-
-
-def encode_attributes(
-    attributes: Optional[DataFrame],
-    synthetic_attributes: Optional[DataFrame],
-    config: dict,
-) -> Tuple[Optional[Tensor], Optional[Tensor]]:
-    # optionally encode attributes
-    if attributes is not None:
-        conditionals_config = config.get("conditionals", None)
-        if conditionals_config is None:
-            raise UserWarning("Config must contain conditionals configuration.")
-        attribute_encoder = encoders.AttributeEncoder(conditionals_config)
-        attributes = attribute_encoder.encode(attributes)
-        synthetic_attributes = attribute_encoder.encode(synthetic_attributes)
-        return attributes, synthetic_attributes
-    else:
-        return None, None
 
 
 def build_dataloader(

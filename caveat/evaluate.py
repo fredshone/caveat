@@ -176,9 +176,11 @@ def evaluate_subsampled(
                 r.index = MultiIndex.from_tuples(
                     [(*i, f"{split}={cat}") for i in r.index], names=names
                 )
-            descriptions.append(sub_reports)
-            distances.append(sub_reports)
-    frames = describe(descriptions, distances, report_stats=report_stats)
+            descriptions.append(sub_reports[0])
+            distances.append(sub_reports[1])
+    descriptions = concat(descriptions, axis=0)
+    distances = concat(distances, axis=0)
+    frames = describe_splits(descriptions, distances)
 
     if report_stats:
         columns = list(synthetic_schedules.keys())
@@ -260,6 +262,51 @@ def describe(
     )
     features_distances["distance"] = (
         distances["distance"].groupby(["domain", "feature"]).first()
+    )
+
+    # themes
+    domain_descriptions = (
+        features_descriptions.drop("description", axis=1)
+        .groupby("domain")
+        .mean()
+    )
+    domain_distances = (
+        features_distances.drop("distance", axis=1).groupby("domain").mean()
+    )
+
+    frames = {
+        "descriptions": descriptions,
+        "feature_descriptions": features_descriptions,
+        "domain_descriptions": domain_descriptions,
+        "distances": distances,
+        "feature_distances": features_distances,
+        "domain_distances": domain_distances,
+    }
+    return frames
+
+
+def describe_splits(
+    descriptions: DataFrame, distances: DataFrame
+) -> dict[str, DataFrame]:
+    # features
+    features_descriptions = (
+        descriptions.drop("description", axis=1)
+        .groupby(["domain", "feature", "sub_pop"])
+        .apply(weighted_av)
+    )
+    features_descriptions["description"] = (
+        descriptions["description"]
+        .groupby(["domain", "feature", "sub_pop"])
+        .first()
+    )
+
+    features_distances = (
+        distances.drop("distance", axis=1)
+        .groupby(["domain", "feature", "sub_pop"])
+        .apply(weighted_av)
+    )
+    features_distances["distance"] = (
+        distances["distance"].groupby(["domain", "feature", "sub_pop"]).first()
     )
 
     # themes
@@ -387,7 +434,6 @@ def eval_models_correctness(
 
     # iterate through samples
     for model, y in synthetic_schedules.items():
-        print(model, feature_name)
         synth_features = feature(y)
         feature_descriptions = concat(
             [
@@ -480,6 +526,54 @@ def report(
     print_markdown(rank(frames["domain_distances"]))
 
 
+def report_splits(
+    frames: dict[str, DataFrame],
+    log_dir: Optional[Path] = None,
+    head: Optional[int] = None,
+    verbose: bool = True,
+    suffix: str = "",
+):
+    if head is not None:
+        frames["descriptions_short"] = (
+            frames["descriptions"]
+            .groupby(["domain", "feature", "sub_pop"])
+            .head(head)
+        )
+        frames["distances_short"] = (
+            frames["distances"]
+            .groupby(["domain", "feature", "sub_pop"])
+            .head(head)
+        )
+    else:
+        # default to full
+        frames["descriptions_short"] = frames["descriptions"]
+        frames["distances_short"] = frames["distances"]
+
+    if log_dir is not None:
+        for name, frame in frames.items():
+            frame.to_csv(Path(log_dir, f"{name}{suffix}.csv"))
+
+    if verbose:
+        print("\nDescriptions:")
+        print_markdown(frames["descriptions_short"])
+        print("\nEvalutions (Distance):")
+        print_markdown(frames["distances_short"])
+
+    print("\nFeature Descriptions:")
+    print_markdown(frames["feature_descriptions"])
+    print("\nFeature Evaluations (Distance):")
+    print_markdown(frames["feature_distances"])
+    print("\nFeature Evaluations (Ranked):")
+    print_markdown(rank(frames["feature_distances"]))
+
+    print("\nDomain Descriptions:")
+    print_markdown(frames["domain_descriptions"])
+    print("\nDomain Evaluations (Distance):")
+    print_markdown(frames["domain_distances"])
+    print("\nDomain Evaluations (Ranked):")
+    print_markdown(rank(frames["domain_distances"]))
+
+
 def add_stats(data: DataFrame, columns: dict[str, DataFrame]):
     data["mean"] = data[columns].mean(axis=1)
     data["std"] = data[columns].std(axis=1)
@@ -507,9 +601,13 @@ def score_features(
     default: tuple[np.array, np.array],
 ):
     index = set(a.keys()) | set(b.keys())
-    print(len(index), len(a), len(b))
     metrics = Series(
-        {k: distance(a.get(k, default), b.get(k, default)) for k in index},
+        {
+            k: distance(
+                defaulting_get(a, k, default), defaulting_get(b, k, default)
+            )
+            for k in index
+        },
         name=model,
     )
     metrics = metrics.fillna(0)
@@ -517,13 +615,37 @@ def score_features(
     return metrics
 
 
+def defaulting_get(
+    features: dict[str, tuple[np.array, np.array]],
+    key: str,
+    default: tuple[np.array, np.array],
+):
+    feature = features.get(key)
+    if feature is None:
+        return default
+    support, weights = feature
+    if len(support) == 0:
+        return default
+    return feature
+
+
 def extract_default(features: dict[str, tuple[np.array, np.array]]):
     # we use a single feature of zeros as required
-    default_sample = next(iter(features.values()))
-    default_shape = list(default_sample[0].shape)
-    default_shape[0] = 1
+    # look for a zize
+    default_shape = extract_default_shape(features)
     default_support = np.zeros(default_shape)
     return (default_support, np.array([1]))
+
+
+def extract_default_shape(
+    features: dict[str, tuple[np.array, np.array]]
+) -> np.array:
+    for k, _ in iter(features.values()):
+        if len(k) > 0:
+            default_shape = list(k.shape)
+            default_shape[0] = 1
+            return default_shape
+    raise ValueError("No features found in the given dictionary.")
 
 
 def weighted_av(report: DataFrame, weight_col: str = "feature count") -> Series:

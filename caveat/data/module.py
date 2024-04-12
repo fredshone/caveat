@@ -13,7 +13,7 @@ class DataModule(LightningDataModule):
         train_batch_size: int = 128,
         val_batch_size: int = 128,
         test_batch_size: int = 128,
-        num_workers: int = 0,
+        num_workers: int = 1,
         pin_memory: bool = False,
         **kwargs,
     ):

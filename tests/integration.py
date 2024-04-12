@@ -1,65 +1,25 @@
-from caveat.run import (
-    build_dataloader,
-    build_encoder,
-    build_experiment,
-    build_trainer,
-    encode_attributes,
-    initiate_logger,
-)
+from caveat.run import batch_command, nrun_command, nsample_command, run_command
 
 
-def test_descrete_embed_conv(tmp_path, test_schedules, run_config_embed_cov):
-    logger = initiate_logger(tmp_path, "test")
-
-    data_encoder = build_encoder(run_config_embed_cov)
-    encoded = data_encoder.encode(test_schedules, conditionals=None)
-    data_loader = build_dataloader(run_config_embed_cov, encoded)
-
-    experiment = build_experiment(encoded, run_config_embed_cov)
-    trainer = build_trainer(logger, run_config_embed_cov)
-
-    trainer.validate(model=experiment, dataloaders=data_loader)
+def test_run_conv(run_config_embed_cov):
+    run_command(run_config_embed_cov)
 
 
-def test_gru(tmp_path, test_schedules, run_config_gru):
-    logger = initiate_logger(tmp_path, "test")
-
-    data_encoder = build_encoder(run_config_gru)
-    encoded = data_encoder.encode(test_schedules, conditionals=None)
-    data_loader = build_dataloader(run_config_gru, encoded)
-
-    experiment = build_experiment(encoded, run_config_gru)
-    trainer = build_trainer(logger, run_config_gru)
-
-    trainer.validate(model=experiment, dataloaders=data_loader)
+def test_run_lstm(run_config_lstm):
+    run_command(run_config_lstm)
 
 
-def test_lstm(tmp_path, test_schedules, run_config_lstm):
-    logger = initiate_logger(tmp_path, "test")
-
-    data_encoder = build_encoder(run_config_lstm)
-    encoded = data_encoder.encode(test_schedules, conditionals=None)
-    data_loader = build_dataloader(run_config_lstm, encoded)
-
-    experiment = build_experiment(encoded, run_config_lstm)
-    trainer = build_trainer(logger, run_config_lstm)
-
-    trainer.validate(model=experiment, dataloaders=data_loader)
+def test_run_cond_lstm(run_config_conditional_lstm):
+    run_command(run_config_conditional_lstm)
 
 
-def test_conditional_lstm(
-    tmp_path, test_schedules, run_config_conditional_lstm
-):
-    logger = initiate_logger(tmp_path, "test")
+def test_batch_multi_model(batch_config):
+    batch_command(batch_config)
 
-    schedule_encoder = build_encoder(run_config_conditional_lstm)
-    attributes, _ = encode_attributes(
-        run_config_conditional_lstm, test_schedules
-    )
-    encoded = schedule_encoder.encode(test_schedules, conditionals=attributes)
-    data_loader = build_dataloader(run_config_conditional_lstm, encoded)
 
-    experiment = build_experiment(encoded, run_config_conditional_lstm)
-    trainer = build_trainer(logger, run_config_conditional_lstm)
+def test_nrun(run_config_lstm):
+    nrun_command(run_config_lstm)
 
-    trainer.validate(model=experiment, dataloaders=data_loader)
+
+def test_nsample(run_config_lstm):
+    nsample_command(run_config_lstm)
