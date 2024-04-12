@@ -5,9 +5,7 @@ from ot import dist, emd2, emd2_1d
 from scipy.stats import wasserstein_distance
 
 
-def emd(
-    a: tuple[np.array, np.array], b: tuple[np.array, np.array, int]
-) -> float:
+def emd(a: tuple[np.array, np.array], b: tuple[np.array, np.array]) -> float:
     if a[0].ndim == 1:
         return emd1d(a, b)
     elif a[0].ndim == 2:
@@ -16,9 +14,7 @@ def emd(
         raise ValueError("Only 1d and 2d features are supported")
 
 
-def emd2d(
-    a: tuple[np.array, np.array], b: tuple[np.array, np.array, int]
-) -> float:
+def emd2d(a: tuple[np.array, np.array], b: tuple[np.array, np.array]) -> float:
     ak, aw = a
     bk, bw = b
     aw = aw / aw.sum()
@@ -27,9 +23,7 @@ def emd2d(
     return emd2(aw, bw, d, check_marginals=False)
 
 
-def emd1d(
-    a: tuple[np.array, np.array], b: tuple[np.array, np.array, int]
-) -> float:
+def emd1d(a: tuple[np.array, np.array], b: tuple[np.array, np.array]) -> float:
     ak, aw = a
     bk, bw = b
     aw = aw / aw.sum()

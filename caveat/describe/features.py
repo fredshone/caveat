@@ -33,5 +33,6 @@ def average2d(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
         {
             k: np.average(v, axis=0, weights=w).sum().sum()
             for k, (v, w) in features.items()
+            if w.sum() > 0
         }
     )

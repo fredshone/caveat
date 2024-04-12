@@ -1,18 +1,25 @@
 global:
   schedules_path: "examples/data/synthetic_schedules.csv"
+  attributes_path: "examples/data/synthetic_attributes.csv"
   logging_params:
     save_dir: "logs"
     name: "conditionals_test"
   loader_params:
     train_batch_size: 128
     val_batch_size:  128
-    num_workers: 3
+    num_workers: 12
   trainer_params:
-    max_epochs: 50
+    max_epochs: 3
   experiment_params:
     LR: 0.001
     weight_decay: 0.0
     scheduler_gamma: 0.95
+  conditionals:
+    gender: nominal
+    age: {ordinal: [0,100]}
+    employment: nominal
+  evaluation_params:
+    split_on: [gender, employment]
 
   seed: 1234
 
@@ -31,16 +38,11 @@ unconditional:
     kld_weight: 0.001
 
 conditional:
-  attributes_path: "examples/data/synthetic_attributes.csv"
   encoder_params:
     name: "sequence"
     max_length: 16
     norm_duration: 1440
     jitter: 0.2
-  conditionals:
-    gender: nominal
-    age: {ordinal: [0,100]}
-    employment: nominal
   model_params:
     name: "conditional_LSTM"
     hidden_layers: 5
