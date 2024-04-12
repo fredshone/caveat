@@ -6,14 +6,14 @@ import torch
 import torchvision.utils as vutils
 from torch import Tensor, optim
 
-from caveat.models.base import BaseVAE
+from caveat.models.base_VAE import Base
 from caveat.models.utils import ScheduledOptim
 
 
 class Experiment(pl.LightningModule):
     def __init__(
         self,
-        model: BaseVAE,
+        model: Base,
         LR: float = 0.005,
         weight_decay: float = 0.0,
         kld_weight: float = 0.00025,

@@ -133,7 +133,9 @@ def batch_command(
             encoded_schedules,
             data_loader,
             synthetic_conditionals,
-        ) = encode_data(schedules, attributes, synthetic_attributes, config)
+        ) = encode_data(
+            schedules, attributes, synthetic_attributes, combined_config
+        )
 
         # record synthetic attributes for evaluation
         synthetic_attributes_all[name] = synthetic_attributes

@@ -3,8 +3,8 @@ global:
     save_dir: "logs_cond"
     name: "test"
 
-  schedules_path: "examples/tmp/nts_home_schedules.csv"
-  attributes_path: "examples/tmp/nts_home_attributes.csv"
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes.csv"
 
   loader_params:
     train_batch_size: 256
@@ -37,20 +37,30 @@ global:
   evaluation_params:
     split_on: [gender, age, employment, education, license, car_access]
 
-uncond_1:
+c_1:
   seed: 1111
   model_params:
-    name: "LSTM"
+    name: "C_LSTM"
     hidden_layers: 5
     hidden_size: 128
     latent_dim: 6
     dropout: 0.3
     kld_weight: 0.001
 
-cond_1:
+vae_1:
   seed: 1111
   model_params:
-    name: "conditional_LSTM"
+    name: "VAE_LSTM"
+    hidden_layers: 5
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.3
+    kld_weight: 0.001
+
+cvae_1:
+  seed: 1111
+  model_params:
+    name: "CVAE_LSTM"
     hidden_layers: 5
     hidden_size: 128
     latent_dim: 6
