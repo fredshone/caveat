@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -64,15 +64,8 @@ class SequenceEncoder(BaseEncoder):
     ) -> Tuple[Tensor, Tensor]:
 
         # calc weightings
-        act_weights = (
-            data.groupby("act", observed=True).duration.sum().to_dict()
-        )
-        n = data.pid.nunique()  # sos/eos weight equal to 1 day
-        act_weights.update({self.sos: n, self.eos: n})
-        act_weights = np.array(
-            [act_weights[k] for k in range(len(act_weights))]
-        )
-        act_weights = 1 / act_weights
+        act_weights = self._calc_act_weights(data)
+        # act_weights = self._unit_act_weights(self.encodings)
 
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
@@ -96,6 +89,21 @@ class SequenceEncoder(BaseEncoder):
             weights[pid] = seq_weights  # [N, L]
 
         return (torch.from_numpy(encoded), torch.from_numpy(weights))
+
+    def _calc_act_weights(self, data: pd.DataFrame) -> Dict[str, float]:
+        act_weights = (
+            data.groupby("act", observed=True).duration.sum().to_dict()
+        )
+        n = data.pid.nunique()
+        act_weights.update({self.sos: n, self.eos: n})
+        act_weights = np.array(
+            [act_weights[k] for k in range(len(act_weights))]
+        )
+        act_weights = 1 / act_weights
+        return act_weights
+
+    def _unit_act_weights(self, n: int) -> Dict[str, float]:
+        return np.array([1 for _ in range(n)])
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:

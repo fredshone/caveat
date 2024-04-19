@@ -1,7 +1,7 @@
 global:
   schedules_path: C:\Users\DAF3\Data\NTS\nts_toy_home_population.csv
   logging_params:
-    save_dir: "logs"
+    log_dir: "logs"
     name: "vae_batch"
   seed: 1234
 

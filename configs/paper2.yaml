@@ -1,10 +1,11 @@
 global:
+  seed: 1234
   logging_params:
-    save_dir: "logs_cond"
-    name: "test"
+    log_dir: "logs"
+    name: "c_slow_lr"
 
-  schedules_path: "tmp/nts_home_schedules.csv"
-  attributes_path: "tmp/nts_home_attributes.csv"
+  schedules_path: "tmp/nts_home_schedules_large.csv"
+  attributes_path: "tmp/nts_home_attributes_large.csv"
 
   loader_params:
     train_batch_size: 256
@@ -13,10 +14,11 @@ global:
 
   trainer_params:
     max_epochs: 100
+    min_epochs: 10
     patience: 10
 
   experiment_params:
-    LR: 0.001
+    LR: 0.00001
     weight_decay: 0.0
     scheduler_gamma: 0.95
   
@@ -28,41 +30,99 @@ global:
 
   conditionals:
     gender: nominal
-    age: nominal
+    age: {ordinal: [0, 100]}
     employment: nominal
     education: nominal
     license: nominal
     car_access: nominal
+    income: {ordinal: [0, 5]}
+    work_status: nominal
+    area: nominal
   
   evaluation_params:
-    split_on: [gender, age, employment, education, license, car_access]
+    split_on: [gender, age, area, car_access]
 
-c_1:
-  seed: 1111
+
+c_hidden_2X64:
   model_params:
     name: "C_LSTM"
-    hidden_layers: 5
-    hidden_size: 128
     latent_dim: 6
-    dropout: 0.3
-    kld_weight: 0.001
+    hidden_layers: 2
+    hidden_size: 64
+    dropout: 0.2
 
-vae_1:
-  seed: 1111
+c_hidden_2X128:
   model_params:
-    name: "VAE_LSTM"
-    hidden_layers: 5
-    hidden_size: 128
+    name: "C_LSTM"
     latent_dim: 6
-    dropout: 0.3
-    kld_weight: 0.001
+    hidden_layers: 2
+    hidden_size: 128
+    dropout: 0.2
 
-cvae_1:
-  seed: 1111
+c_hidden_2X256:
   model_params:
-    name: "CVAE_LSTM"
-    hidden_layers: 5
-    hidden_size: 128
+    name: "C_LSTM"
     latent_dim: 6
-    dropout: 0.3
-    kld_weight: 0.001
+    hidden_layers: 2
+    hidden_size: 256
+    dropout: 0.2
+
+c_hidden_3X64:
+  model_params:
+    name: "C_LSTM"
+    latent_dim: 6
+    hidden_layers: 3
+    hidden_size: 64
+    dropout: 0.2
+
+c_hidden_3X128:
+  model_params:
+    name: "C_LSTM"
+    latent_dim: 6
+    hidden_layers: 3
+    hidden_size: 128
+    dropout: 0.2
+
+c_hidden_3X256:
+  model_params:
+    name: "C_LSTM"
+    latent_dim: 6
+    hidden_layers: 3
+    hidden_size: 256
+    dropout: 0.2
+
+c_hidden_4X64:
+  model_params:
+    name: "C_LSTM"
+    latent_dim: 6
+    hidden_layers: 4
+    hidden_size: 64
+    dropout: 0.2
+
+c_hidden_4X128:
+  model_params:
+    name: "C_LSTM"
+    latent_dim: 6
+    hidden_layers: 4
+    hidden_size: 128
+    dropout: 0.2
+
+# vae_1:
+#   seed: 1111
+#   model_params:
+#     name: "VAE_LSTM"
+#     hidden_layers: 5
+#     hidden_size: 128
+#     latent_dim: 6
+#     dropout: 0.3
+#     kld_weight: 0.001
+
+# cvae_1:
+#   seed: 1111
+#   model_params:
+#     name: "CVAE_LSTM"
+#     hidden_layers: 5
+#     hidden_size: 128
+#     latent_dim: 6
+#     dropout: 0.3
+#     kld_weight: 0.001

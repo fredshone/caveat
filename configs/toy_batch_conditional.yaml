@@ -2,18 +2,15 @@ global:
   schedules_path: "examples/data/synthetic_schedules.csv"
   attributes_path: "examples/data/synthetic_attributes.csv"
   logging_params:
-    save_dir: "logs"
-    name: "conditionals_test"
+    log_dir: "logs"
+    name: "conditionals_toy_batch"
   loader_params:
-    train_batch_size: 128
-    val_batch_size:  128
+    train_batch_size: 246
+    val_batch_size:  256
     num_workers: 12
   trainer_params:
-    max_epochs: 3
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
+    max_epochs: 150
+    patience: 50
   conditionals:
     gender: nominal
     age: {ordinal: [0,100]}
@@ -23,30 +20,83 @@ global:
 
   seed: 1234
 
-unconditional:
+conditional_lr1:
+  experiment_params:
+    LR: 0.1
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
   encoder_params:
     name: "sequence"
     max_length: 16
     norm_duration: 1440
     jitter: 0.2
   model_params:
-    name: "LSTM"
-    hidden_layers: 5
+    name: "C_LSTM"
+    hidden_layers: 3
     hidden_size: 128
     latent_dim: 6
-    dropout: 0.1
+    dropout: 0.3
     kld_weight: 0.001
 
-conditional:
+conditional_lr01:
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
   encoder_params:
     name: "sequence"
     max_length: 16
     norm_duration: 1440
     jitter: 0.2
   model_params:
-    name: "conditional_LSTM"
-    hidden_layers: 5
+    name: "C_LSTM"
+    hidden_layers: 3
     hidden_size: 128
     latent_dim: 6
-    dropout: 0.1
+    dropout: 0.3
     kld_weight: 0.001
+
+conditional_lr001:
+  experiment_params:
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+  model_params:
+    name: "C_LSTM"
+    hidden_layers: 3
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.3
+    kld_weight: 0.001
+# standard_vae:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.3
+#   model_params:
+#     name: "VAE_LSTM"
+#     hidden_layers: 4
+#     hidden_size: 128
+#     latent_dim: 6
+#     dropout: 0.3
+#     kld_weight: 0.001
+
+# conditional_vae:
+#   encoder_params:
+#     name: "sequence"
+#     max_length: 16
+#     norm_duration: 1440
+#     jitter: 0.2
+#   model_params:
+#     name: "CVAE_LSTM"
+#     hidden_layers: 4
+#     hidden_size: 512
+#     latent_dim: 6
+#     dropout: 0.3
+#     kld_weight: 0.001
