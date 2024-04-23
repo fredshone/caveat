@@ -21,7 +21,7 @@ from caveat.experiment import Experiment
 
 
 def run_command(
-    config: dict, stats: bool = True, verbose: bool = False
+    config: dict, verbose: bool = False
 ) -> None:
     """
     Runs the training and reporting process using the provided configuration.
@@ -84,9 +84,9 @@ def run_command(
         synthetic_attributes={name: synthetic_attributes},
         default_eval_schedules=schedules,
         default_eval_attributes=attributes,
-        write_path=write_path,
+        write_path=Path(logger.log_dir),
         eval_params=config.get("evaluation_params", {}),
-        stats=stats,
+        stats=False,
         verbose=verbose,
     )
 

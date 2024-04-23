@@ -1,6 +1,6 @@
 logging_params:
   log_dir: "logs"
-  name: "test"
+  name: "staggered"
 
 schedules_path: "examples/data/synthetic_schedules.csv"
 attributes_path: "examples/data/synthetic_attributes.csv"
@@ -11,31 +11,33 @@ conditionals:
   employment: nominal
 
 encoder_params:
-  name: "sequence"
+  name: "sequence_staggered"
   max_length: 16
   norm_duration: 1440
-  jitter: 0.2
+  jitter: 0.1
 
 model_params:
-  name: "conditional_LSTM"
-  hidden_layers: 3
-  hidden_size: 64
+  name: "C_LSTM"
+  hidden_layers: 1
+  hidden_size: 32
   latent_dim: 6
-  dropout: 0.2
+  dropout: 0.1
+  teacher_forcing_ratio: 0.5
 
 loader_params:
-  train_batch_size: 128
-  val_batch_size:  128
+  train_batch_size: 32
+  val_batch_size:  32
   num_workers: 3
 
 experiment_params:
-  LR: 0.001
+  LR: 0.01
   weight_decay: 0.0
   scheduler_gamma: 0.95
   kld_weight: 0.00025
 
 trainer_params:
-  max_epochs: 50
+  patience: 10
+  max_epochs: 100
 
 seed: 1234
   

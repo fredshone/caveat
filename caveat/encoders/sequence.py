@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import SequenceJitter
-from caveat.encoders import BaseDataset, BaseEncoder
+from caveat.encoders import BaseDataset, BaseEncoder, StaggeredDataset
 
 
 class SequenceEncoder(BaseEncoder):
@@ -145,6 +145,50 @@ class SequenceEncoder(BaseEncoder):
         df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
         df["duration"] = df.end - df.start
         return df
+
+
+class SequenceEncoderStaggered(SequenceEncoder):
+
+    def __init__(
+        self, max_length: int = 12, norm_duration: int = 1440, **kwargs
+    ):
+        super().__init__(max_length, norm_duration, **kwargs)
+
+    def encode(
+        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+    ) -> StaggeredDataset:
+        self.sos = 0
+        self.eos = 1
+        self.index_to_acts = {
+            i + 2: a for i, a in enumerate(schedules.act.unique())
+        }
+        self.index_to_acts[0] = "<SOS>"
+        self.index_to_acts[1] = "<EOS>"
+        acts_to_index = {a: i for i, a in self.index_to_acts.items()}
+
+        self.encodings = len(self.index_to_acts)
+
+        # prepare schedules dataframe
+        schedules = schedules.copy()
+        schedules.duration = schedules.duration / self.norm_duration
+        schedules.act = schedules.act.map(acts_to_index)
+
+        # encode
+        encoded_schedules, masks = self._encode_sequences(
+            schedules, self.max_length
+        )
+
+        # augment
+        augment = SequenceJitter(self.jitter) if self.jitter else None
+
+        return StaggeredDataset(
+            schedules=encoded_schedules,
+            masks=masks,
+            activity_encodings=len(self.index_to_acts),
+            activity_weights=None,
+            augment=augment,
+            conditionals=conditionals,
+        )
 
 
 def encode_sequence(

@@ -43,6 +43,7 @@ class ConditionalLSTM(Base):
         target: Tensor | None = None,
         **kwargs,
     ) -> List[Tensor]:
+
         log_probs, probs = self.decode(
             z=x, conditionals=conditionals, target=target
         )
@@ -60,6 +61,7 @@ class ConditionalLSTM(Base):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        acts, _ = self.unpack_encoding(probs)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
@@ -75,6 +77,14 @@ class ConditionalLSTM(Base):
 
         # reconstruction loss
         recons_loss = recon_act_nlll + recon_dur_mse
+
+        # print("target acts:")
+        # print(target_acts[0].squeeze(-1))
+        # print()
+        # print("pred acts:")
+        # print(acts[0].argmax(-1))
+        # print(recons_loss)
+        # print()
 
         return {
             "loss": recons_loss,
