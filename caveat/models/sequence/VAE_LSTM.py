@@ -7,7 +7,7 @@ from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
 
 
-class LSTM(Base):
+class VAE_LSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -79,7 +79,7 @@ class LSTM(Base):
         return log_probs, probs
 
 
-class LSTM_Unweighted(LSTM):
+class VAE_LSTM_Unweighted(VAE_LSTM):
     def loss_function(
         self,
         log_probs: Tensor,

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torchmetrics.classification import MulticlassHammingDistance
 
-from caveat.models.sequence.lstm import Encoder
+from caveat.models.sequence.VAE_LSTM import Encoder
 
 
 class BahdanauAttention(nn.Module):

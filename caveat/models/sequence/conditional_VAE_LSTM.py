@@ -7,7 +7,7 @@ from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
 
 
-class ConditionalVAE_LSTM(Base):
+class CVAE_LSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)
