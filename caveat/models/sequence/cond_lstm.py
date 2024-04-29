@@ -39,8 +39,8 @@ class ConditionalLSTM(Base):
     def forward(
         self,
         x: Tensor,
-        conditionals: Tensor | None = None,
-        target: Tensor | None = None,
+        conditionals: Optional[Tensor] = None,
+        target: Optional[Tensor] = None,
         **kwargs,
     ) -> List[Tensor]:
 
