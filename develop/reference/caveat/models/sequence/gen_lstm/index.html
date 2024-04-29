@@ -13,7 +13,7 @@
       
       
       
-        <link rel="prev" href="../conditional_lstm/">
+        <link rel="prev" href="../cond_lstm/">
       
       
         <link rel="next" href="../transformer/">
@@ -24,7 +24,7 @@
     
     
       
-        <title>caveat.models.sequence.lstm - caveat</title>
+        <title>caveat.models.sequence.gen_lstm - caveat</title>
       
     
     
@@ -70,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#caveat.models.sequence.lstm.Decoder" class="md-skip">
+        <a href="#caveat.models.sequence.gen_lstm.Decoder" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              caveat.models.sequence.lstm
+              caveat.models.sequence.gen_lstm
             
           </span>
         </div>
@@ -1470,6 +1470,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1505,11 +1509,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../base/" class="md-nav__link">
+      <a href="../../base_VAE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.base
+    caveat.models.base_VAE
   </span>
   
 
@@ -1589,11 +1593,53 @@
   
   
     <li class="md-nav__item">
-      <a href="../conditional_lstm/" class="md-nav__link">
+      <a href="../../embed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    caveat.models.sequence.conditional_lstm
+    caveat.models.embed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cond_gen_lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.sequence.cond_gen_lstm
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cond_lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.sequence.cond_lstm
   </span>
   
 
@@ -1621,7 +1667,7 @@
           
   
   <span class="md-ellipsis">
-    caveat.models.sequence.lstm
+    caveat.models.sequence.gen_lstm
   </span>
   
 
@@ -1632,7 +1678,7 @@
         
   
   <span class="md-ellipsis">
-    caveat.models.sequence.lstm
+    caveat.models.sequence.gen_lstm
   </span>
   
 
@@ -1652,7 +1698,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder" class="md-nav__link">
     <span class="md-ellipsis">
       Decoder
     </span>
@@ -1662,7 +1708,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.activity_logprob_activation" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.activity_logprob_activation" class="md-nav__link">
     <span class="md-ellipsis">
       activity_logprob_activation
     </span>
@@ -1671,7 +1717,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.activity_prob_activation" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.activity_prob_activation" class="md-nav__link">
     <span class="md-ellipsis">
       activity_prob_activation
     </span>
@@ -1680,7 +1726,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.current_device" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.current_device" class="md-nav__link">
     <span class="md-ellipsis">
       current_device
     </span>
@@ -1689,7 +1735,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.duration_activation" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.duration_activation" class="md-nav__link">
     <span class="md-ellipsis">
       duration_activation
     </span>
@@ -1698,7 +1744,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.embedding" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.embedding" class="md-nav__link">
     <span class="md-ellipsis">
       embedding
     </span>
@@ -1707,7 +1753,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.fc" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.fc" class="md-nav__link">
     <span class="md-ellipsis">
       fc
     </span>
@@ -1716,7 +1762,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.hidden_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.hidden_size" class="md-nav__link">
     <span class="md-ellipsis">
       hidden_size
     </span>
@@ -1725,7 +1771,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.input_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.input_size" class="md-nav__link">
     <span class="md-ellipsis">
       input_size
     </span>
@@ -1734,7 +1780,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.lstm" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.lstm" class="md-nav__link">
     <span class="md-ellipsis">
       lstm
     </span>
@@ -1743,7 +1789,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.max_length" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.max_length" class="md-nav__link">
     <span class="md-ellipsis">
       max_length
     </span>
@@ -1752,7 +1798,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.output_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.output_size" class="md-nav__link">
     <span class="md-ellipsis">
       output_size
     </span>
@@ -1761,7 +1807,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.sos" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.sos" class="md-nav__link">
     <span class="md-ellipsis">
       sos
     </span>
@@ -1770,7 +1816,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.forward" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.forward" class="md-nav__link">
     <span class="md-ellipsis">
       forward
     </span>
@@ -1779,7 +1825,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.forward_step" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.forward_step" class="md-nav__link">
     <span class="md-ellipsis">
       forward_step
     </span>
@@ -1788,7 +1834,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.pack" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.pack" class="md-nav__link">
     <span class="md-ellipsis">
       pack
     </span>
@@ -1802,7 +1848,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder" class="md-nav__link">
     <span class="md-ellipsis">
       Encoder
     </span>
@@ -1812,7 +1858,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.dropout" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.dropout" class="md-nav__link">
     <span class="md-ellipsis">
       dropout
     </span>
@@ -1821,7 +1867,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.embedding" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.embedding" class="md-nav__link">
     <span class="md-ellipsis">
       embedding
     </span>
@@ -1830,7 +1876,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.hidden_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.hidden_size" class="md-nav__link">
     <span class="md-ellipsis">
       hidden_size
     </span>
@@ -1839,7 +1885,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.lstm" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.lstm" class="md-nav__link">
     <span class="md-ellipsis">
       lstm
     </span>
@@ -1848,7 +1894,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.norm" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.norm" class="md-nav__link">
     <span class="md-ellipsis">
       norm
     </span>
@@ -1857,7 +1903,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.num_layers" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.num_layers" class="md-nav__link">
     <span class="md-ellipsis">
       num_layers
     </span>
@@ -1866,7 +1912,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.forward" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.forward" class="md-nav__link">
     <span class="md-ellipsis">
       forward
     </span>
@@ -1880,17 +1926,17 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM" class="md-nav__link">
     <span class="md-ellipsis">
-      LSTM
+      VAE_LSTM
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="LSTM">
+    <nav class="md-nav" aria-label="VAE_LSTM">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM.build" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM.build" class="md-nav__link">
     <span class="md-ellipsis">
       build
     </span>
@@ -1899,7 +1945,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM.decode" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM.decode" class="md-nav__link">
     <span class="md-ellipsis">
       decode
     </span>
@@ -1913,17 +1959,17 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM_Unweighted" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted" class="md-nav__link">
     <span class="md-ellipsis">
-      LSTM_Unweighted
+      VAE_LSTM_Unweighted
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="LSTM_Unweighted">
+    <nav class="md-nav" aria-label="VAE_LSTM_Unweighted">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM_Unweighted.loss_function" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted.loss_function" class="md-nav__link">
     <span class="md-ellipsis">
       loss_function
     </span>
@@ -2035,7 +2081,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder" class="md-nav__link">
     <span class="md-ellipsis">
       Decoder
     </span>
@@ -2045,7 +2091,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.activity_logprob_activation" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.activity_logprob_activation" class="md-nav__link">
     <span class="md-ellipsis">
       activity_logprob_activation
     </span>
@@ -2054,7 +2100,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.activity_prob_activation" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.activity_prob_activation" class="md-nav__link">
     <span class="md-ellipsis">
       activity_prob_activation
     </span>
@@ -2063,7 +2109,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.current_device" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.current_device" class="md-nav__link">
     <span class="md-ellipsis">
       current_device
     </span>
@@ -2072,7 +2118,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.duration_activation" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.duration_activation" class="md-nav__link">
     <span class="md-ellipsis">
       duration_activation
     </span>
@@ -2081,7 +2127,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.embedding" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.embedding" class="md-nav__link">
     <span class="md-ellipsis">
       embedding
     </span>
@@ -2090,7 +2136,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.fc" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.fc" class="md-nav__link">
     <span class="md-ellipsis">
       fc
     </span>
@@ -2099,7 +2145,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.hidden_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.hidden_size" class="md-nav__link">
     <span class="md-ellipsis">
       hidden_size
     </span>
@@ -2108,7 +2154,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.input_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.input_size" class="md-nav__link">
     <span class="md-ellipsis">
       input_size
     </span>
@@ -2117,7 +2163,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.lstm" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.lstm" class="md-nav__link">
     <span class="md-ellipsis">
       lstm
     </span>
@@ -2126,7 +2172,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.max_length" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.max_length" class="md-nav__link">
     <span class="md-ellipsis">
       max_length
     </span>
@@ -2135,7 +2181,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.output_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.output_size" class="md-nav__link">
     <span class="md-ellipsis">
       output_size
     </span>
@@ -2144,7 +2190,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.sos" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.sos" class="md-nav__link">
     <span class="md-ellipsis">
       sos
     </span>
@@ -2153,7 +2199,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.forward" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.forward" class="md-nav__link">
     <span class="md-ellipsis">
       forward
     </span>
@@ -2162,7 +2208,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.forward_step" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.forward_step" class="md-nav__link">
     <span class="md-ellipsis">
       forward_step
     </span>
@@ -2171,7 +2217,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Decoder.pack" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Decoder.pack" class="md-nav__link">
     <span class="md-ellipsis">
       pack
     </span>
@@ -2185,7 +2231,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder" class="md-nav__link">
     <span class="md-ellipsis">
       Encoder
     </span>
@@ -2195,7 +2241,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.dropout" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.dropout" class="md-nav__link">
     <span class="md-ellipsis">
       dropout
     </span>
@@ -2204,7 +2250,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.embedding" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.embedding" class="md-nav__link">
     <span class="md-ellipsis">
       embedding
     </span>
@@ -2213,7 +2259,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.hidden_size" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.hidden_size" class="md-nav__link">
     <span class="md-ellipsis">
       hidden_size
     </span>
@@ -2222,7 +2268,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.lstm" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.lstm" class="md-nav__link">
     <span class="md-ellipsis">
       lstm
     </span>
@@ -2231,7 +2277,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.norm" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.norm" class="md-nav__link">
     <span class="md-ellipsis">
       norm
     </span>
@@ -2240,7 +2286,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.num_layers" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.num_layers" class="md-nav__link">
     <span class="md-ellipsis">
       num_layers
     </span>
@@ -2249,7 +2295,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.Encoder.forward" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.Encoder.forward" class="md-nav__link">
     <span class="md-ellipsis">
       forward
     </span>
@@ -2263,17 +2309,17 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM" class="md-nav__link">
     <span class="md-ellipsis">
-      LSTM
+      VAE_LSTM
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="LSTM">
+    <nav class="md-nav" aria-label="VAE_LSTM">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM.build" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM.build" class="md-nav__link">
     <span class="md-ellipsis">
       build
     </span>
@@ -2282,7 +2328,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM.decode" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM.decode" class="md-nav__link">
     <span class="md-ellipsis">
       decode
     </span>
@@ -2296,17 +2342,17 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM_Unweighted" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted" class="md-nav__link">
     <span class="md-ellipsis">
-      LSTM_Unweighted
+      VAE_LSTM_Unweighted
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="LSTM_Unweighted">
+    <nav class="md-nav" aria-label="VAE_LSTM_Unweighted">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#caveat.models.sequence.lstm.LSTM_Unweighted.loss_function" class="md-nav__link">
+  <a href="#caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted.loss_function" class="md-nav__link">
     <span class="md-ellipsis">
       loss_function
     </span>
@@ -2340,7 +2386,7 @@
   
 
 
-  <h1>caveat.models.sequence.lstm</h1>
+  <h1>caveat.models.sequence.gen_lstm</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -2364,10 +2410,10 @@
 
 
 
-<h2 id="caveat.models.sequence.lstm.Decoder" class="doc doc-heading">
+<h2 id="caveat.models.sequence.gen_lstm.Decoder" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">Decoder</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">sos</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.Decoder" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#caveat.models.sequence.gen_lstm.Decoder" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
@@ -2465,7 +2511,7 @@
   </table>
 
                 <details class="quote">
-                  <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+                  <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
                   <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-142">142</a></span>
 <span class="normal"><a href="#__codelineno-0-143">143</a></span>
 <span class="normal"><a href="#__codelineno-0-144">144</a></span>
@@ -2564,14 +2610,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.activity_logprob_activation" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.activity_logprob_activation" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">activity_logprob_activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LogSoftmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.activity_logprob_activation" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.activity_logprob_activation" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2583,14 +2629,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.activity_prob_activation" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.activity_prob_activation" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">activity_prob_activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.activity_prob_activation" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.activity_prob_activation" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2602,14 +2648,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.current_device" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.current_device" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">current_device</span> <span class="o">=</span> <span class="n">current_device</span><span class="p">()</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.current_device" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.current_device" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2621,14 +2667,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.duration_activation" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.duration_activation" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">duration_activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.duration_activation" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.duration_activation" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2640,14 +2686,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.embedding" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.embedding" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">embedding</span> <span class="o">=</span> <span class="n">CustomDurationEmbedding</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.embedding" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.embedding" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2659,14 +2705,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.fc" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.fc" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.fc" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.fc" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2678,14 +2724,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.hidden_size" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.hidden_size" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.hidden_size" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.hidden_size" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2697,14 +2743,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.input_size" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.input_size" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">input_size</span> <span class="o">=</span> <span class="n">input_size</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.input_size" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.input_size" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2716,14 +2762,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.lstm" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.lstm" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.lstm" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.lstm" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2735,14 +2781,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.max_length" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.max_length" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">max_length</span> <span class="o">=</span> <span class="n">max_length</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.max_length" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.max_length" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2754,14 +2800,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.output_size" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.output_size" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">output_size</span> <span class="o">=</span> <span class="n">output_size</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.output_size" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.output_size" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2773,14 +2819,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.sos" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.sos" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">sos</span> <span class="o">=</span> <span class="n">sos</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Decoder.sos" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.sos" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -2795,16 +2841,16 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.forward" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.forward" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">forward</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.Decoder.forward" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.forward" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+            <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
             <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-184">184</a></span>
 <span class="normal"><a href="#__codelineno-0-185">185</a></span>
 <span class="normal"><a href="#__codelineno-0-186">186</a></span>
@@ -2883,16 +2929,16 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.forward_step" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.forward_step" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">forward_step</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.Decoder.forward_step" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.forward_step" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+            <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
             <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-219">219</a></span>
 <span class="normal"><a href="#__codelineno-0-220">220</a></span>
 <span class="normal"><a href="#__codelineno-0-221">221</a></span>
@@ -2917,16 +2963,16 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Decoder.pack" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Decoder.pack" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">pack</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.Decoder.pack" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Decoder.pack" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+            <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
             <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-227">227</a></span>
 <span class="normal"><a href="#__codelineno-0-228">228</a></span>
 <span class="normal"><a href="#__codelineno-0-229">229</a></span>
@@ -2967,10 +3013,10 @@
 
 
 
-<h2 id="caveat.models.sequence.lstm.Encoder" class="doc doc-heading">
+<h2 id="caveat.models.sequence.gen_lstm.Encoder" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">Encoder</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.Encoder" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#caveat.models.sequence.gen_lstm.Encoder" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
@@ -3054,7 +3100,7 @@
   </table>
 
                 <details class="quote">
-                  <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+                  <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
                   <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
 <span class="normal"><a href="#__codelineno-0-100">100</a></span>
 <span class="normal"><a href="#__codelineno-0-101">101</a></span>
@@ -3131,14 +3177,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Encoder.dropout" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Encoder.dropout" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Encoder.dropout" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Encoder.dropout" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -3150,14 +3196,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Encoder.embedding" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Encoder.embedding" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">embedding</span> <span class="o">=</span> <span class="n">CustomDurationEmbedding</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Encoder.embedding" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Encoder.embedding" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -3169,14 +3215,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Encoder.hidden_size" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Encoder.hidden_size" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Encoder.hidden_size" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Encoder.hidden_size" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -3188,14 +3234,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Encoder.lstm" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Encoder.lstm" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Encoder.lstm" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Encoder.lstm" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -3207,14 +3253,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Encoder.norm" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Encoder.norm" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">)</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Encoder.norm" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Encoder.norm" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -3226,14 +3272,14 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Encoder.num_layers" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Encoder.num_layers" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">num_layers</span> <span class="o">=</span> <span class="n">num_layers</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#caveat.models.sequence.lstm.Encoder.num_layers" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Encoder.num_layers" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -3248,16 +3294,16 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.Encoder.forward" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.Encoder.forward" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.Encoder.forward" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.Encoder.forward" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+            <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
             <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-130">130</a></span>
 <span class="normal"><a href="#__codelineno-0-131">131</a></span>
 <span class="normal"><a href="#__codelineno-0-132">132</a></span>
@@ -3294,21 +3340,21 @@
 
 
 
-<h2 id="caveat.models.sequence.lstm.LSTM" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">LSTM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+<h2 id="caveat.models.sequence.gen_lstm.VAE_LSTM" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">VAE_LSTM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.LSTM" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#caveat.models.sequence.gen_lstm.VAE_LSTM" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
           <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="caveat.models.base.BaseVAE" href="../../base/#caveat.models.base.BaseVAE">BaseVAE</a></code></p>
+            Bases: <code><a class="autorefs autorefs-internal" title="caveat.models.Base" href="../../base_VAE/#caveat.models.base_VAE.Base">Base</a></code></p>
 
   
       <p>RNN based encoder and decoder with encoder embedding layer.</p>
 
                 <details class="quote">
-                  <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+                  <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
                   <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
 <span class="normal"><a href="#__codelineno-0-12">12</a></span>
 <span class="normal"><a href="#__codelineno-0-13">13</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -3334,16 +3380,16 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.LSTM.build" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.VAE_LSTM.build" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">build</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.LSTM.build" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.VAE_LSTM.build" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+            <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
             <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-15">15</a></span>
 <span class="normal"><a href="#__codelineno-0-16">16</a></span>
 <span class="normal"><a href="#__codelineno-0-17">17</a></span>
@@ -3414,10 +3460,10 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.LSTM.decode" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.VAE_LSTM.decode" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">decode</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.LSTM.decode" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.VAE_LSTM.decode" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
@@ -3481,7 +3527,7 @@
   </table>
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+            <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
             <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-46">46</a></span>
 <span class="normal"><a href="#__codelineno-0-47">47</a></span>
 <span class="normal"><a href="#__codelineno-0-48">48</a></span>
@@ -3568,21 +3614,21 @@
 
 
 
-<h2 id="caveat.models.sequence.lstm.LSTM_Unweighted" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">LSTM_Unweighted</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+<h2 id="caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">VAE_LSTM_Unweighted</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.LSTM_Unweighted" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted" class="headerlink" title="Permanent link">#</a></h2>
 
 
   <div class="doc doc-contents ">
           <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="caveat.models.sequence.lstm.LSTM" href="#caveat.models.sequence.lstm.LSTM">LSTM</a></code></p>
+            Bases: <code><a class="autorefs autorefs-internal" title="caveat.models.sequence.gen_lstm.VAE_LSTM" href="#caveat.models.sequence.gen_lstm.VAE_LSTM">VAE_LSTM</a></code></p>
 
   
       <p>RNN based encoder and decoder with encoder embedding layer.</p>
 
                 <details class="quote">
-                  <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+                  <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
                   <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
 <span class="normal"><a href="#__codelineno-0-12">12</a></span>
 <span class="normal"><a href="#__codelineno-0-13">13</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -3608,16 +3654,16 @@
 
 
 
-<h3 id="caveat.models.sequence.lstm.LSTM_Unweighted.loss_function" class="doc doc-heading">
+<h3 id="caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted.loss_function" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">loss_function</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">log_var</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-<a href="#caveat.models.sequence.lstm.LSTM_Unweighted.loss_function" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#caveat.models.sequence.gen_lstm.VAE_LSTM_Unweighted.loss_function" class="headerlink" title="Permanent link">#</a></h3>
 
 
   <div class="doc doc-contents ">
 
           <details class="quote">
-            <summary>Source code in <code>caveat/models/sequence/lstm.py</code></summary>
+            <summary>Source code in <code>caveat/models/sequence/gen_lstm.py</code></summary>
             <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-83">83</a></span>
 <span class="normal"><a href="#__codelineno-0-84">84</a></span>
 <span class="normal"><a href="#__codelineno-0-85">85</a></span>
