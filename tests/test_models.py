@@ -3,8 +3,8 @@ import torch
 from caveat.models.discrete.embed_conv import Conv
 from caveat.models.discrete.lstm_discrete import LSTM_Discrete
 from caveat.models.discrete.transformer_discrete import AttentionDiscrete
-from caveat.models.sequence.conditional_lstm import ConditionalLSTM
-from caveat.models.sequence.lstm import LSTM
+from caveat.models.sequence.cond_gen_lstm import CVAE_LSTM
+from caveat.models.sequence.gen_lstm import VAE_LSTM
 
 
 def test_conv_embed_cov_forward():
@@ -88,7 +88,7 @@ def test_lstm_forward():
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = LSTM(
+    model = VAE_LSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),
@@ -111,7 +111,7 @@ def test_lstm_forward():
     assert "recon_loss" in losses
 
 
-def test_conditional_lstm_forward():
+def test_conditional_vae_lstm_forward():
     x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
     weights = torch.ones((3, 10))
     acts, durations = x.split([5, 1], dim=-1)
@@ -119,7 +119,7 @@ def test_conditional_lstm_forward():
     durations = durations
     conditionals = torch.randn(3, 10)  # (batch, channels)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    model = ConditionalLSTM(
+    model = CVAE_LSTM(
         in_shape=x_encoded[0].shape,
         encodings=5,
         encoding_weights=torch.ones((5)),

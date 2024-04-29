@@ -4,10 +4,10 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models.base_VAE import Base
+from caveat.models import Base, CustomDurationEmbedding
 
 
-class LSTM_Discrete(Base):
+class VAE_LSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -17,7 +17,7 @@ class LSTM_Discrete(Base):
         self.hidden_size = config["hidden_size"]
         self.hidden_layers = config["hidden_layers"]
         self.dropout = config["dropout"]
-        length = self.in_shape[0]
+        length, _ = self.in_shape
 
         self.encoder = Encoder(
             input_size=self.encodings,
@@ -28,7 +28,7 @@ class LSTM_Discrete(Base):
         self.decoder = Decoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
-            output_size=self.encodings,
+            output_size=self.encodings + 1,
             num_layers=self.hidden_layers,
             max_length=length,
             dropout=self.dropout,
@@ -78,18 +78,20 @@ class LSTM_Discrete(Base):
 
         return log_probs, probs
 
+
+class VAE_LSTM_Unweighted(VAE_LSTM):
     def loss_function(
         self,
         log_probs: Tensor,
         probs: Tensor,
+        input: Tensor,
         mu: Tensor,
         log_var: Tensor,
-        target: Tensor,
         mask: Tensor,
         **kwargs,
     ) -> dict:
-        return super().discretized_loss(
-            log_probs, probs, mu, log_var, target, mask, **kwargs
+        return self.unweighted_seq_loss(
+            log_probs, probs, input, mu, log_var, mask, **kwargs
         )
 
 
@@ -112,8 +114,9 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = nn.Embedding(input_size, hidden_size)
-        self.embed_dropout = nn.Dropout(dropout)
+        self.embedding = CustomDurationEmbedding(
+            input_size, hidden_size, dropout=dropout
+        )
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
@@ -121,19 +124,16 @@ class Encoder(nn.Module):
             batch_first=True,
             bidirectional=False,
         )
-        self.norm1 = nn.LayerNorm(hidden_size)
-        self.norm2 = nn.LayerNorm(hidden_size)
-        self.hidden_dropout = nn.Dropout(dropout)
+        self.norm = nn.LayerNorm(hidden_size)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        embedded = self.embedding(x.long())
-        embedded = self.embed_dropout(embedded)
+        embedded = self.embedding(x)
         _, (h1, h2) = self.lstm(embedded)
         # ([layers, N, C (output_size)], [layers, N, C (output_size)])
-        h1 = self.norm1(h1)
-        h2 = self.norm2(h2)
+        h1 = self.norm(h1)
+        h2 = self.norm(h2)
         hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
-        hidden = self.hidden_dropout(hidden)
         # [N, flatsize]
         return hidden
 
@@ -166,8 +166,9 @@ class Decoder(nn.Module):
         self.max_length = max_length
         self.sos = sos
 
-        self.embedding = nn.Embedding(input_size, hidden_size)
-        self.embedding_dropout = nn.Dropout(dropout)
+        self.embedding = CustomDurationEmbedding(
+            input_size, hidden_size, dropout=dropout
+        )
         self.lstm = nn.LSTM(
             hidden_size,
             hidden_size,
@@ -175,18 +176,15 @@ class Decoder(nn.Module):
             batch_first=True,
             bidirectional=False,
         )
-        self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        # todo: layer norm
+        self.duration_activation = nn.Sigmoid()
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
         hidden, cell = hidden
-        decoder_input = torch.zeros(
-            batch_size, 1, device=hidden.device
-        )  # [N, L=0]
-        decoder_input[:, 0] = 0  # set as SOS
+        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        decoder_input[:, :, 0] = self.sos  # set as SOS
         hidden = hidden.contiguous()
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)
@@ -196,33 +194,44 @@ class Decoder(nn.Module):
             decoder_output, decoder_hidden = self.forward_step(
                 decoder_input, decoder_hidden
             )
-            outputs.append(decoder_output)
+            outputs.append(decoder_output.squeeze())
 
             if target is not None:
                 # teacher forcing for next step
-                decoder_input = target[:, i : i + 1]  # (slice maintains dim)
+                decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
             else:
                 # no teacher forcing use decoder output
                 decoder_input = self.pack(decoder_output)
 
-        acts_logits = torch.cat(outputs, dim=1)  # [N, L, C]
+        outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
+
+        acts_logits, durations = torch.split(
+            outputs, [self.output_size - 1, 1], dim=-1
+        )
         acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
+        durations = self.duration_activation(durations)
+        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
+        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
 
-        return acts_log_probs, acts_probs
+        return log_prob_outputs, prob_outputs
 
     def forward_step(self, x, hidden):
-        # x = [N, 1]
-        embedded = self.embedding(x.long())  # todo: get longs from encoder
-        # todo: dropout
+        # [N, 1, 2]
+        embedded = self.embedding(x)
         output, hidden = self.lstm(embedded, hidden)
         prediction = self.fc(output)
-        # [N, encodings]
+        # [N, 1, encodings+1]
         return prediction, hidden
 
     def pack(self, x):
-        # [N, encodings]
-        _, topi = x.topk(1)
-        acts = topi.squeeze(-2).detach()  # detach from history as input
-        # [N, 1]
-        return acts
+        # [N, 1, encodings+1]
+        acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
+        _, topi = acts.topk(1)
+        act = (
+            topi.squeeze(-1).detach().unsqueeze(-1)
+        )  # detach from history as input
+        duration = self.duration_activation(duration)
+        outputs = torch.cat((act, duration), dim=-1)
+        # [N, 1, 2]
+        return outputs

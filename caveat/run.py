@@ -21,7 +21,7 @@ from caveat.experiment import Experiment
 
 
 def run_command(
-    config: dict, stats: bool = True, verbose: bool = False
+    config: dict, verbose: bool = False
 ) -> None:
     """
     Runs the training and reporting process using the provided configuration.
@@ -55,7 +55,7 @@ def run_command(
     trainer = train(
         name=name,
         data_loader=data_loader,
-        encoded=encoded_schedules,
+        encoded_schedules=encoded_schedules,
         config=config,
         logger=logger,
         seed=seed,
@@ -72,7 +72,7 @@ def run_command(
     synthetic_schedules = generate(
         trainer=trainer,
         population=synthetic_population,
-        encoder=schedule_encoder,
+        schedule_encoder=schedule_encoder,
         config=config,
         write_dir=Path(logger.log_dir),
         seed=seed,
@@ -84,9 +84,9 @@ def run_command(
         synthetic_attributes={name: synthetic_attributes},
         default_eval_schedules=schedules,
         default_eval_attributes=attributes,
-        write_path=write_path,
+        write_path=Path(logger.log_dir),
         eval_params=config.get("evaluation_params", {}),
-        stats=stats,
+        stats=False,
         verbose=verbose,
     )
 
@@ -133,7 +133,9 @@ def batch_command(
             encoded_schedules,
             data_loader,
             synthetic_conditionals,
-        ) = encode_data(schedules, attributes, synthetic_attributes, config)
+        ) = encode_data(
+            schedules, attributes, synthetic_attributes, combined_config
+        )
 
         # record synthetic attributes for evaluation
         synthetic_attributes_all[name] = synthetic_attributes
@@ -142,7 +144,7 @@ def batch_command(
         trainer = train(
             name=name,
             data_loader=data_loader,
-            encoded=encoded_schedules,
+            encoded_schedules=encoded_schedules,
             config=combined_config,
             logger=logger,
             seed=seed,
@@ -157,7 +159,7 @@ def batch_command(
         synthetic_schedules[name] = generate(
             trainer=trainer,
             population=synthetic_population,
-            encoder=schedule_encoder,
+            schedule_encoder=schedule_encoder,
             config=combined_config,
             write_dir=Path(logger.log_dir),
             seed=seed,
@@ -223,7 +225,7 @@ def nrun_command(
         trainer = train(
             name=run_name,
             data_loader=data_loader,
-            encoded=encoded_schedules,
+            encoded_schedules=encoded_schedules,
             config=config,
             logger=logger,
             seed=seed,
@@ -231,7 +233,7 @@ def nrun_command(
         synthetic_schedules[run_name] = generate(
             trainer=trainer,
             population=synthetic_population,
-            encoder=schedule_encoder,
+            schedule_encoder=schedule_encoder,
             config=config,
             write_dir=Path(logger.log_dir),
             seed=seed,
@@ -290,7 +292,7 @@ def nsample_command(
     trainer = train(
         name=name,
         data_loader=data_loader,
-        encoded=encoded_schedules,
+        encoded_schedules=encoded_schedules,
         config=config,
         logger=training_logger,
         seed=seed,
@@ -305,7 +307,7 @@ def nsample_command(
         synthetic_schedules[f"nsample{i}"] = generate(
             trainer=trainer,
             population=synthetic_population,
-            encoder=schedule_encoder,
+            schedule_encoder=schedule_encoder,
             config=config,
             write_dir=Path(logger.log_dir),
             seed=seed,
@@ -408,7 +410,7 @@ def encode_data(
 def train(
     name: str,
     data_loader: DataModule,
-    encoded: BaseDataset,
+    encoded_schedules: BaseDataset,
     config: dict,
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
@@ -435,7 +437,7 @@ def train(
 
     torch.cuda.empty_cache()
 
-    experiment = build_experiment(encoded, config)
+    experiment = build_experiment(encoded_schedules, config)
     trainer = build_trainer(logger, config)
     trainer.fit(experiment, datamodule=data_loader)
 
@@ -445,13 +447,15 @@ def train(
 def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
-    encoder: encoders.BaseEncoder,
+    schedule_encoder: encoders.BaseEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
 ) -> DataFrame:
     torch.manual_seed(seed)
-    latent_dims = config["model_params"]["latent_dim"]
+    latent_dims = config.get("model_params", {}).get(
+        "latent_dim", 2
+    )  # default of 2
     batch_size = config.get("generator_params", {}).get("batch_size", 256)
     if isinstance(population, int):
         print(f"\n======= Sampling {population} new schedules =======")
@@ -474,7 +478,7 @@ def generate(
             seed=seed,
         )
 
-    synthetic = encoder.decode(schedules=predictions)
+    synthetic = schedule_encoder.decode(schedules=predictions)
     data.validate_schedules(synthetic)
     synthesis_path = write_dir / "synthetic.csv"
     synthetic.to_csv(synthesis_path)

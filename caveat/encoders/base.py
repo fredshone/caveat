@@ -95,3 +95,30 @@ class PaddedDatatset(BaseDataset):
         pad_left = pad(sample, (1, 0))
         pad_right = pad(sample, (0, 1))
         return (pad_left, mask), (pad_right, mask), conditionals
+
+
+class StaggeredDataset(BaseDataset):
+
+    def shape(self):
+        return len(self.schedules[0]) - 1, 2
+
+    def __getitem__(self, idx):
+        sample = self.schedules[idx]
+        if self.augment:
+            sample = self.augment(sample)
+
+        if self.masks is not None:
+            mask = self.masks[idx]
+        else:
+            mask = None
+
+        if self.conditionals is not None:
+            conditionals = self.conditionals[idx]
+        else:
+            conditionals = Tensor([])
+
+        return (
+            (sample[:-1, :], mask[:-1]),
+            (sample[1:, :], mask[1:]),
+            conditionals,
+        )

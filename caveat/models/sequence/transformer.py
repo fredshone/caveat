@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torchmetrics.classification import MulticlassHammingDistance
 
-from caveat.models.sequence.lstm import Encoder
+from caveat.models.sequence.VAE_LSTM import Encoder
 
 
 class BahdanauAttention(nn.Module):
@@ -336,8 +336,7 @@ class Transformer(nn.Module):
         )
 
         kld_loss = kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1),
-            dim=0,
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
 
         loss = recons_loss + kld_loss

@@ -1,58 +1,99 @@
 global:
   logging_params:
-    save_dir: "logs_cond"
-    name: "test"
+    log_dir: "logs"
+    name: "c_lstm"
 
-  schedules_path: "examples/tmp/nts_home_schedules.csv"
-  attributes_path: "examples/tmp/nts_home_attributes.csv"
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes.csv"
 
   loader_params:
     train_batch_size: 256
     val_batch_size:  256
-    num_workers: 12
+    num_workers: 4
 
   trainer_params:
     max_epochs: 100
+    min_epochs: 10
     patience: 10
 
-  experiment_params:
-    LR: 0.001
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-  
   encoder_params:
-    name: "sequence"
+    name: "sequence_staggered"
     max_length: 16
     norm_duration: 1440
-    jitter: 0.2
+    jitter: 0.1
 
   conditionals:
     gender: nominal
+    # age: {ordinal: [0, 100]}
     age: nominal
     employment: nominal
-    education: nominal
-    license: nominal
-    car_access: nominal
+    # education: nominal
+    # license: nominal
+    # car_access: nominal
+    # income: {ordinal: [0, 5]}
+    # work_status: nominal
+    # area: nominal
   
-  evaluation_params:
-    split_on: [gender, age, employment, education, license, car_access]
+  # evaluation_params:
+  #   split_on: [gender, age, area, car_access]
 
-uncond_1:
-  seed: 1111
+
+c_lstm_5x128:
+  experiment_params:
+    LR: 0.0001
+    weight_decay: 0.0
+    scheduler_gamma: 0.9
   model_params:
-    name: "LSTM"
+    name: "C_LSTM"
+    latent_dim: 6
     hidden_layers: 5
     hidden_size: 128
-    latent_dim: 6
-    dropout: 0.3
-    kld_weight: 0.001
+    dropout: 0.1
+    teacher_forcing_ratio: 0.6
 
-cond_1:
-  seed: 1111
-  model_params:
-    name: "conditional_LSTM"
-    hidden_layers: 5
-    hidden_size: 128
-    latent_dim: 6
-    dropout: 0.3
-    kld_weight: 0.001
+# c_lstm_1x8:
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.0
+#     scheduler_gamma: 0.95
+#   model_params:
+#     name: "C_LSTM"
+#     latent_dim: 6
+#     hidden_layers: 1
+#     hidden_size: 8
+#     dropout: 0.1
+#     teacher_forcing_ratio: 0.5
+
+# c_lstm_1x16:
+#   experiment_params:
+#     LR: 0.001
+#     weight_decay: 0.0
+#     scheduler_gamma: 0.95
+#   model_params:
+#     name: "C_LSTM"
+#     latent_dim: 6
+#     hidden_layers: 1
+#     hidden_size: 16
+#     dropout: 0.1
+#     teacher_forcing_ratio: 0.5
+
+
+# vae_1:
+#   seed: 1111
+#   model_params:
+#     name: "VAE_LSTM"
+#     hidden_layers: 5
+#     hidden_size: 128
+#     latent_dim: 6
+#     dropout: 0.3
+#     kld_weight: 0.001
+
+# cvae_1:
+#   seed: 1111
+#   model_params:
+#     name: "CVAE_LSTM"
+#     hidden_layers: 5
+#     hidden_size: 128
+#     latent_dim: 6
+#     dropout: 0.3
+#     kld_weight: 0.001

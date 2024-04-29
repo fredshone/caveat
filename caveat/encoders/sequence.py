@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import SequenceJitter
-from caveat.encoders import BaseDataset, BaseEncoder
+from caveat.encoders import BaseDataset, BaseEncoder, StaggeredDataset
 
 
 class SequenceEncoder(BaseEncoder):
@@ -64,15 +64,8 @@ class SequenceEncoder(BaseEncoder):
     ) -> Tuple[Tensor, Tensor]:
 
         # calc weightings
-        act_weights = (
-            data.groupby("act", observed=True).duration.sum().to_dict()
-        )
-        n = data.pid.nunique()  # sos/eos weight equal to 1 day
-        act_weights.update({self.sos: n, self.eos: n})
-        act_weights = np.array(
-            [act_weights[k] for k in range(len(act_weights))]
-        )
-        act_weights = 1 / act_weights
+        act_weights = self._calc_act_weights(data)
+        # act_weights = self._unit_act_weights(self.encodings)
 
         persons = data.pid.nunique()
         encoding_width = 2  # cat act encoding plus duration
@@ -96,6 +89,21 @@ class SequenceEncoder(BaseEncoder):
             weights[pid] = seq_weights  # [N, L]
 
         return (torch.from_numpy(encoded), torch.from_numpy(weights))
+
+    def _calc_act_weights(self, data: pd.DataFrame) -> Dict[str, float]:
+        act_weights = (
+            data.groupby("act", observed=True).duration.sum().to_dict()
+        )
+        n = data.pid.nunique()
+        act_weights.update({self.sos: n, self.eos: n})
+        act_weights = np.array(
+            [act_weights[k] for k in range(len(act_weights))]
+        )
+        act_weights = 1 / act_weights
+        return act_weights
+
+    def _unit_act_weights(self, n: int) -> Dict[str, float]:
+        return np.array([1 for _ in range(n)])
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
@@ -137,6 +145,50 @@ class SequenceEncoder(BaseEncoder):
         df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
         df["duration"] = df.end - df.start
         return df
+
+
+class SequenceEncoderStaggered(SequenceEncoder):
+
+    def __init__(
+        self, max_length: int = 12, norm_duration: int = 1440, **kwargs
+    ):
+        super().__init__(max_length, norm_duration, **kwargs)
+
+    def encode(
+        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+    ) -> StaggeredDataset:
+        self.sos = 0
+        self.eos = 1
+        self.index_to_acts = {
+            i + 2: a for i, a in enumerate(schedules.act.unique())
+        }
+        self.index_to_acts[0] = "<SOS>"
+        self.index_to_acts[1] = "<EOS>"
+        acts_to_index = {a: i for i, a in self.index_to_acts.items()}
+
+        self.encodings = len(self.index_to_acts)
+
+        # prepare schedules dataframe
+        schedules = schedules.copy()
+        schedules.duration = schedules.duration / self.norm_duration
+        schedules.act = schedules.act.map(acts_to_index)
+
+        # encode
+        encoded_schedules, masks = self._encode_sequences(
+            schedules, self.max_length
+        )
+
+        # augment
+        augment = SequenceJitter(self.jitter) if self.jitter else None
+
+        return StaggeredDataset(
+            schedules=encoded_schedules,
+            masks=masks,
+            activity_encodings=len(self.index_to_acts),
+            activity_weights=None,
+            augment=augment,
+            conditionals=conditionals,
+        )
 
 
 def encode_sequence(

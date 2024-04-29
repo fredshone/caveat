@@ -1,7 +1,7 @@
 global:
   schedules_path: "examples/data/synthetic_schedules.csv"
   logging_params:
-    save_dir: "logs"
+    log_dir: "logs"
     name: "toy_batch"
   seed: 1234
   encoder_params:
