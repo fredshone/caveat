@@ -19,7 +19,7 @@ global:
     kld_weight: 0.00025
   trainer_params:
     min_epochs: 10
-    patirnce: 10
+    patience: 10
     max_epochs: 100
 
 step5:

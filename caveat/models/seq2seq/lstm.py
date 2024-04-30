@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional, List
 
 import torch
 from torch import Tensor, nn
@@ -7,9 +7,9 @@ from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
 
 
-class CVAE_LSTM(Base):
+class LSTM(Base):
     def __init__(self, *args, **kwargs):
-        """RNN based encoder and decoder with encoder embedding layer and conditionality."""
+        """RNN based encoder and decoder with conditionality."""
         super().__init__(*args, **kwargs)
         if self.conditionals_size is None:
             raise UserWarning(
@@ -40,14 +40,29 @@ class CVAE_LSTM(Base):
         )
         self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
-        self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_hidden = nn.Linear(
             self.latent_dim + self.conditionals_size, flat_size_encode
         )
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
+
+    def forward(
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target=None,
+        **kwargs,
+    ) -> List[Tensor]:
+        z = self.encode(x)
+        log_prob_y, prob_y = self.decode(
+            z, conditionals=conditionals, target=target
+        )
+        return [log_prob_y, prob_y]
+    
+    def encode(self, input: Tensor) -> Tensor:
+        # [N, L, C]
+        return self.encoder(input)
 
     def decode(
         self, z: Tensor, conditionals: Tensor, target=None, **kwargs
