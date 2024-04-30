@@ -3,7 +3,7 @@ import pytest
 from torch import Tensor
 from torch.testing import assert_close
 
-from caveat.encoders.attributes import (
+from caveat.encoding.attributes import (
     AttributeEncoder,
     nominal_encode,
     ordinal_encode,

@@ -1,12 +1,12 @@
 from numpy import array, array_equal
 from pandas import DataFrame
 
-from caveat.features.frequency import (
+from caveat.evaluate.features.frequency import (
     activity_frequencies,
     binned_activity_count,
     binned_activity_density,
 )
-from caveat.features.utils import equals
+from caveat.evaluate.features.utils import equals
 
 
 def test_activity_count_bins():

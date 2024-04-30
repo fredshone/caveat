@@ -1,6 +1,6 @@
 from numpy import array
 
-from caveat.features import utils
+from caveat.evaluate.features import utils
 
 
 def test_equals():

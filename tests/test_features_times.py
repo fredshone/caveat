@@ -1,8 +1,8 @@
 from numpy import array
 from pandas import DataFrame
 
-from caveat.features import times
-from caveat.features.utils import equals
+from caveat.evaluate.features import times
+from caveat.evaluate.features.utils import equals
 
 
 def test_times_by_act():

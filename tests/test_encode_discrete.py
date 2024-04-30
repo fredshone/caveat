@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch import tensor
 
-from caveat.encoders import discrete
+from caveat.encoding import discrete
 
 
 @pytest.mark.parametrize(

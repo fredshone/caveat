@@ -10,7 +10,7 @@ encoder_params:
   step_size: 10
 
 model_params:
-  name: "conv"
+  name: "VAE_Conv_Discrete"
   hidden_layers: [64,64]
   latent_dim: 2
   stride: [2,2]
@@ -27,7 +27,7 @@ experiment_params:
   kld_weight: 0.00025
 
 trainer_params:
-  max_epochs: 50
+  max_epochs: 5
 
 seed: 1234
   

@@ -1,6 +1,6 @@
 logging_params:
   log_dir: "logs"
-  name: "staggered"
+  name: "toy_conditional"
 
 schedules_path: "examples/data/synthetic_schedules.csv"
 attributes_path: "examples/data/synthetic_attributes.csv"
@@ -17,7 +17,7 @@ encoder_params:
   jitter: 0.1
 
 model_params:
-  name: "C_LSTM"
+  name: "CVAE_LSTM"
   hidden_layers: 1
   hidden_size: 32
   latent_dim: 6
@@ -36,8 +36,8 @@ experiment_params:
   kld_weight: 0.00025
 
 trainer_params:
-  patience: 10
-  max_epochs: 100
+  patience: 3
+  max_epochs: 5
 
 seed: 1234
   

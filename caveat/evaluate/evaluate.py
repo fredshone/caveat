@@ -4,15 +4,15 @@ from typing import Callable, List, Optional, Tuple
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, concat
 
-from caveat.describe.features import (
+from caveat.evaluate.describe.features import (
     average,
     average2d,
     average_weight,
     feature_length,
     feature_weight,
 )
-from caveat.distance import emd, mape
-from caveat.features import (
+from caveat.evaluate.distance import emd, mape
+from caveat.evaluate.features import (
     creativity,
     frequency,
     participation,

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -7,12 +7,12 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 from pandas import DataFrame
 
-from caveat.features.transitions import sequence_probs
+from caveat.evaluate.features.transitions import sequence_probs
 
 
 def _probs_plot(
     population: DataFrame, acts: list[str], cmap: Optional[CMap], ax=Axes
-) -> (Figure, Axes):
+) -> Tuple[Figure, Axes]:
     probs = sequence_probs(population)
     accumulated = probs[::-1].cumsum()[::-1]
 

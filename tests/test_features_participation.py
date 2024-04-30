@@ -1,8 +1,8 @@
 from numpy import array
 from pandas import DataFrame
 
-from caveat.features import participation
-from caveat.features.utils import equals
+from caveat.evaluate.features import participation
+from caveat.evaluate.features.utils import equals
 
 
 def test_participation_prob_by_act():

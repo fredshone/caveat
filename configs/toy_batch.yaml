@@ -21,18 +21,18 @@ global:
     kld_weight: 0.00025
 
   trainer_params:
-    max_epochs: 50
+    max_epochs: 5
 
 2d_latent:
   model_params:
-    name: "conv"
+    name: "VAE_Conv_Discrete"
     hidden_layers: [64,64]
     latent_dim: 2
     stride: [2,2]
 
 3d_latent:
   model_params:
-    name: "conv"
+    name: "VAE_Conv_Discrete"
     hidden_layers: [64,64]
     latent_dim: 3
     stride: [2,2]
