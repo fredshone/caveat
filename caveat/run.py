@@ -14,9 +14,10 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import cuda_available, data, encoders, evaluate, models
+from caveat import cuda_available, data, encoding, models
 from caveat.data.module import DataModule
-from caveat.encoders import BaseDataset, BaseEncoder
+from caveat.encoding import BaseDataset, BaseEncoder
+from caveat.evaluate import evaluate
 from caveat.experiment import Experiment
 
 
@@ -389,7 +390,7 @@ def encode_data(
         conditionals_config = config.get("conditionals", None)
         if conditionals_config is None:
             raise UserWarning("Config must contain conditionals configuration.")
-        attribute_encoder = encoders.AttributeEncoder(conditionals_config)
+        attribute_encoder = encoding.AttributeEncoder(conditionals_config)
         attributes = attribute_encoder.encode(attributes)
         synthetic_attributes = attribute_encoder.encode(synthetic_attributes)
 
@@ -414,7 +415,7 @@ def train(
     config: dict,
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
-) -> Tuple[Trainer, encoders.BaseEncoder]:
+) -> Tuple[Trainer, encoding.BaseEncoder]:
     """
     Trains a model on the observed data. Return model trainer (which includes model) and encoder.
 
@@ -447,7 +448,7 @@ def train(
 def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
-    schedule_encoder: encoders.BaseEncoder,
+    schedule_encoder: encoding.BaseEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
@@ -574,7 +575,7 @@ def generate_from_attributes(
 def conditional_sample(
     trainer: Trainer,
     population_size: int,
-    data_encoder: encoders.BaseEncoder,
+    data_encoder: encoding.BaseEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
@@ -593,14 +594,14 @@ def conditional_sample(
     return synthetic
 
 
-def build_encoder(config: dict) -> encoders.BaseEncoder:
+def build_encoder(config: dict) -> encoding.BaseEncoder:
     encoder_name = config["encoder_params"]["name"]
-    data_encoder = encoders.library[encoder_name](**config["encoder_params"])
+    data_encoder = encoding.library[encoder_name](**config["encoder_params"])
     return data_encoder
 
 
 def build_dataloader(
-    config: dict, dataset: encoders.BaseDataset
+    config: dict, dataset: encoding.BaseDataset
 ) -> data.DataModule:
     data_loader_params = config.get("loader_params", {})
     datamodule = data.DataModule(data=dataset, **data_loader_params)
@@ -608,7 +609,7 @@ def build_dataloader(
     return datamodule
 
 
-def build_experiment(dataset: encoders.BaseDataset, config: dict) -> Experiment:
+def build_experiment(dataset: encoding.BaseDataset, config: dict) -> Experiment:
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     model = model(

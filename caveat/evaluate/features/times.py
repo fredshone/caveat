@@ -1,7 +1,7 @@
 from numpy import array, ndarray
 from pandas import DataFrame
 
-from caveat.features.utils import weighted_features
+from caveat.evaluate.features.utils import weighted_features
 
 
 def start_times_by_act(

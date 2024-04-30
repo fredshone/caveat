@@ -1,7 +1,7 @@
 from numpy import ndarray
 from pandas import DataFrame, MultiIndex, Series
 
-from caveat.features.utils import weighted_features
+from caveat.evaluate.features.utils import weighted_features
 
 
 def transitions_by_act(

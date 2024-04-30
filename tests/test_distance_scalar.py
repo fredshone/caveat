@@ -1,6 +1,6 @@
 from numpy import array
 
-from caveat.distance import scalar
+from caveat.evaluate.distance import scalar
 
 
 def test_ape_binary():

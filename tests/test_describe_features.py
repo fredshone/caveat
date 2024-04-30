@@ -2,7 +2,7 @@ from pandas import Series
 from pandas.testing import assert_series_equal
 from numpy import array
 
-from caveat.describe import features
+from caveat.evaluate.describe import features
 
 def test_describe_actual():
     d = {

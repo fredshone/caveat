@@ -1,6 +1,6 @@
 import torch
 
-from caveat.encoders import BaseDataset, PaddedDatatset
+from caveat.encoding import BaseDataset, PaddedDatatset
 
 
 def test_base_encoded():

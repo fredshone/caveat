@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from caveat.features.creativity import (
+from caveat.evaluate.features.creativity import (
     conservatism,
     diversity,
     hash_population,

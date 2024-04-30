@@ -1,9 +1,9 @@
 from numpy import array
 from pandas import DataFrame, Series
 
-from caveat.distance.scalar import mae
-from caveat.evaluate import evaluate, extract_default, score_features
-from caveat.features.times import start_times_by_act
+from caveat.evaluate.distance.scalar import mae
+from caveat.evaluate.evaluate import evaluate, extract_default, score_features
+from caveat.evaluate.features.times import start_times_by_act
 
 
 def test_describe_feature():

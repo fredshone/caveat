@@ -1,12 +1,12 @@
-from caveat.encoders.attributes import AttributeEncoder
-from caveat.encoders.base import (
+from caveat.encoding.attributes import AttributeEncoder
+from caveat.encoding.base import (
     BaseDataset,
     BaseEncoder,
     PaddedDatatset,
     StaggeredDataset,
 )
-from caveat.encoders.discrete import DiscreteEncoder, DiscreteEncoderPadded
-from caveat.encoders.sequence import SequenceEncoder, SequenceEncoderStaggered
+from caveat.encoding.discrete import DiscreteEncoder, DiscreteEncoderPadded
+from caveat.encoding.sequence import SequenceEncoder, SequenceEncoderStaggered
 
 library = {
     "discrete": DiscreteEncoder,

@@ -1,8 +1,8 @@
 from numpy import array
 from pandas import DataFrame, Series
 
-from caveat.features import transitions
-from caveat.features.utils import equals
+from caveat.evaluate.features import transitions
+from caveat.evaluate.features.utils import equals
 
 
 def test_transitions():

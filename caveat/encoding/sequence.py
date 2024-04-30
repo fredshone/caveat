@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import SequenceJitter
-from caveat.encoders import BaseDataset, BaseEncoder, StaggeredDataset
+from caveat.encoding import BaseDataset, BaseEncoder, StaggeredDataset
 
 
 class SequenceEncoder(BaseEncoder):

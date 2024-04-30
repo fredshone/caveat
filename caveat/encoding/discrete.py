@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import DiscreteJitter
-from caveat.encoders import BaseDataset, BaseEncoder, PaddedDatatset
+from caveat.encoding import BaseDataset, BaseEncoder, PaddedDatatset
 
 
 class DiscreteEncoder(BaseEncoder):
