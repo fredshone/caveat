@@ -1,0 +1,59 @@
+global:
+  schedules_path: "examples/data/synthetic_schedules.csv"
+  logging_params:
+    log_dir: "logs"
+    name: "step_batch"
+  seed: 1234
+  model_params:
+    name: "VAE_Conv_Discrete"
+    hidden_layers: [128, 128, 128, 128]
+    latent_dim: 6
+  loader_params:
+    train_batch_size: 128
+    val_batch_size:  128
+    num_workers: 3
+  experiment_params:
+    LR: 0.005
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.00025
+  trainer_params:
+    min_epochs: 10
+    patirnce: 10
+    max_epochs: 100
+
+step5:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 5
+
+step10:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 10
+
+step15:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 15
+
+step20:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 20
+
+step30:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 30
+
+step60:
+  encoder_params:
+    name: "discrete"
+    duration: 1440
+    step_size: 60
