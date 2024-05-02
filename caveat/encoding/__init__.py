@@ -3,6 +3,7 @@ from caveat.encoding.base import (
     BaseDataset,
     BaseEncoder,
     PaddedDatatset,
+    Seq2SeqDataset,
     StaggeredDataset,
 )
 from caveat.encoding.discrete import DiscreteEncoder, DiscreteEncoderPadded

@@ -55,6 +55,29 @@ class CustomDurationEmbedding(nn.Module):
         return embedded
 
 
+class CustomDurationModeDistanceEmbedding(nn.Module):
+    def __init__(
+        self,
+        act_embeddings,
+        mode_embeddings,
+        hidden_act_size,
+        hidden_mode_size,
+        dropout: float = 0.1,
+    ):
+        """Embedding that combines activity embedding layer and duration and mode distance."""
+        super().__init__()
+        self.act_embedding = nn.Embedding(act_embeddings, hidden_act_size)
+        self.mode_embedding = nn.Embedding(mode_embeddings, hidden_mode_size)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        acts, durations, modes, distances = torch.split(x, [1, 1, 1, 1], dim=-1)
+        acts = self.dropout(self.act_embedding(acts.int())).squeeze(-2)
+        modes = self.dropout(self.mode_embedding(modes.int())).squeeze(-2)
+        embedded = torch.cat((acts, durations, modes, distances), dim=-1)
+        return embedded
+
+
 class CustomCombinedEmbedding(nn.Module):
     def __init__(self, input_size, hidden_size, dropout: float = 0.1):
         """Embedding that combines activity embedding layer and duration and end time."""

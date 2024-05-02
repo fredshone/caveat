@@ -6,28 +6,22 @@ import torch
 from torch import Tensor
 
 from caveat.data.augment import SequenceJitter
-from caveat.encoding import BaseDataset, BaseEncoder, StaggeredDataset
+from caveat.encoding import BaseEncoder, Seq2SeqDataset
 
 
 class SequenceEncoder(BaseEncoder):
     def __init__(
-        self, max_length: int = 12, norm_duration: int = 1440, **kwargs
+        self, max_length: int = 16, norm_duration: int = 2880, **kwargs
     ):
-        """Sequence Encoder for sequences of activities. Also supports conditional attributes.
-
-        Args:
-            max_length (int, optional): _description_. Defaults to 12.
-            norm_duration (int, optional): _description_. Defaults to 1440.
-        """
         self.max_length = max_length
         self.norm_duration = norm_duration
         self.jitter = kwargs.get("jitter", 0)
 
     def encode(
         self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
-    ) -> BaseDataset:
+    ) -> Seq2SeqDataset:
         self.sos = 0
-        self.eos = 2
+        self.eos = 1
         self.index_to_acts = {
             i + 2: a for i, a in enumerate(schedules.act.unique())
         }
@@ -35,25 +29,47 @@ class SequenceEncoder(BaseEncoder):
         self.index_to_acts[1] = "<EOS>"
         acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
+        self.index_to_modes = {
+            i: m for i, m in enumerate(schedules["mode"].unique())
+        }
+        self.modes_to_index = {m: i for i, m in self.index_to_modes.items()}
+
         self.encodings = len(self.index_to_acts)
+        self.modes = len(self.index_to_modes)
+
+        self.max_distance = schedules.distance.max()
 
         # prepare schedules dataframe
         schedules = schedules.copy()
         schedules.duration = schedules.duration / self.norm_duration
+        schedules.target_duration = (
+            schedules.target_duration / self.norm_duration
+        )
         schedules.act = schedules.act.map(acts_to_index)
+        schedules.target_act = schedules.target_act.map(acts_to_index)
+        schedules["mode"] = schedules["mode"].map(self.modes_to_index)
+        schedules["target_mode"] = schedules["target_mode"].map(
+            self.modes_to_index
+        )
+        schedules["distance"] = schedules["distance"] / self.max_distance
+        schedules["target_distance"] = (
+            schedules["target_distance"] / self.max_distance
+        )
 
         # encode
-        encoded_schedules, masks = self._encode_sequences(
+        encoded_schedules, encoded_target, masks = self._encode_sequences(
             schedules, self.max_length
         )
 
         # augment
         augment = SequenceJitter(self.jitter) if self.jitter else None
 
-        return BaseDataset(
-            schedules=encoded_schedules,
+        return Seq2SeqDataset(
+            lhs=encoded_schedules,
+            rhs=encoded_target,
             masks=masks,
-            activity_encodings=len(self.index_to_acts),
+            act_encodings=len(self.index_to_acts),
+            mode_encodings=len(self.index_to_modes),
             activity_weights=None,
             augment=augment,
             conditionals=conditionals,
@@ -61,24 +77,33 @@ class SequenceEncoder(BaseEncoder):
 
     def _encode_sequences(
         self, data: pd.DataFrame, max_length: int
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
 
         # calc weightings
         act_weights = self._calc_act_weights(data)
         # act_weights = self._unit_act_weights(self.encodings)
 
         persons = data.pid.nunique()
-        encoding_width = 2  # cat act encoding plus duration
+        encoding_width = 4  # act, duration, mode, distance
 
         encoded = np.zeros(
+            (persons, max_length, encoding_width), dtype=np.float32
+        )
+        target = np.zeros(
             (persons, max_length, encoding_width), dtype=np.float32
         )
         weights = np.zeros((persons, max_length), dtype=np.float32)
 
         for pid, (_, trace) in enumerate(data.groupby("pid")):
-            seq_encoding, seq_weights = encode_sequence(
+            seq_encoding, target_seq_encoding, seq_weights = encode_sequences(
                 acts=list(trace.act),
                 durations=list(trace.duration),
+                modes=list(trace["mode"]),
+                distances=list(trace["distance"]),
+                target_acts=list(trace.target_act),
+                target_durations=list(trace.target_duration),
+                target_modes=list(trace["target_mode"]),
+                target_distances=list(trace["target_distance"]),
                 max_length=max_length,
                 encoding_width=encoding_width,
                 act_weights=act_weights,
@@ -86,13 +111,18 @@ class SequenceEncoder(BaseEncoder):
                 eos=self.eos,
             )
             encoded[pid] = seq_encoding  # [N, L, W]
+            target[pid] = target_seq_encoding  # [N, L, W]
             weights[pid] = seq_weights  # [N, L]
 
-        return (torch.from_numpy(encoded), torch.from_numpy(weights))
+        return (
+            torch.from_numpy(encoded),
+            torch.from_numpy(target),
+            torch.from_numpy(weights),
+        )
 
     def _calc_act_weights(self, data: pd.DataFrame) -> Dict[str, float]:
         act_weights = (
-            data.groupby("act", observed=True).duration.sum().to_dict()
+            data.groupby("target_act", observed=True).duration.sum().to_dict()
         )
         n = data.pid.nunique()
         act_weights.update({self.sos: n, self.eos: n})
@@ -147,77 +177,28 @@ class SequenceEncoder(BaseEncoder):
         return df
 
 
-class SequenceEncoderStaggered(SequenceEncoder):
-
-    def __init__(
-        self, max_length: int = 12, norm_duration: int = 1440, **kwargs
-    ):
-        super().__init__(max_length, norm_duration, **kwargs)
-
-    def encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
-    ) -> StaggeredDataset:
-        self.sos = 0
-        self.eos = 1
-        self.index_to_acts = {
-            i + 2: a for i, a in enumerate(schedules.act.unique())
-        }
-        self.index_to_acts[0] = "<SOS>"
-        self.index_to_acts[1] = "<EOS>"
-        acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-
-        self.encodings = len(self.index_to_acts)
-
-        # prepare schedules dataframe
-        schedules = schedules.copy()
-        schedules.duration = schedules.duration / self.norm_duration
-        schedules.act = schedules.act.map(acts_to_index)
-
-        # encode
-        encoded_schedules, masks = self._encode_sequences(
-            schedules, self.max_length
-        )
-
-        # augment
-        augment = SequenceJitter(self.jitter) if self.jitter else None
-
-        return StaggeredDataset(
-            schedules=encoded_schedules,
-            masks=masks,
-            activity_encodings=len(self.index_to_acts),
-            activity_weights=None,
-            augment=augment,
-            conditionals=conditionals,
-        )
-
-
-def encode_sequence(
+def encode_sequences(
     acts: list[int],
     durations: list[float],
+    modes: list[int],
+    distances: list[float],
+    target_acts: list[int],
+    target_durations: list[float],
+    target_modes: list[int],
+    target_distances: list[float],
     max_length: int,
     encoding_width: int,
     act_weights: np.ndarray,
     sos: int,
     eos: int,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Create sequence encoding from ranges.
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
-    Args:
-        acts (Iterable[int]): _description_
-        durations (Iterable[float]): _description_
-        max_length (int): _description_
-        encoding_width (dict): _description_
-        act_weights (dict): _description_
-        sos (int): _description_
-        eos (int): _description_
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: _description_
-    """
     encoding = np.zeros((max_length, encoding_width), dtype=np.float32)
+    target = np.zeros((max_length, encoding_width), dtype=np.float32)
     weights = np.zeros((max_length), dtype=np.float32)
     # SOS
     encoding[0][0] = sos
+    target[0][0] = sos
     # mask includes sos
     weights[0] = act_weights[sos]
 
@@ -225,13 +206,21 @@ def encode_sequence(
         if i < len(acts) + 1:
             encoding[i][0] = acts[i - 1]
             encoding[i][1] = durations[i - 1]
+            encoding[i][2] = modes[i - 1]
+            encoding[i][3] = distances[i - 1]
+            target[i][0] = target_acts[i - 1]
+            target[i][1] = target_durations[i - 1]
+            target[i][2] = target_modes[i - 1]
+            target[i][3] = target_distances[i - 1]
             weights[i] = act_weights[acts[i - 1]]
         elif i < len(acts) + 2:
             encoding[i][0] = eos
+            target[i][0] = eos
             # mask includes first eos
             weights[i] = act_weights[eos]
         else:
             encoding[i][0] = eos
+            target[i][0] = eos
             # act weights are 0 for padding eos
 
-    return encoding, weights
+    return encoding, target, weights

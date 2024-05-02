@@ -2,7 +2,6 @@ from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
-from torchmetrics.classification import MulticlassHammingDistance
 
 
 class BaseEncoder(nn.Module):
@@ -63,9 +62,6 @@ class Base(nn.Module):
 
         self.base_NLLL = nn.NLLLoss(reduction="none")
         self.MSE = nn.MSELoss()
-        self.hamming = MulticlassHammingDistance(
-            num_classes=encodings, average="micro"
-        )
 
         self.build(**config)
 

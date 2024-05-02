@@ -122,3 +122,53 @@ class StaggeredDataset(BaseDataset):
             (sample[1:, :], mask[1:]),
             conditionals,
         )
+
+
+class Seq2SeqDataset(Dataset):
+    def __init__(
+        self,
+        lhs: Tensor,
+        rhs: Tensor,
+        masks: Optional[Tensor],
+        act_encodings: int,
+        mode_encodings: int,
+        activity_weights: Optional[Tensor],
+        augment: Optional[ScheduleAugment],
+        conditionals: Optional[Tensor],
+    ):
+        super(Seq2SeqDataset, self).__init__()
+        self.lhs = lhs
+        self.rhs = rhs
+        self.masks = masks
+        self.activity_encodings = (act_encodings, mode_encodings)
+        self.encoding_weights = activity_weights
+        self.augment = augment
+        self.conditionals = conditionals
+        self.conditionals_shape = (
+            conditionals.shape[-1] if conditionals is not None else None
+        )
+
+    def shape(self):
+        return self.lhs[0].shape
+
+    def __len__(self):
+        return len(self.lhs)
+
+    def __getitem__(self, idx):
+        lhs = self.lhs[idx]
+        rhs = self.rhs[idx]
+        if self.augment:
+            lhs = self.augment(lhs)
+            rhs = self.augment(rhs)
+
+        if self.masks is not None:
+            mask = self.masks[idx]
+        else:
+            mask = None
+
+        if self.conditionals is not None:
+            conditionals = self.conditionals[idx]
+        else:
+            conditionals = Tensor([])
+
+        return (lhs, mask), (rhs, mask), conditionals

@@ -1,13 +1,13 @@
-from typing import Tuple, Optional, List
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationModeDistanceEmbedding
 
 
-class LSTM(Base):
+class SEQ2SEQ_LSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with conditionality."""
         super().__init__(*args, **kwargs)
@@ -23,16 +23,34 @@ class LSTM(Base):
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
+        self.act_encodings, self.mode_encodings = self.encodings
+
+        # encodings
+        if self.hidden_size < 4:
+            raise ValueError("Hidden size must be at least 4.")
+        self.hidden_mode_size = config.get("hidden_mode_size")
+        if self.hidden_mode_size is None:
+            self.hidden_mode_size = (self.hidden_size - 2) // 2
+        self.hidden_act_size = config.get("hidden_act_size")
+        if self.hidden_act_size is None:
+            self.hidden_act_size = self.hidden_size - 2 - self.hidden_mode_size
+
         self.encoder = Encoder(
-            input_size=self.encodings,
+            act_embeddings=self.act_encodings,
+            mode_embeddings=self.mode_encodings,
             hidden_size=self.hidden_size,
+            hidden_act_size=self.hidden_act_size,
+            hidden_mode_size=self.hidden_mode_size,
             num_layers=self.hidden_layers,
             dropout=self.dropout,
         )
         self.decoder = Decoder(
-            input_size=self.encodings,
+            act_embeddings=self.act_encodings,
+            mode_embeddings=self.mode_encodings,
             hidden_size=self.hidden_size,
-            output_size=self.encodings + 1,
+            hidden_act_size=self.hidden_act_size,
+            hidden_mode_size=self.hidden_mode_size,
+            output_size=self.act_encodings + self.mode_encodings + 2,
             num_layers=self.hidden_layers,
             max_length=length,
             dropout=self.dropout,
@@ -41,7 +59,7 @@ class LSTM(Base):
         self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
         self.fc_hidden = nn.Linear(
-            self.latent_dim + self.conditionals_size, flat_size_encode
+            flat_size_encode + self.conditionals_size, flat_size_encode
         )
 
         if config.get("share_embed", False):
@@ -54,12 +72,10 @@ class LSTM(Base):
         target=None,
         **kwargs,
     ) -> List[Tensor]:
-        z = self.encode(x)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y]
-    
+        z = self.encode(x)  # [N, flat]
+        results = self.decode(z, conditionals=conditionals, target=target)
+        return results
+
     def encode(self, input: Tensor) -> Tensor:
         # [N, L, C]
         return self.encoder(input)
@@ -93,38 +109,98 @@ class LSTM(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            results = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            results = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return results
+
+    def loss_function(
+        self,
+        log_act_probs: Tensor,
+        act_probs: Tensor,
+        durations: Tensor,
+        log_mode_probs: Tensor,
+        mode_probs: Tensor,
+        distances: Tensor,
+        target: Tensor,
+        mask: Tensor,
+        **kwargs,
+    ) -> dict:
+        # unpack target
+        target_acts, target_durations, target_mode, target_distances = (
+            target.split([1, 1, 1, 1], dim=-1)
+        )
+
+        # acts = input[:, :, :-1].contiguous()
+        # durations = input[:, :, -1:].squeeze(-1).contiguous()
+
+        # activity loss
+        recon_act_nlll = self.base_NLLL(
+            log_act_probs.view(-1, self.act_encodings),
+            target_acts.contiguous().view(-1).long(),
+        )
+        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+
+        # duration loss
+        recon_dur_mse = self.duration_weight * self.MSE(
+            durations, target_durations
+        )
+        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+
+        # mode loss
+        recon_mode_nlll = self.base_NLLL(
+            log_mode_probs.view(-1, self.mode_encodings),
+            target_mode.contiguous().view(-1).long(),
+        )
+
+        # reconstruction loss
+        recons_loss = recon_act_nlll + recon_dur_mse + recon_mode_nlll
+
+        return {
+            "loss": recons_loss,
+            "recon_loss": recons_loss.detach(),
+            "recon_act_loss": recon_act_nlll.detach(),
+            "recon_duration_loss": recon_dur_mse.detach(),
+            "recon_mode_loss": recon_mode_nlll.detach(),
+        }
 
 
 class Encoder(nn.Module):
     def __init__(
         self,
-        input_size: int,
+        act_embeddings: int,
+        mode_embeddings: int,
         hidden_size: int,
+        hidden_act_size: int,
+        hidden_mode_size: int,
         num_layers: int,
         dropout: float = 0.1,
     ):
         """LSTM Encoder.
 
         Args:
-            input_size (int): lstm input size.
+            act_embeddings (int): number of activity embeddings.
+            mode_embeddings (int): number of mode embeddings.
             hidden_size (int): lstm hidden size.
+            hidden_act_size (int): hidden size for activity embeddings.
+            hidden_mode_size (int): hidden size for mode embeddings.
             num_layers (int): number of lstm layers.
             dropout (float): dropout. Defaults to 0.1.
         """
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = CustomDurationEmbedding(
-            input_size, hidden_size, dropout=dropout
+        self.embedding = CustomDurationModeDistanceEmbedding(
+            act_embeddings=act_embeddings,
+            mode_embeddings=mode_embeddings,
+            hidden_act_size=hidden_act_size,
+            hidden_mode_size=hidden_mode_size,
+            dropout=dropout,
         )
         self.lstm = nn.LSTM(
             hidden_size,
@@ -150,8 +226,11 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(
         self,
-        input_size,
+        act_embeddings: int,
+        mode_embeddings: int,
         hidden_size,
+        hidden_act_size,
+        hidden_mode_size,
         output_size,
         num_layers,
         max_length,
@@ -161,22 +240,32 @@ class Decoder(nn.Module):
         """LSTM Decoder with teacher forcing.
 
         Args:
-            input_size (int): lstm input size.
+            act_embeddings (int): number of activity embeddings.
+            mode_embeddings (int): number of mode embeddings.
             hidden_size (int): lstm hidden size.
+            hidden_act_size (int): hidden size for activity embeddings.
+            hidden_mode_size (int): hidden size for mode embeddings.
             num_layers (int): number of lstm layers.
             max_length (int): max length of sequences.
             dropout (float): dropout probability. Defaults to 0.
         """
         super(Decoder, self).__init__()
         self.current_device = current_device()
-        self.input_size = input_size
+        self.act_embeddings = act_embeddings
+        self.mode_embeddings = mode_embeddings
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.max_length = max_length
         self.sos = sos
+        self.hidden_act_size = hidden_act_size
+        self.hidden_mode_size = hidden_mode_size
 
-        self.embedding = CustomDurationEmbedding(
-            input_size, hidden_size, dropout=dropout
+        self.embedding = CustomDurationModeDistanceEmbedding(
+            act_embeddings=act_embeddings,
+            mode_embeddings=mode_embeddings,
+            hidden_act_size=hidden_act_size,
+            hidden_mode_size=hidden_mode_size,
+            dropout=dropout,
         )
         self.lstm = nn.LSTM(
             hidden_size,
@@ -189,10 +278,13 @@ class Decoder(nn.Module):
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
         self.duration_activation = nn.Softmax(dim=-2)
+        self.mode_prob_activation = nn.Softmax(dim=-1)
+        self.mode_logprob_activation = nn.LogSoftmax(dim=-1)
+        self.distance_activation = nn.Sigmoid()
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
         hidden, cell = hidden
-        decoder_input = torch.zeros(batch_size, 1, 2, device=hidden.device)
+        decoder_input = torch.zeros(batch_size, 1, 4, device=hidden.device)
         decoder_input[:, :, 0] = self.sos  # set as SOS
         hidden = hidden.contiguous()
         cell = cell.contiguous()
@@ -214,16 +306,27 @@ class Decoder(nn.Module):
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
 
-        acts_logits, durations = torch.split(
-            outputs, [self.output_size - 1, 1], dim=-1
+        acts_logits, durations, mode_logits, distances = torch.split(
+            outputs, [self.act_embeddings, 1, self.mode_embeddings, 1], dim=-1
         )
-        acts_probs = self.activity_prob_activation(acts_logits)
-        acts_log_probs = self.activity_logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
-        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
+        act_probs = self.activity_prob_activation(acts_logits)
+        act_log_probs = self.activity_logprob_activation(acts_logits)
 
-        return log_prob_outputs, prob_outputs
+        durations = self.duration_activation(durations)
+
+        mode_probs = self.mode_prob_activation(mode_logits)
+        mode_log_probs = self.mode_logprob_activation(mode_logits)
+
+        distances = self.distance_activation(distances)
+
+        return [
+            act_log_probs,
+            act_probs,
+            durations,
+            mode_log_probs,
+            mode_probs,
+            distances,
+        ]
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]
@@ -235,12 +338,17 @@ class Decoder(nn.Module):
 
     def pack(self, x):
         # [N, 1, encodings+1]
-        acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        _, topi = acts.topk(1)
+        act, duration, mode, distance = torch.split(
+            x, [self.act_embeddings, 1, self.mode_embeddings, 1], dim=-1
+        )
+        _, topi = act.topk(1)
         act = (
             topi.squeeze(-1).detach().unsqueeze(-1)
         )  # detach from history as input
         duration = self.duration_activation(duration)
-        outputs = torch.cat((act, duration), dim=-1)
-        # [N, 1, 2]
+        _, topi = mode.topk(1)
+        mode = topi.squeeze(-1).detach().unsqueeze(-1)
+        distance = self.distance_activation(distance)
+        outputs = torch.cat((act, duration, mode, distance), dim=-1)
+        # [N, 1, 4]
         return outputs
