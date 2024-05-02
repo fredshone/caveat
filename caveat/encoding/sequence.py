@@ -27,7 +27,7 @@ class SequenceEncoder(BaseEncoder):
         self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
     ) -> BaseDataset:
         self.sos = 0
-        self.eos = 2
+        self.eos = 1
         self.index_to_acts = {
             i + 2: a for i, a in enumerate(schedules.act.unique())
         }
