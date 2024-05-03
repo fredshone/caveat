@@ -6,6 +6,7 @@ from .embed import CustomDurationEmbedding, CustomDurationModeDistanceEmbedding
 from .sequence.cond_lstm import ConditionalLSTM
 from .sequence.cond_gen_lstm import CVAE_LSTM
 from .sequence.gen_lstm import VAE_LSTM
+from .seq2seq.lstm import Seq2SeqLSTM
 
 library = {
     "VAE_Conv_Discrete": Conv,
@@ -14,4 +15,5 @@ library = {
     "C_LSTM": ConditionalLSTM,
     "VAE_LSTM_Discrete": LSTM_Discrete,
     "Attention_Discrete": AttentionDiscrete,
+    "Seq2Seq_LSTM": Seq2SeqLSTM,
 }

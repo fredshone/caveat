@@ -3,7 +3,7 @@ import torch
 from caveat.models.discrete.embed_conv import Conv
 from caveat.models.discrete.lstm_discrete import LSTM_Discrete
 from caveat.models.discrete.transformer_discrete import AttentionDiscrete
-from caveat.models.seq2seq.lstm import SEQ2SEQ_LSTM
+from caveat.models.seq2seq.lstm import Seq2SeqLSTM
 from caveat.models.sequence.cond_gen_lstm import CVAE_LSTM
 from caveat.models.sequence.gen_lstm import VAE_LSTM
 
@@ -159,7 +159,7 @@ def test_seq2seq_forward():
     modes_max = modes.argmax(dim=-1).unsqueeze(-1)
     conditionals = torch.randn(N, 4)
     x_encoded = torch.cat([acts_max, durations, modes_max, distances], dim=-1)
-    model = SEQ2SEQ_LSTM(
+    model = Seq2SeqLSTM(
         in_shape=x_encoded[0].shape,
         encodings=(A, M),
         encoding_weights=None,

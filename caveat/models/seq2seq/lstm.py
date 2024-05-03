@@ -7,7 +7,7 @@ from caveat import current_device
 from caveat.models import Base, CustomDurationModeDistanceEmbedding
 
 
-class SEQ2SEQ_LSTM(Base):
+class Seq2SeqLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with conditionality."""
         super().__init__(*args, **kwargs)
@@ -17,7 +17,7 @@ class SEQ2SEQ_LSTM(Base):
             )
 
     def build(self, **config):
-        self.latent_dim = config["latent_dim"]
+        # self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
         self.hidden_layers = config["hidden_layers"]
         self.dropout = config["dropout"]
@@ -157,6 +157,7 @@ class SEQ2SEQ_LSTM(Base):
             log_mode_probs.view(-1, self.mode_encodings),
             target_mode.contiguous().view(-1).long(),
         )
+        recon_mode_nlll = (recon_mode_nlll * mask.view(-1)).sum() / mask.sum()
 
         # reconstruction loss
         recons_loss = recon_act_nlll + recon_dur_mse + recon_mode_nlll

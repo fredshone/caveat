@@ -99,7 +99,7 @@ def test_encoder():
     expected_weights = torch.tensor(
         [1 / 2, 1 / 1.2, 1 / 0.8, 1 / 1.2, 1 / 2, 0]
     )
-    encoder = seq.SequenceEncoder(max_length=length, norm_duration=duration)
+    encoder = seq.Seq2SeqEncoder(max_length=length, norm_duration=duration)
     encoded = encoder.encode(schedules, None)
 
     assert torch.equal(encoded.lhs[0], expected)

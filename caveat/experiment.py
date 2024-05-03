@@ -82,9 +82,9 @@ class Experiment(pl.LightningModule):
             prog_bar=True,
         )
 
-    def on_validation_end(self) -> None:
-        self.regenerate_val_batch()
-        self.sample_sequences()
+    # def on_validation_end(self) -> None:
+    #     self.regenerate_val_batch()
+    #     self.sample_sequences()
 
     def regenerate_test_batch(self):
         (x, _), (y, _), conditionals = next(

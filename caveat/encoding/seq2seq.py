@@ -9,7 +9,7 @@ from caveat.data.augment import SequenceJitter
 from caveat.encoding import BaseEncoder, Seq2SeqDataset
 
 
-class SequenceEncoder(BaseEncoder):
+class Seq2SeqEncoder(BaseEncoder):
     def __init__(
         self, max_length: int = 16, norm_duration: int = 2880, **kwargs
     ):

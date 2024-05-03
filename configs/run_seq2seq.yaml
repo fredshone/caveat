@@ -1,0 +1,49 @@
+logging_params:
+  log_dir: "logs"
+  name: "seq2seq"
+
+schedules_path: "C:/Users/ucfnfjs/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/combined.csv"
+attributes_path: "C:/Users/ucfnfjs/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/attributes.csv"
+
+conditionals:
+  subpopulation: nominal
+  hcounty: nominal
+  gender: nominal
+  workstatus: nominal
+  hasLicence: nominal
+  hasCar: nominal
+  hasBike: nominal
+  age_group: nominal
+
+encoder_params:
+  name: "seq2seq"
+  max_length: 16
+  norm_duration: 2880
+  # jitter: 0
+
+model_params:
+  name: "Seq2Seq_LSTM"
+  hidden_layers: 4
+  hidden_size: 128
+  # latent_dim: 6
+  dropout: 0.1
+  teacher_forcing_ratio: 0.5
+
+loader_params:
+  train_batch_size: 128
+  val_batch_size:  128
+  num_workers: 8
+
+experiment_params:
+  LR: 0.005
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  # kld_weight: 0.00025
+
+trainer_params:
+  min_epochs: 10
+  patience: 5
+  max_epochs: 50
+
+seed: 1234
+  
