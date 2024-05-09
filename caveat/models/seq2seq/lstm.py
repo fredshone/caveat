@@ -121,16 +121,16 @@ class Seq2SeqLSTM(Base):
 
     def loss_function(
         self,
-        log_act_probs: Tensor,
-        act_probs: Tensor,
-        durations: Tensor,
-        log_mode_probs: Tensor,
-        mode_probs: Tensor,
-        distances: Tensor,
+        log_probs: Tensor,
+        probs: Tensor,
         target: Tensor,
         mask: Tensor,
         **kwargs,
     ) -> dict:
+        # unpack log_probs
+        log_act_probs, durations, log_mode_probs, distances = torch.split(
+            log_probs, [self.act_encodings, 1, self.mode_encodings, 1], dim=-1
+        )
         # unpack target
         target_acts, target_durations, target_mode, target_distances = (
             target.split([1, 1, 1, 1], dim=-1)
@@ -169,6 +169,21 @@ class Seq2SeqLSTM(Base):
             "recon_duration_loss": recon_dur_mse.detach(),
             "recon_mode_loss": recon_mode_nlll.detach(),
         }
+
+    def predict_step(self, batch, device: int, **kwargs) -> Tensor:
+        """Given samples from the latent space, return the corresponding decoder space map.
+
+        Args:
+            batch
+            current_device (int): Device to run the model.
+
+        Returns:
+            tensor: [N, steps, acts].
+        """
+        (x, _), _, conditionals = batch
+        x = x.to(device)
+        prob_samples = self.forward(x=x, conditionals=conditionals, **kwargs)[1]
+        return prob_samples
 
 
 class Encoder(nn.Module):
@@ -320,14 +335,14 @@ class Decoder(nn.Module):
 
         distances = self.distance_activation(distances)
 
-        return [
-            act_log_probs,
-            act_probs,
-            durations,
-            mode_log_probs,
-            mode_probs,
-            distances,
-        ]
+        log_prob_outputs = torch.cat(
+            (act_log_probs, durations, mode_log_probs, distances), dim=-1
+        )
+        prob_outputs = torch.cat(
+            (act_probs, durations, mode_probs, distances), dim=-1
+        )
+
+        return [log_prob_outputs, prob_outputs]
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]

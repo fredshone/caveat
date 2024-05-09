@@ -2,8 +2,8 @@ logging_params:
   log_dir: "logs"
   name: "seq2seq"
 
-schedules_path: "C:/Users/ucfnfjs/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/combined.csv"
-attributes_path: "C:/Users/ucfnfjs/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/attributes.csv"
+schedules_path: "C:/Users/ucfnfjs/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/combined_toy.csv"
+attributes_path: "C:/Users/ucfnfjs/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/attributes_toy.csv"
 
 conditionals:
   subpopulation: nominal
@@ -17,33 +17,31 @@ conditionals:
 
 encoder_params:
   name: "seq2seq"
-  max_length: 16
+  max_length: 32
   norm_duration: 2880
-  # jitter: 0
 
 model_params:
   name: "Seq2Seq_LSTM"
   hidden_layers: 4
   hidden_size: 128
-  # latent_dim: 6
   dropout: 0.1
   teacher_forcing_ratio: 0.5
 
 loader_params:
-  train_batch_size: 128
-  val_batch_size:  128
+  train_batch_size: 256
+  val_batch_size:  256
   num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
 
 experiment_params:
   LR: 0.005
   weight_decay: 0.0
   scheduler_gamma: 0.95
-  # kld_weight: 0.00025
 
 trainer_params:
-  min_epochs: 10
-  patience: 5
-  max_epochs: 50
+  min_epochs: 1
+  patience: 3
+  max_epochs: 24
 
 seed: 1234
-  

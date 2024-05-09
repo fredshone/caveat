@@ -78,14 +78,6 @@ class ConditionalLSTM(Base):
         # reconstruction loss
         recons_loss = recon_act_nlll + recon_dur_mse
 
-        # print("target acts:")
-        # print(target_acts[0].squeeze(-1))
-        # print()
-        # print("pred acts:")
-        # print(acts[0].argmax(-1))
-        # print(recons_loss)
-        # print()
-
         return {
             "loss": recons_loss,
             "recon_loss": recons_loss.detach(),
@@ -136,6 +128,14 @@ class ConditionalLSTM(Base):
             )
 
         return log_probs, probs
+
+    def predict_step(
+        self, batch: Tuple[Tensor, Tensor], device: int, **kwargs
+    ) -> Tensor:
+        z, conditionals = batch
+        z = z.to(device)
+        conditionals = conditionals.to(device)
+        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
 
 
 class Decoder(nn.Module):

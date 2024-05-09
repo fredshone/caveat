@@ -20,22 +20,24 @@ class Seq2SeqEncoder(BaseEncoder):
     def encode(
         self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
     ) -> Seq2SeqDataset:
+        # act encoding
         self.sos = 0
         self.eos = 1
-        self.index_to_acts = {
-            i + 2: a for i, a in enumerate(schedules.act.unique())
-        }
+        acts = set(schedules.act.unique()) | set(schedules.target_act.unique())
+        self.index_to_acts = {i + 2: a for i, a in enumerate(acts)}
         self.index_to_acts[0] = "<SOS>"
         self.index_to_acts[1] = "<EOS>"
         acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
-        self.index_to_modes = {
-            i: m for i, m in enumerate(schedules["mode"].unique())
-        }
+        # mode encoding
+        modes = set(schedules["mode"].unique()) | set(
+            schedules["target_mode"].unique()
+        )
+        self.index_to_modes = {i: m for i, m in enumerate(modes)}
         self.modes_to_index = {m: i for i, m in self.index_to_modes.items()}
 
-        self.encodings = len(self.index_to_acts)
-        self.modes = len(self.index_to_modes)
+        self.act_encodings = len(self.index_to_acts)
+        self.mode_encodings = len(self.index_to_modes)
 
         self.max_distance = schedules.distance.max()
 
@@ -148,15 +150,19 @@ class Seq2SeqEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        schedules, durations = torch.split(
-            schedules, [self.encodings, 1], dim=-1
+        print(schedules.shape)
+        schedules, durations, modes, distances = torch.split(
+            schedules, [self.act_encodings, 1, self.mode_encodings, 1], dim=-1
         )
         schedules = schedules.argmax(dim=-1).numpy()
+        modes = modes.argmax(dim=-1).numpy()
         decoded = []
 
         for pid in range(len(schedules)):
             act_start = 0
-            for act_idx, duration in zip(schedules[pid], durations[pid]):
+            for act_idx, duration, mode_idx, distance in zip(
+                schedules[pid], durations[pid], modes[pid], distances[pid]
+            ):
                 if int(act_idx) == self.sos:
                     continue
                 if int(act_idx) == self.eos:
@@ -168,11 +174,15 @@ class Seq2SeqEncoder(BaseEncoder):
                         self.index_to_acts[int(act_idx)],
                         act_start,
                         act_start + duration,
+                        self.index_to_modes[int(mode_idx)],
+                        float(distance * self.max_distance),
                     ]
                 )
                 act_start += duration
 
-        df = pd.DataFrame(decoded, columns=["pid", "act", "start", "end"])
+        df = pd.DataFrame(
+            decoded, columns=["pid", "act", "start", "end", "mode", "distance"]
+        )
         df["duration"] = df.end - df.start
         return df
 

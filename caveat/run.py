@@ -22,7 +22,7 @@ from caveat.experiment import Experiment
 
 
 def run_command(
-    config: dict, verbose: bool = False
+    config: dict, verbose: bool = False, gen: bool = True, test: bool = False
 ) -> None:
     """
     Runs the training and reporting process using the provided configuration.
@@ -40,7 +40,6 @@ def run_command(
             "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         )
     )
-    write_path = log_dir / name
     logger = initiate_logger(log_dir, name)
     seed = config.pop("seed", seeder())
 
@@ -58,38 +57,50 @@ def run_command(
         data_loader=data_loader,
         encoded_schedules=encoded_schedules,
         config=config,
+        test=test,
+        gen=gen,
         logger=logger,
         seed=seed,
     )
 
-    # prepare synthetic attributes
-    synthetic_population = (
-        schedules.pid.nunique()
-        if synthetic_conditionals is None
-        else synthetic_conditionals
-    )
+    if test:
+        # test the model
+        run_test(
+            trainer=trainer,
+            schedule_encoder=schedule_encoder,
+            write_dir=Path(logger.log_dir),
+            seed=seed,
+        )
 
-    # generate synthetic schedules
-    synthetic_schedules = generate(
-        trainer=trainer,
-        population=synthetic_population,
-        schedule_encoder=schedule_encoder,
-        config=config,
-        write_dir=Path(logger.log_dir),
-        seed=seed,
-    )
+    if gen:
+        # prepare synthetic attributes
+        synthetic_population = (
+            schedules.pid.nunique()
+            if synthetic_conditionals is None
+            else synthetic_conditionals
+        )
 
-    # evaluate synthetic schedules
-    evaluate_synthetics(
-        synthetic_schedules={name: synthetic_schedules},
-        synthetic_attributes={name: synthetic_attributes},
-        default_eval_schedules=schedules,
-        default_eval_attributes=attributes,
-        write_path=Path(logger.log_dir),
-        eval_params=config.get("evaluation_params", {}),
-        stats=False,
-        verbose=verbose,
-    )
+        # generate synthetic schedules
+        synthetic_schedules = generate(
+            trainer=trainer,
+            population=synthetic_population,
+            schedule_encoder=schedule_encoder,
+            config=config,
+            write_dir=Path(logger.log_dir),
+            seed=seed,
+        )
+
+        # evaluate synthetic schedules
+        evaluate_synthetics(
+            synthetic_schedules={name: synthetic_schedules},
+            synthetic_attributes={name: synthetic_attributes},
+            default_eval_schedules=schedules,
+            default_eval_attributes=attributes,
+            write_path=Path(logger.log_dir),
+            eval_params=config.get("evaluation_params", {}),
+            stats=False,
+            verbose=verbose,
+        )
 
 
 def batch_command(
@@ -413,6 +424,8 @@ def train(
     data_loader: DataModule,
     encoded_schedules: BaseDataset,
     config: dict,
+    test: bool,
+    gen: bool,
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
 ) -> Tuple[Trainer, encoding.BaseEncoder]:
@@ -437,12 +450,30 @@ def train(
         torch.set_float32_matmul_precision("medium")
 
     torch.cuda.empty_cache()
-
-    experiment = build_experiment(encoded_schedules, config)
+    experiment = build_experiment(encoded_schedules, config, test, gen)
     trainer = build_trainer(logger, config)
     trainer.fit(experiment, datamodule=data_loader)
-
     return trainer
+
+
+def run_test(
+    trainer: Trainer,
+    schedule_encoder: encoding.BaseEncoder,
+    write_dir: Path,
+    seed: int,
+):
+    torch.manual_seed(seed)
+    print("\n======= Testing =======")
+    trainer.test(ckpt_path="best", datamodule=trainer.datamodule)
+    predictions = trainer.predict(
+        ckpt_path="best", dataloaders=trainer.datamodule.test_dataloader()
+    )
+    predictions = torch.concat(predictions)
+    synthetic = schedule_encoder.decode(schedules=predictions)
+    data.validate_schedules(synthetic)
+    synthesis_path = write_dir / "test.csv"
+    synthetic.to_csv(synthesis_path)
+    return synthetic
 
 
 def generate(
@@ -484,6 +515,32 @@ def generate(
     synthesis_path = write_dir / "synthetic.csv"
     synthetic.to_csv(synthesis_path)
     return synthetic
+
+
+def generate_n(
+    trainer: Trainer, n: int, batch_size: int, latent_dims: int, seed: int
+) -> torch.Tensor:
+    torch.manual_seed(seed)
+    dataloaders = data.build_predict_dataloader(n, latent_dims, batch_size)
+    predictions = trainer.predict(ckpt_path="best", dataloaders=dataloaders)
+    predictions = torch.concat(predictions)
+    return predictions
+
+
+def generate_from_attributes(
+    trainer: Trainer,
+    attributes: Tensor,
+    batch_size: int,
+    latent_dims: int,
+    seed: int,
+) -> torch.Tensor:
+    torch.manual_seed(seed)
+    dataloaders = data.build_conditional_dataloader(
+        attributes, latent_dims, batch_size
+    )
+    predictions = trainer.predict(ckpt_path="best", dataloaders=dataloaders)
+    predictions = torch.concat(predictions)
+    return predictions
 
 
 def evaluate_synthetics(
@@ -538,38 +595,13 @@ def evaluate_synthetics(
             suffix="_subs",
         )
 
-    reports = evaluate.evaluate(
-        target_schedules=eval_schedules,
-        synthetic_schedules=synthetic_schedules,
-        report_stats=stats,
-    )
-    evaluate.report(reports, log_dir=write_path, head=head, verbose=verbose)
-
-
-def generate_n(
-    trainer: Trainer, n: int, batch_size: int, latent_dims: int, seed: int
-) -> torch.Tensor:
-    torch.manual_seed(seed)
-    dataloaders = data.build_predict_dataloader(n, latent_dims, batch_size)
-    predictions = trainer.predict(ckpt_path="best", dataloaders=dataloaders)
-    predictions = torch.concat(predictions)  # type: ignore
-    return predictions
-
-
-def generate_from_attributes(
-    trainer: Trainer,
-    attributes: Tensor,
-    batch_size: int,
-    latent_dims: int,
-    seed: int,
-) -> torch.Tensor:
-    torch.manual_seed(seed)
-    dataloaders = data.build_conditional_dataloader(
-        attributes, latent_dims, batch_size
-    )
-    predictions = trainer.predict(ckpt_path="best", dataloaders=dataloaders)
-    predictions = torch.concat(predictions)  # type: ignore
-    return predictions
+    else:
+        reports = evaluate.evaluate(
+            target_schedules=eval_schedules,
+            synthetic_schedules=synthetic_schedules,
+            report_stats=stats,
+        )
+        evaluate.report(reports, log_dir=write_path, head=head, verbose=verbose)
 
 
 def conditional_sample(
@@ -609,7 +641,9 @@ def build_dataloader(
     return datamodule
 
 
-def build_experiment(dataset: encoding.BaseDataset, config: dict) -> Experiment:
+def build_experiment(
+    dataset: encoding.BaseDataset, config: dict, test: bool, gen: bool
+) -> Experiment:
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     model = model(
@@ -619,7 +653,7 @@ def build_experiment(dataset: encoding.BaseDataset, config: dict) -> Experiment:
         conditionals_size=dataset.conditionals_shape,
         **config["model_params"],
     )
-    return Experiment(model, **config["experiment_params"])
+    return Experiment(model, test=test, gen=gen, **config["experiment_params"])
 
 
 def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
