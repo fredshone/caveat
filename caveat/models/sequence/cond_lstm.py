@@ -44,7 +44,7 @@ class ConditionalLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
 
-        log_probs, probs = self.decode(
+        log_probs, probs = self.regression(
             z=x, conditionals=conditionals, target=target
         )
         return [log_probs, probs]
@@ -89,7 +89,7 @@ class ConditionalLSTM(Base):
     def encode(self, input: Tensor):
         return None
 
-    def decode(
+    def regression(
         self,
         z: None,
         conditionals: Tensor,
@@ -135,7 +135,7 @@ class ConditionalLSTM(Base):
         z, conditionals = batch
         z = z.to(device)
         conditionals = conditionals.to(device)
-        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
+        return self.regression(z=z, conditionals=conditionals, kwargs=kwargs)[1]
 
 
 class Decoder(nn.Module):

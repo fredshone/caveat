@@ -124,7 +124,7 @@ class StaggeredDataset(BaseDataset):
         )
 
 
-class Seq2SeqDataset(Dataset):
+class LHS2RHSDataset(Dataset):
     def __init__(
         self,
         lhs: Tensor,
@@ -136,7 +136,7 @@ class Seq2SeqDataset(Dataset):
         augment: Optional[ScheduleAugment],
         conditionals: Optional[Tensor],
     ):
-        super(Seq2SeqDataset, self).__init__()
+        super(LHS2RHSDataset, self).__init__()
         self.lhs = lhs
         self.rhs = rhs
         self.masks = masks

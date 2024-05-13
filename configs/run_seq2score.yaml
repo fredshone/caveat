@@ -1,9 +1,9 @@
 logging_params:
   log_dir: "logs"
-  name: "seq2seq"
+  name: "seq2score"
 
-schedules_path: "C:/Users/fred/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/combined.csv"
-attributes_path: "C:/Users/fred/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/processed/attributes.csv"
+schedules_path: "C:/Users/fred/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/utils/seq_utils.csv"
+attributes_path: "C:/Users/fred/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/utils/attributes.csv"
 
 conditionals:
   subpopulation: nominal
@@ -16,16 +16,16 @@ conditionals:
   age_group: nominal
 
 encoder_params:
-  name: "seq2seq"
+  name: "seq2score"
   max_length: 32
   norm_duration: 2880
 
 model_params:
-  name: "Seq2Seq_LSTM"
+  name: "Seq2Score_LSTM"
   hidden_layers: 4
   hidden_size: 128
-  dropout: 0.1
-  teacher_forcing_ratio: 0.5
+  # dropout: 0.1
+  # teacher_forcing_ratio: 0.5
 
 loader_params:
   train_batch_size: 256

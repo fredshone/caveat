@@ -73,14 +73,14 @@ class AttentionDiscrete(Base):
         z = self.reparameterize(mu, log_var)
 
         if target is not None:  # training
-            log_prob_y, prob_y = self.decode(z, context=x)
+            log_prob_y, prob_y = self.regression(z, context=x)
             return [log_prob_y, prob_y, mu, log_var]
 
         # no target so assume generating
         log_prob, prob = self.predict(z, current_device=z.device)
         return [log_prob, prob, mu, log_var]
 
-    def decode(
+    def regression(
         self, z: Tensor, context=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
@@ -144,7 +144,7 @@ class AttentionDiscrete(Base):
         sequences = torch.zeros(B, 1, device=z.device)
         for _ in range(self.length):
             # get the predictions
-            log_probs, probs = self.decode(z, context=sequences)
+            log_probs, probs = self.regression(z, context=sequences)
             # focus only on the last time step
             last_log_probs = log_probs[:, -1, :]  # becomes (B, C)
             last_probs = probs[:, -1, :]  # becomes (B, C)

@@ -49,7 +49,7 @@ class CVAE_LSTM(Base):
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    def decode(
+    def regression(
         self, z: Tensor, conditionals: Tensor, target=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
@@ -102,7 +102,7 @@ class CVAE_LSTM(Base):
         z, conditionals = batch
         z = z.to(device)
         conditionals = conditionals.to(device)
-        prob_samples = self.decode(z=z, conditionals=conditionals, **kwargs)[1]
+        prob_samples = self.regression(z=z, conditionals=conditionals, **kwargs)[1]
         return prob_samples
 
 

@@ -9,7 +9,7 @@ from caveat.data.augment import SequenceJitter
 from caveat.encoding import BaseEncoder, LHS2RHSDataset
 
 
-class Seq2SeqEncoder(BaseEncoder):
+class Seq2ScoreEncoder(BaseEncoder):
     def __init__(
         self, max_length: int = 16, norm_duration: int = 2880, **kwargs
     ):
@@ -23,16 +23,14 @@ class Seq2SeqEncoder(BaseEncoder):
         # act encoding
         self.sos = 0
         self.eos = 1
-        acts = set(schedules.act.unique()) | set(schedules.target_act.unique())
+        acts = set(schedules.act.unique())
         self.index_to_acts = {i + 2: a for i, a in enumerate(acts)}
         self.index_to_acts[0] = "<SOS>"
         self.index_to_acts[1] = "<EOS>"
         acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
         # mode encoding
-        modes = set(schedules["mode"].unique()) | set(
-            schedules["target_mode"].unique()
-        )
+        modes = set(schedules["mode"].unique())
         self.index_to_modes = {i: m for i, m in enumerate(modes)}
         self.modes_to_index = {m: i for i, m in self.index_to_modes.items()}
 
@@ -41,22 +39,15 @@ class Seq2SeqEncoder(BaseEncoder):
 
         self.max_distance = schedules.distance.max()
 
+        self.max_score = schedules.score.max()
+
         # prepare schedules dataframe
         schedules = schedules.copy()
         schedules.duration = schedules.duration / self.norm_duration
-        schedules.target_duration = (
-            schedules.target_duration / self.norm_duration
-        )
         schedules.act = schedules.act.map(acts_to_index)
-        schedules.target_act = schedules.target_act.map(acts_to_index)
         schedules["mode"] = schedules["mode"].map(self.modes_to_index)
-        schedules["target_mode"] = schedules["target_mode"].map(
-            self.modes_to_index
-        )
         schedules["distance"] = schedules["distance"] / self.max_distance
-        schedules["target_distance"] = (
-            schedules["target_distance"] / self.max_distance
-        )
+        schedules["score"] = schedules["score"] / self.max_score
 
         # encode
         encoded_schedules, encoded_target, masks = self._encode_sequences(
@@ -67,8 +58,8 @@ class Seq2SeqEncoder(BaseEncoder):
         augment = SequenceJitter(self.jitter) if self.jitter else None
 
         return LHS2RHSDataset(
-            lhs=encoded_schedules,
-            rhs=encoded_target,
+            schedules=encoded_schedules,
+            scores=encoded_target,
             masks=masks,
             act_encodings=len(self.index_to_acts),
             mode_encodings=len(self.index_to_modes),
@@ -92,20 +83,17 @@ class Seq2SeqEncoder(BaseEncoder):
             (persons, max_length, encoding_width), dtype=np.float32
         )
         target = np.zeros(
-            (persons, max_length, encoding_width), dtype=np.float32
+            (persons), dtype=np.float32
         )
         weights = np.zeros((persons, max_length), dtype=np.float32)
 
         for pid, (_, trace) in enumerate(data.groupby("pid")):
-            seq_encoding, target_seq_encoding, seq_weights = encode_sequences(
+            score = trace.score.first()
+            seq_encoding, seq_weights = encode_sequences(
                 acts=list(trace.act),
                 durations=list(trace.duration),
                 modes=list(trace["mode"]),
                 distances=list(trace["distance"]),
-                target_acts=list(trace.target_act),
-                target_durations=list(trace.target_duration),
-                target_modes=list(trace["target_mode"]),
-                target_distances=list(trace["target_distance"]),
                 max_length=max_length,
                 encoding_width=encoding_width,
                 act_weights=act_weights,
@@ -113,7 +101,7 @@ class Seq2SeqEncoder(BaseEncoder):
                 eos=self.eos,
             )
             encoded[pid] = seq_encoding  # [N, L, W]
-            target[pid] = target_seq_encoding  # [N, L, W]
+            target[pid] = score  # [N]
             weights[pid] = seq_weights  # [N, L]
 
         return (
@@ -201,23 +189,17 @@ def encode_sequences(
     durations: list[float],
     modes: list[int],
     distances: list[float],
-    target_acts: list[int],
-    target_durations: list[float],
-    target_modes: list[int],
-    target_distances: list[float],
     max_length: int,
     encoding_width: int,
     act_weights: np.ndarray,
     sos: int,
     eos: int,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
 
     encoding = np.zeros((max_length, encoding_width), dtype=np.float32)
-    target = np.zeros((max_length, encoding_width), dtype=np.float32)
     weights = np.zeros((max_length), dtype=np.float32)
     # SOS
     encoding[0][0] = sos
-    target[0][0] = sos
     # mask includes sos
     weights[0] = act_weights[sos]
 
@@ -227,19 +209,13 @@ def encode_sequences(
             encoding[i][1] = durations[i - 1]
             encoding[i][2] = modes[i - 1]
             encoding[i][3] = distances[i - 1]
-            target[i][0] = target_acts[i - 1]
-            target[i][1] = target_durations[i - 1]
-            target[i][2] = target_modes[i - 1]
-            target[i][3] = target_distances[i - 1]
             weights[i] = act_weights[acts[i - 1]]
         elif i < len(acts) + 2:
             encoding[i][0] = eos
-            target[i][0] = eos
             # mask includes first eos
             weights[i] = act_weights[eos]
         else:
             encoding[i][0] = eos
-            target[i][0] = eos
             # act weights are 0 for padding eos
 
-    return encoding, target, weights
+    return encoding, weights

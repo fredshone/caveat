@@ -469,11 +469,28 @@ def run_test(
         ckpt_path="best", dataloaders=trainer.datamodule.test_dataloader()
     )
     predictions = torch.concat(predictions)
-    synthetic = schedule_encoder.decode(schedules=predictions)
-    data.validate_schedules(synthetic)
-    synthesis_path = write_dir / "test.csv"
-    synthetic.to_csv(synthesis_path)
-    return synthetic
+    predictions = schedule_encoder.decode(schedules=predictions)
+    data.validate_schedules(predictions)
+    predictions.to_csv(write_dir / "pred.csv")
+
+    test_in = []
+    test_target = []
+    conditionals = []
+    for (lhs, _), (rhs, _), cond in trainer.datamodule.test_dataloader().dataset:
+        test_in.append(lhs)
+        test_target.append(rhs)
+        conditionals.append(cond)
+    test_in = torch.concat(test_in)
+    test_target = torch.concat(test_target)
+    conditionals = torch.concat(conditionals)
+    test_in = schedule_encoder.to_dataframe(schedules=test_in)
+    test_target = schedule_encoder.to_dataframe(schedules=test_target)
+    data.validate_schedules(test_in)
+    data.validate_schedules(test_target)
+    test_in.to_csv(write_dir / "test_input.csv")
+    test_target.to_csv(write_dir / "test_target.csv")
+
+    return test_in, test_target, predictions
 
 
 def generate(

@@ -73,14 +73,14 @@ class Seq2SeqLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
         z = self.encode(x)  # [N, flat]
-        results = self.decode(z, conditionals=conditionals, target=target)
+        results = self.regression(z, conditionals=conditionals, target=target)
         return results
 
     def encode(self, input: Tensor) -> Tensor:
         # [N, L, C]
         return self.encoder(input)
 
-    def decode(
+    def regression(
         self, z: Tensor, conditionals: Tensor, target=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.

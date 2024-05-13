@@ -43,7 +43,7 @@ class VAE_LSTM(Base):
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
 
-    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
+    def regression(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
