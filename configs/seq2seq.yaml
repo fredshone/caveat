@@ -41,7 +41,7 @@ experiment_params:
 
 trainer_params:
   min_epochs: 10
-  patience: 8
+  patience: 10
   max_epochs: 100
 
 seed: 1234

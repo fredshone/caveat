@@ -180,10 +180,10 @@ class Seq2SeqLSTM(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        (x, _), _, conditionals = batch
+        (x, _), (y, _), conditionals = batch
         x = x.to(device)
         prob_samples = self.forward(x=x, conditionals=conditionals, **kwargs)[1]
-        return prob_samples
+        return x, y, conditionals, prob_samples
 
 
 class Encoder(nn.Module):

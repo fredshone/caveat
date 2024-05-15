@@ -465,30 +465,22 @@ def run_test(
     torch.manual_seed(seed)
     print("\n======= Testing =======")
     trainer.test(ckpt_path="best", datamodule=trainer.datamodule)
-    predictions = trainer.predict(
+    (test_in, test_target, conditionals, predictions) = trainer.predict(
         ckpt_path="best", dataloaders=trainer.datamodule.test_dataloader()
-    )
-    predictions = torch.concat(predictions)
+    )[0]
+    # todo - this only looks at first batch !!!
+
+    test_in = schedule_encoder.to_dataframe(schedules=test_in)
+    data.validate_schedules(test_in)
+    test_in.to_csv(write_dir / "test_input.csv")
+
+    test_target = schedule_encoder.to_dataframe(schedules=test_target)
+    data.validate_schedules(test_target)
+    test_target.to_csv(write_dir / "test_target.csv")
+
     predictions = schedule_encoder.decode(schedules=predictions)
     data.validate_schedules(predictions)
     predictions.to_csv(write_dir / "pred.csv")
-
-    test_in = []
-    test_target = []
-    conditionals = []
-    for (lhs, _), (rhs, _), cond in trainer.datamodule.test_dataloader().dataset:
-        test_in.append(lhs)
-        test_target.append(rhs)
-        conditionals.append(cond)
-    test_in = torch.concat(test_in)
-    test_target = torch.concat(test_target)
-    conditionals = torch.concat(conditionals)
-    test_in = schedule_encoder.to_dataframe(schedules=test_in)
-    test_target = schedule_encoder.to_dataframe(schedules=test_target)
-    data.validate_schedules(test_in)
-    data.validate_schedules(test_target)
-    test_in.to_csv(write_dir / "test_input.csv")
-    test_target.to_csv(write_dir / "test_target.csv")
 
     return test_in, test_target, predictions
 
