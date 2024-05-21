@@ -17,15 +17,14 @@ conditionals:
 
 encoder_params:
   name: "seq2score"
-  max_length: 32
+  max_length: 16
   norm_duration: 2880
 
 model_params:
   name: "Seq2Score_LSTM"
-  hidden_layers: 4
+  hidden_layers: 2
   hidden_size: 128
-  # dropout: 0.1
-  # teacher_forcing_ratio: 0.5
+  dropout: 0.1
 
 loader_params:
   train_batch_size: 256
@@ -35,13 +34,13 @@ loader_params:
   test_split: 0.1
 
 experiment_params:
-  LR: 0.005
+  LR: 0.01
   weight_decay: 0.0
   scheduler_gamma: 0.95
 
 trainer_params:
-  min_epochs: 10
-  patience: 8
+  min_epochs: 20
+  patience: 20
   max_epochs: 100
 
 seed: 1234

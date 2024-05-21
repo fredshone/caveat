@@ -465,21 +465,27 @@ def run_test(
     torch.manual_seed(seed)
     print("\n======= Testing =======")
     trainer.test(ckpt_path="best", datamodule=trainer.datamodule)
-    (test_in, test_target, conditionals, predictions) = trainer.predict(
-        ckpt_path="best", dataloaders=trainer.datamodule.test_dataloader()
-    )[0]
-    # todo - this only looks at first batch !!!
+    (test_in, test_target, conditionals, predictions) = zip(
+        *list(
+            trainer.predict(
+                ckpt_path="best",
+                dataloaders=trainer.datamodule.test_dataloader(),
+            )
+        )
+    )
+    test_in = torch.concat(test_in)
+    test_target = torch.concat(test_target)
+    conditionals = torch.concat(conditionals)
+    predictions = torch.concat(predictions)
 
-    test_in = schedule_encoder.to_dataframe(schedules=test_in)
+    test_in = schedule_encoder.decode_input(schedules=test_in)
     data.validate_schedules(test_in)
     test_in.to_csv(write_dir / "test_input.csv")
 
-    test_target = schedule_encoder.to_dataframe(schedules=test_target)
-    data.validate_schedules(test_target)
+    test_target = schedule_encoder.decode_target(schedules=test_target)
     test_target.to_csv(write_dir / "test_target.csv")
 
-    predictions = schedule_encoder.decode(schedules=predictions)
-    data.validate_schedules(predictions)
+    predictions = schedule_encoder.decode_output(schedules=predictions)
     predictions.to_csv(write_dir / "pred.csv")
 
     return test_in, test_target, predictions
@@ -670,7 +676,7 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
     patience = trainer_config.pop("patience", 5)
     checkpoint_callback = ModelCheckpoint(
         dirpath=Path(logger.log_dir, "checkpoints"),
-        monitor="val_recon_loss",
+        monitor="val_loss",
         save_top_k=2,
         save_weights_only=True,
     )
@@ -678,9 +684,7 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
         logger=logger,
         callbacks=[
             EarlyStopping(
-                monitor="val_recon_loss",
-                patience=patience,
-                stopping_threshold=0.0,
+                monitor="val_loss", patience=patience, stopping_threshold=0.0
             ),
             LearningRateMonitor(),
             checkpoint_callback,

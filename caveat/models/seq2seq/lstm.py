@@ -73,14 +73,14 @@ class Seq2SeqLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
         z = self.encode(x)  # [N, flat]
-        results = self.regression(z, conditionals=conditionals, target=target)
+        results = self.decode(z, conditionals=conditionals, target=target)
         return results
 
     def encode(self, input: Tensor) -> Tensor:
         # [N, L, C]
         return self.encoder(input)
 
-    def regression(
+    def decode(
         self, z: Tensor, conditionals: Tensor, target=None, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
@@ -159,8 +159,14 @@ class Seq2SeqLSTM(Base):
         )
         recon_mode_nlll = (recon_mode_nlll * mask.view(-1)).sum() / mask.sum()
 
+        # distance loss
+        recon_dist_mse = self.MSE(distances, target_distances)
+        recon_dist_mse = (recon_dist_mse * mask).sum() / mask.sum()
+
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_dur_mse + recon_mode_nlll
+        recons_loss = (
+            recon_act_nlll + recon_dur_mse + recon_mode_nlll + recon_dist_mse
+        )
 
         return {
             "loss": recons_loss,
@@ -168,6 +174,7 @@ class Seq2SeqLSTM(Base):
             "recon_act_loss": recon_act_nlll.detach(),
             "recon_duration_loss": recon_dur_mse.detach(),
             "recon_mode_loss": recon_mode_nlll.detach(),
+            "recon_distance_loss": recon_dist_mse.detach(),
         }
 
     def predict_step(self, batch, device: int, **kwargs) -> Tensor:

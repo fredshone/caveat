@@ -1,9 +1,8 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import torch
 from torch import Tensor, nn
 
-from caveat import current_device
 from caveat.models import Base, CustomDurationModeDistanceEmbedding
 
 
@@ -50,7 +49,7 @@ class Seq2ScoreLSTM(Base):
             flat_size_encode + self.conditionals_size, flat_size_encode
         )
         self.score_layer = nn.Linear(flat_size_encode, 1)
-        self.score_activation = nn.Sigmoid()
+        self.score_activation = nn.Sigmoid()  # todo REMOVE?
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
@@ -63,16 +62,16 @@ class Seq2ScoreLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
         z = self.encode(x)  # [N, flat]
-        results = self.regression(z, conditionals=conditionals, target=target)
+        results = self.decode(z, conditionals=conditionals, target=target)
         return results
 
     def encode(self, input: Tensor) -> Tensor:
         # [N, L, C]
         return self.encoder(input)
 
-    def regression(
+    def decode(
         self, z: Tensor, conditionals: Tensor, target=None, **kwargs
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> List[Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -86,24 +85,16 @@ class Seq2ScoreLSTM(Base):
         # initialize hidden state as inputs
         h = self.fc_hidden(z)
         h = self.score_layer(h)
-        return self.score_activation(h)
+        return [h]
 
     def loss_function(
-        self,
-        scores: Tensor,
-        target: Tensor,
-        mask: Tensor,
-        **kwargs,
+        self, scores: Tensor, target: Tensor, mask: Tensor, **kwargs
     ) -> dict:
 
         # duration loss
-        loss = self.MSE(
-            scores, target
-        )
-    
-        return {
-            "loss": loss,
-        }
+        loss = self.MSE(scores.squeeze(), target)
+
+        return {"loss": loss}
 
     def predict_step(self, batch, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
@@ -115,9 +106,14 @@ class Seq2ScoreLSTM(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        (x, _), _, conditionals = batch
+        (x, _), (y, _), conditionals = batch
         x = x.to(device)
-        return self.forward(x=x, conditionals=conditionals, **kwargs)
+        return (
+            x,
+            y,
+            conditionals,
+            self.forward(x=x, conditionals=conditionals, **kwargs)[0],
+        )
 
 
 class Encoder(nn.Module):

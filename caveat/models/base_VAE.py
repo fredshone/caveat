@@ -69,7 +69,7 @@ class Base(nn.Module):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
         self.hidden_layers = config["hidden_layers"]
-        self.dropout = config["dropout"]
+        self.dropout = config.get("dropout", 0)
         length, _ = self.in_shape
 
         self.encoder = BaseEncoder(
@@ -111,7 +111,7 @@ class Base(nn.Module):
 
         return [mu, log_var]
 
-    def regression(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
+    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -158,7 +158,7 @@ class Base(nn.Module):
         """
         mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.regression(
+        log_prob_y, prob_y = self.decode(
             z, conditionals=conditionals, target=target
         )
         return [log_prob_y, prob_y, mu, log_var]
@@ -480,7 +480,7 @@ class Base(nn.Module):
             tensor: [N, steps, acts].
         """
         z = z.to(device)
-        prob_samples = self.regression(z, **kwargs)[1]
+        prob_samples = self.decode(z, **kwargs)[1]
         return prob_samples
 
     def generate(self, x: Tensor, device: int, **kwargs) -> Tensor:

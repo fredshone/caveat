@@ -50,7 +50,7 @@ class Conv(Base):
         self.fc_var = nn.Linear(self.encoder.flat_size, latent_dim)
         self.fc_hidden = nn.Linear(latent_dim, self.encoder.flat_size)
 
-    def regression(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
+    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:

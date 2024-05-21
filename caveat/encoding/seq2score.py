@@ -58,8 +58,8 @@ class Seq2ScoreEncoder(BaseEncoder):
         augment = SequenceJitter(self.jitter) if self.jitter else None
 
         return LHS2RHSDataset(
-            schedules=encoded_schedules,
-            scores=encoded_target,
+            lhs=encoded_schedules,
+            rhs=encoded_target,
             masks=masks,
             act_encodings=len(self.index_to_acts),
             mode_encodings=len(self.index_to_modes),
@@ -82,13 +82,11 @@ class Seq2ScoreEncoder(BaseEncoder):
         encoded = np.zeros(
             (persons, max_length, encoding_width), dtype=np.float32
         )
-        target = np.zeros(
-            (persons), dtype=np.float32
-        )
+        target = np.zeros((persons), dtype=np.float32)
         weights = np.zeros((persons, max_length), dtype=np.float32)
 
         for pid, (_, trace) in enumerate(data.groupby("pid")):
-            score = trace.score.first()
+            score = trace.score.iloc[0]
             seq_encoding, seq_weights = encode_sequences(
                 acts=list(trace.act),
                 durations=list(trace.duration),
@@ -112,7 +110,7 @@ class Seq2ScoreEncoder(BaseEncoder):
 
     def _calc_act_weights(self, data: pd.DataFrame) -> Dict[str, float]:
         act_weights = (
-            data.groupby("target_act", observed=True).duration.sum().to_dict()
+            data.groupby("act", observed=True).duration.sum().to_dict()
         )
         n = data.pid.nunique()
         act_weights.update({self.sos: n, self.eos: n})
@@ -124,6 +122,15 @@ class Seq2ScoreEncoder(BaseEncoder):
 
     def _unit_act_weights(self, n: int) -> Dict[str, float]:
         return np.array([1 for _ in range(n)])
+
+    def decode_input(self, schedules: Tensor) -> pd.DataFrame:
+        return self.to_dataframe(schedules)
+
+    def decode_target(self, schedules: Tensor) -> pd.DataFrame:
+        return pd.DataFrame(schedules.numpy(), columns=["score"])
+
+    def decode_output(self, schedules: Tensor) -> pd.DataFrame:
+        return pd.DataFrame(schedules.numpy(), columns=["score"])
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
@@ -141,7 +148,6 @@ class Seq2ScoreEncoder(BaseEncoder):
         schedules = self.pack(schedules)
         return self.to_dataframe(schedules)
 
-
     def pack(self, schedules: Tensor) -> Tensor:
         schedules, durations, modes, distances = torch.split(
             schedules, [self.act_encodings, 1, self.mode_encodings, 1], dim=-1
@@ -149,10 +155,11 @@ class Seq2ScoreEncoder(BaseEncoder):
         schedules = schedules.argmax(dim=-1).unsqueeze(-1)
         modes = modes.argmax(dim=-1).unsqueeze(-1)
         return torch.cat([schedules, durations, modes, distances], dim=-1)
-    
 
     def to_dataframe(self, schedules: Tensor):
-        schedules, durations, modes, distances = torch.split(schedules, [1, 1, 1, 1], dim=-1)
+        schedules, durations, modes, distances = torch.split(
+            schedules, [1, 1, 1, 1], dim=-1
+        )
         decoded = []
         for pid in range(len(schedules)):
             act_start = 0
@@ -181,7 +188,6 @@ class Seq2ScoreEncoder(BaseEncoder):
         )
         df["duration"] = df.end - df.start
         return df
-        
 
 
 def encode_sequences(

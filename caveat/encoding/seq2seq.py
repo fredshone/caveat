@@ -137,6 +137,15 @@ class Seq2SeqEncoder(BaseEncoder):
     def _unit_act_weights(self, n: int) -> Dict[str, float]:
         return np.array([1 for _ in range(n)])
 
+    def decode_input(self, schedules: Tensor) -> pd.DataFrame:
+        return self.to_dataframe(schedules)
+
+    def decode_target(self, schedules: Tensor) -> pd.DataFrame:
+        return self.to_dataframe(schedules)
+
+    def decode_output(self, schedules: Tensor) -> pd.DataFrame:
+        return self.decode(schedules)
+
     def decode(self, schedules: Tensor) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
 
@@ -153,7 +162,6 @@ class Seq2SeqEncoder(BaseEncoder):
         schedules = self.pack(schedules)
         return self.to_dataframe(schedules)
 
-
     def pack(self, schedules: Tensor) -> Tensor:
         schedules, durations, modes, distances = torch.split(
             schedules, [self.act_encodings, 1, self.mode_encodings, 1], dim=-1
@@ -161,10 +169,11 @@ class Seq2SeqEncoder(BaseEncoder):
         schedules = schedules.argmax(dim=-1).unsqueeze(-1)
         modes = modes.argmax(dim=-1).unsqueeze(-1)
         return torch.cat([schedules, durations, modes, distances], dim=-1)
-    
 
     def to_dataframe(self, schedules: Tensor):
-        schedules, durations, modes, distances = torch.split(schedules, [1, 1, 1, 1], dim=-1)
+        schedules, durations, modes, distances = torch.split(
+            schedules, [1, 1, 1, 1], dim=-1
+        )
         decoded = []
         for pid in range(len(schedules)):
             act_start = 0
@@ -192,8 +201,8 @@ class Seq2SeqEncoder(BaseEncoder):
             decoded, columns=["pid", "act", "start", "end", "mode", "distance"]
         )
         df["duration"] = df.end - df.start
+
         return df
-        
 
 
 def encode_sequences(
