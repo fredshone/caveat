@@ -2,6 +2,7 @@ site_name: caveat
 nav:
   - Home: index.md
   - Installation: installation.md
+  - Configuration: configuration.md
   - Examples: [] # this will be filled in automatically to include reference to all the notebooks
   - Changelog: CHANGELOG.md
   - Reference:

@@ -104,7 +104,11 @@ def run_command(
 
 
 def batch_command(
-    batch_config: dict, stats: bool = True, verbose: bool = False
+    batch_config: dict,
+    stats: bool = True,
+    verbose: bool = False,
+    test: bool = False,
+    gen: bool = True,
 ) -> None:
     """
     Runs a batch of training and reporting runs based on the provided configuration.
@@ -161,37 +165,51 @@ def batch_command(
             logger=logger,
             seed=seed,
         )
-        # prepare synthetic attributes
-        synthetic_population = (
-            schedules.pid.nunique()
-            if synthetic_conditionals is None
-            else synthetic_conditionals
+        if test:
+            # test the model
+            run_test(
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
+        if gen:
+            # prepare synthetic attributes
+            synthetic_population = (
+                schedules.pid.nunique()
+                if synthetic_conditionals is None
+                else synthetic_conditionals
+            )
+            # generate synthetic schedules
+            synthetic_schedules[name] = generate(
+                trainer=trainer,
+                population=synthetic_population,
+                schedule_encoder=schedule_encoder,
+                config=combined_config,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
+    if gen:
+        # evaluate synthetic schedules
+        evaluate_synthetics(
+            synthetic_schedules=synthetic_schedules,
+            synthetic_attributes=synthetic_attributes_all,
+            default_eval_schedules=schedules,
+            default_eval_attributes=attributes,
+            write_path=logger.log_dir,
+            eval_params=global_config.get("evaluation_params", {}),
+            stats=stats,
+            verbose=verbose,
         )
-        # generate synthetic schedules
-        synthetic_schedules[name] = generate(
-            trainer=trainer,
-            population=synthetic_population,
-            schedule_encoder=schedule_encoder,
-            config=combined_config,
-            write_dir=Path(logger.log_dir),
-            seed=seed,
-        )
-
-    # evaluate synthetic schedules
-    evaluate_synthetics(
-        synthetic_schedules=synthetic_schedules,
-        synthetic_attributes=synthetic_attributes_all,
-        default_eval_schedules=schedules,
-        default_eval_attributes=attributes,
-        write_path=logger.log_dir,
-        eval_params=global_config.get("evaluation_params", {}),
-        stats=stats,
-        verbose=verbose,
-    )
 
 
 def nrun_command(
-    config: dict, n: int = 5, stats: bool = True, verbose: bool = False
+    config: dict,
+    n: int = 5,
+    stats: bool = True,
+    verbose: bool = False,
+    test: bool = False,
+    gen: bool = True,
 ) -> None:
     """
     Repeat a single model training while varying the seed.
@@ -242,29 +260,38 @@ def nrun_command(
             logger=logger,
             seed=seed,
         )
-        synthetic_schedules[run_name] = generate(
-            trainer=trainer,
-            population=synthetic_population,
-            schedule_encoder=schedule_encoder,
-            config=config,
-            write_dir=Path(logger.log_dir),
-            seed=seed,
+        if test:
+            run_test(
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
+        if gen:
+            synthetic_schedules[run_name] = generate(
+                trainer=trainer,
+                population=synthetic_population,
+                schedule_encoder=schedule_encoder,
+                config=config,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
+            all_synthetic_attributes[run_name] = synthetic_attributes
+
+    if gen:
+        evaluate_synthetics(
+            synthetic_schedules=synthetic_schedules,
+            synthetic_attributes=all_synthetic_attributes,
+            default_eval_schedules=schedules,
+            default_eval_attributes=attributes,
+            write_path=log_dir,
+            eval_params=config.get("evaluation_params", {}),
+            stats=stats,
+            verbose=verbose,
         )
-        all_synthetic_attributes[run_name] = synthetic_attributes
-
-    evaluate_synthetics(
-        synthetic_schedules=synthetic_schedules,
-        synthetic_attributes=all_synthetic_attributes,
-        default_eval_schedules=schedules,
-        default_eval_attributes=attributes,
-        write_path=log_dir,
-        eval_params=config.get("evaluation_params", {}),
-        stats=stats,
-        verbose=verbose,
-    )
 
 
-def nsample_command(
+def ngen_command(
     config: dict, n: int = 5, stats: bool = False, verbose: bool = False
 ) -> None:
     """

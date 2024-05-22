@@ -1,4 +1,4 @@
-from caveat.run import batch_command, nrun_command, nsample_command, run_command
+from caveat.run import batch_command, ngen_command, nrun_command, run_command
 
 
 def test_run_conv(run_config_embed_cov):
@@ -26,4 +26,4 @@ def test_nrun(config_vae_lstm):
 
 
 def test_nsample(config_vae_lstm):
-    nsample_command(config_vae_lstm)
+    ngen_command(config_vae_lstm)
