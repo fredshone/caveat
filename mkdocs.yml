@@ -3,7 +3,6 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Examples: [] # this will be filled in automatically to include reference to all the notebooks
-  - Contributing: contributing.md
   - Changelog: CHANGELOG.md
   - Reference:
     - Command line interface: api/cli.md
@@ -20,7 +19,7 @@ markdown_extensions:
   - attr_list
   - mkdocs-click
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true

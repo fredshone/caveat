@@ -43,5 +43,3 @@ ipython kernel install --user --name=[my-env-name]
 The install instructions are slightly different to create a development environment compared to a user environment:
 
 --8<-- "README.md:docs-install-dev"
-
-For more detailed installation instructions specific to developing the caveat codebase, see our [development documentation][setting-up-a-development-environment].
