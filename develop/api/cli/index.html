@@ -266,8 +266,32 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
+      
+        
+      
+        
       
         
       
@@ -286,10 +310,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -300,8 +324,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Examples
           </label>
@@ -412,29 +436,51 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
+              
+                
   
   
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
+      <a href="../../examples/6_matsim_seq2seq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Contributing
+    MATSim Plans - Sequence to Sequence
   </span>
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/7_matsim_seq2score/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MATSim Plans - Sequence to Score
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -574,18 +620,18 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat-nrun" class="md-nav__link">
+  <a href="#caveat-ngen" class="md-nav__link">
     <span class="md-ellipsis">
-      nrun
+      ngen
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat-nsample" class="md-nav__link">
+  <a href="#caveat-nrun" class="md-nav__link">
     <span class="md-ellipsis">
-      nsample
+      nrun
     </span>
   </a>
   
@@ -939,6 +985,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1042,6 +1092,48 @@
   
   <span class="md-ellipsis">
     caveat.encoding.one_hot
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/encoding/seq2score/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.seq2score
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/encoding/seq2seq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.encoding.seq2seq
   </span>
   
 
@@ -1476,6 +1568,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1600,6 +1696,48 @@
   
   <span class="md-ellipsis">
     caveat.models.embed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/seq2score/lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq2score.lstm
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/caveat/models/seq2seq/lstm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    caveat.models.seq2seq.lstm
   </span>
   
 
@@ -1783,18 +1921,18 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat-nrun" class="md-nav__link">
+  <a href="#caveat-ngen" class="md-nav__link">
     <span class="md-ellipsis">
-      nrun
+      ngen
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#caveat-nsample" class="md-nav__link">
+  <a href="#caveat-nrun" class="md-nav__link">
     <span class="md-ellipsis">
-      nsample
+      nrun
     </span>
   </a>
   
@@ -1893,7 +2031,67 @@
 </thead>
 <tbody>
 <tr>
+<td><code>--test</code>, <code>-t</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--gen</code>, <code>-g</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
 <td><code>--stats</code>, <code>-s</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="caveat-ngen">caveat ngen<a class="headerlink" href="#caveat-ngen" title="Permanent link">#</a></h3>
+<p>Train and report variance on n identical runs with varying seeds.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>caveat ngen [OPTIONS] CONFIG_PATH
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--n</code></td>
+<td>integer</td>
+<td>N/A</td>
+<td><code>5</code></td>
+</tr>
+<tr>
+<td><code>--stats</code>, <code>-s</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
 <td>boolean</td>
 <td>N/A</td>
 <td><code>False</code></td>
@@ -1909,7 +2107,7 @@
 <h3 id="caveat-nrun">caveat nrun<a class="headerlink" href="#caveat-nrun" title="Permanent link">#</a></h3>
 <p>Train and report variance on n identical runs with varying seeds.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>caveat nrun [OPTIONS] CONFIG_PATH
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>caveat nrun [OPTIONS] CONFIG_PATH
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -1929,43 +2127,25 @@
 <td><code>5</code></td>
 </tr>
 <tr>
+<td><code>--test</code>, <code>-t</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--gen</code>, <code>-g</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
 <td><code>--stats</code>, <code>-s</code></td>
 <td>boolean</td>
 <td>N/A</td>
 <td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--help</code></td>
-<td>boolean</td>
-<td>Show this message and exit.</td>
-<td><code>False</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="caveat-nsample">caveat nsample<a class="headerlink" href="#caveat-nsample" title="Permanent link">#</a></h3>
-<p>Train and report variance on n identical runs with varying seeds.</p>
-<p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>caveat nsample [OPTIONS] CONFIG_PATH
-</span></code></pre></div>
-<p><strong>Options:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--n</code></td>
-<td>integer</td>
-<td>N/A</td>
-<td><code>5</code></td>
-</tr>
-<tr>
-<td><code>--stats</code>, <code>-s</code></td>
+<td><code>--verbose</code>, <code>-v</code></td>
 <td>boolean</td>
 <td>N/A</td>
 <td><code>False</code></td>
@@ -2042,6 +2222,24 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>--test</code>, <code>-t</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--gen</code>, <code>-g</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--verbose</code>, <code>-v</code></td>
+<td>boolean</td>
+<td>N/A</td>
+<td><code>False</code></td>
+</tr>
 <tr>
 <td><code>--help</code></td>
 <td>boolean</td>
