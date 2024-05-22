@@ -14,6 +14,8 @@ class Experiment(pl.LightningModule):
     def __init__(
         self,
         model: Base,
+        gen: bool = False,
+        test: bool = False,
         LR: float = 0.005,
         weight_decay: float = 0.0,
         kld_weight: float = 0.00025,
@@ -22,6 +24,8 @@ class Experiment(pl.LightningModule):
     ) -> None:
         super(Experiment, self).__init__()
         self.model = model
+        self.gen = gen
+        self.test = test
         self.LR = LR
         self.weight_decay = weight_decay
         self.kwargs = kwargs
@@ -83,19 +87,32 @@ class Experiment(pl.LightningModule):
         )
 
     def on_validation_end(self) -> None:
-        self.regenerate_val_batch()
-        self.sample_sequences()
+        if self.gen:
+            self.regenerate_val_batch()
+            self.sample_sequences()
 
-    def regenerate_test_batch(self):
-        (x, _), (y, _), conditionals = next(
-            iter(self.trainer.datamodule.test_dataloader())
-        )
-        x = x.to(self.curr_device)
-        y = y.to(self.curr_device)
-        conditionals = conditionals.to(self.curr_device)
-        self.regenerate_batch(
-            x, target=y, name="test_reconstructions", conditionals=conditionals
-        )
+    def test_step(self, batch, batch_idx):
+        if self.test:
+            (x, _), (y, y_mask), conditionals = batch
+            self.curr_device = x.device
+
+            results = self.forward(x, conditionals=conditionals)
+            test_loss = self.model.loss_function(
+                *results,
+                target=y,
+                mask=y_mask,
+                kld_weight=self.kld_weight,
+                duration_weight=self.duration_weight,
+                batch_idx=batch_idx,
+            )
+
+            self.log_dict(
+                {f"test_{key}": val.item() for key, val in test_loss.items()},
+                sync_dist=True,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+            )
 
     def regenerate_val_batch(self):
         (x, _), (y, _), conditionals = next(
@@ -181,11 +198,8 @@ class Experiment(pl.LightningModule):
 
         return [optimizer], [scheduler]
 
-    def predict_step(self, x):
-        z, conditionals = x
-        return self.model.predict_step(
-            z, conditionals=conditionals, device=self.curr_device
-        )
+    def predict_step(self, batch):
+        return self.model.predict_step(batch, device=self.curr_device)
 
 
 def unpack(x, y, current_device):

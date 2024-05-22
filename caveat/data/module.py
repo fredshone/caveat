@@ -10,6 +10,7 @@ class DataModule(LightningDataModule):
         self,
         data: Dataset,
         val_split: float = 0.1,
+        test_split: Optional[float] = None,
         train_batch_size: int = 128,
         val_batch_size: int = 128,
         test_batch_size: int = 128,
@@ -21,7 +22,8 @@ class DataModule(LightningDataModule):
 
         Args:
             data (Dataset): Data
-            val_split (float, optional): _description_. Defaults to 0.1.
+            val_split (float, optional): _description_. Defaults to None.
+            test_split (Optional[float], optional): _description_. Defaults to 0.1.
             train_batch_size (int, optional): _description_. Defaults to 128.
             val_batch_size (int, optional): _description_. Defaults to 128.
             test_batch_size (int, optional): _description_. Defaults to 128.
@@ -32,6 +34,7 @@ class DataModule(LightningDataModule):
 
         self.data = data
         self.val_split = val_split
+        self.test_split = test_split
         self.train_batch_size = train_batch_size
         self.val_batch_size = val_batch_size
         self.test_batch_size = test_batch_size
@@ -40,9 +43,24 @@ class DataModule(LightningDataModule):
         self.mapping = None
 
     def setup(self, stage: Optional[str] = None) -> None:
-        self.train_dataset, self.val_dataset = torch.utils.data.random_split(
-            self.data, [1 - self.val_split, self.val_split]
-        )
+        if self.test_split is None:
+            self.train_dataset, self.val_dataset = (
+                torch.utils.data.random_split(
+                    self.data, [1 - self.val_split, self.val_split]
+                )
+            )
+            self.test_dataset = self.val_dataset
+        else:
+            self.train_dataset, self.val_dataset, self.test_dataset = (
+                torch.utils.data.random_split(
+                    self.data,
+                    [
+                        1 - self.val_split - self.test_split,
+                        self.val_split,
+                        self.test_split,
+                    ],
+                )
+            )
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -66,10 +84,10 @@ class DataModule(LightningDataModule):
 
     def test_dataloader(self) -> Union[DataLoader, list[DataLoader]]:
         return DataLoader(
-            self.val_dataset,
+            self.test_dataset,
             batch_size=self.test_batch_size,
             num_workers=self.num_workers,
-            shuffle=True,
+            shuffle=False,
             pin_memory=self.pin_memory,
             persistent_workers=True,
         )
@@ -78,13 +96,12 @@ class DataModule(LightningDataModule):
 class ZDataset(Dataset):
     def __init__(self, num_samples: int, latent_dim: int):
         self.z = torch.randn(num_samples, latent_dim)
-        self.attributes = torch.tensor([])
 
     def __len__(self):
         return len(self.z)
 
     def __getitem__(self, idx):
-        return self.z[idx], self.attributes
+        return self.z[idx]
 
 
 def build_predict_dataloader(

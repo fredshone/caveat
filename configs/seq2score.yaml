@@ -1,0 +1,46 @@
+logging_params:
+  log_dir: "logs"
+  name: "seq2score"
+
+schedules_path: "C:/Users/fred/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/utils/seq_utils.csv"
+attributes_path: "C:/Users/fred/Data/2019_baseline_re_run_20221209_low_cost_bus_walk/utils/attributes.csv"
+
+conditionals:
+  subpopulation: nominal
+  hcounty: nominal
+  gender: nominal
+  workstatus: nominal
+  hasLicence: nominal
+  hasCar: nominal
+  hasBike: nominal
+  age_group: nominal
+
+encoder_params:
+  name: "seq2score"
+  max_length: 16
+  norm_duration: 2880
+
+model_params:
+  name: "Seq2Score_LSTM"
+  hidden_layers: 2
+  hidden_size: 128
+  dropout: 0.1
+
+loader_params:
+  train_batch_size: 256
+  val_batch_size:  256
+  num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+
+experiment_params:
+  LR: 0.01
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+
+trainer_params:
+  min_epochs: 20
+  patience: 20
+  max_epochs: 100
+
+seed: 1234

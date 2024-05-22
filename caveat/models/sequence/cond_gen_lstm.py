@@ -88,6 +88,23 @@ class CVAE_LSTM(Base):
 
         return log_probs, probs
 
+    def predict_step(
+        self, batch: Tuple[Tensor, Tensor], device: int, **kwargs
+    ) -> Tensor:
+        """Given samples from the latent space, return the corresponding decoder space map.
+
+        Args:
+            current_device (int): Device to run the model.
+
+        Returns:
+            tensor: [N, steps, acts].
+        """
+        z, conditionals = batch
+        z = z.to(device)
+        conditionals = conditionals.to(device)
+        prob_samples = self.decode(z=z, conditionals=conditionals, **kwargs)[1]
+        return prob_samples
+
 
 class Encoder(nn.Module):
     def __init__(
@@ -173,7 +190,7 @@ class Decoder(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Sigmoid()
+        self.duration_activation = nn.Softmax(dim=-2)
 
     def forward(self, batch_size, hidden, target=None, **kwargs):
         hidden, cell = hidden
