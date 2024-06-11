@@ -1,20 +1,21 @@
 from typing import List, Optional, Tuple
 
 import torch
+from pytorch_lightning import LightningModule
 from torch import Tensor, nn
 
 
-class BaseEncoder(nn.Module):
+class BaseEncoder(LightningModule):
     def __init__(self, **kwargs):
         raise NotImplementedError
 
 
-class BaseDecoder(nn.Module):
+class BaseDecoder(LightningModule):
     def __init__(self, **kwargs):
         raise NotImplementedError
 
 
-class Base(nn.Module):
+class Base(LightningModule):
     def __init__(
         self,
         in_shape: tuple,
@@ -22,6 +23,7 @@ class Base(nn.Module):
         encoding_weights: Optional[Tensor] = None,
         conditionals_size: Optional[tuple] = None,
         sos: int = 0,
+        *args,
         **config,
     ) -> None:
         """Base VAE.
@@ -35,13 +37,15 @@ class Base(nn.Module):
             config: Additional arguments from config.
         """
         super(Base, self).__init__()
+        self.save_hyperparameters()
 
         self.in_shape = in_shape
         self.encodings = encodings
         self.encoding_weights = encoding_weights
         self.conditionals_size = conditionals_size
-
         self.sos = sos
+        self.config = config
+
         self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0.5)
         print(f"Using teacher forcing ratio: {self.teacher_forcing_ratio}")
         self.kld_weight = config.get("kld_weight", 0.0001)

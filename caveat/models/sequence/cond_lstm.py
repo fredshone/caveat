@@ -130,9 +130,8 @@ class ConditionalLSTM(Base):
         return log_probs, probs
 
     def predict_step(
-        self, batch: Tuple[Tensor, Tensor], device: int, **kwargs
+        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
-        z, conditionals = batch
         z = z.to(device)
         conditionals = conditionals.to(device)
         return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]

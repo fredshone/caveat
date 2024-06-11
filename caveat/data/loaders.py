@@ -153,7 +153,6 @@ def validate_attributes_index(
     """
     seq_index = schedules.pid
     attr_index = attributes.pid
-    print(set(seq_index) - set(attr_index))
     if not set(seq_index).issubset(set(attr_index)):
         raise UserWarning("Missing attributes.")
     if not seq_index.dtype == attr_index.dtype:
