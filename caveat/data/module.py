@@ -44,22 +44,25 @@ class DataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         if self.test_split is None:
-            self.train_dataset, self.val_dataset = (
-                torch.utils.data.random_split(
-                    self.data, [1 - self.val_split, self.val_split]
-                )
+            (
+                self.train_dataset,
+                self.val_dataset,
+            ) = torch.utils.data.random_split(
+                self.data, [1 - self.val_split, self.val_split]
             )
             self.test_dataset = self.val_dataset
         else:
-            self.train_dataset, self.val_dataset, self.test_dataset = (
-                torch.utils.data.random_split(
-                    self.data,
-                    [
-                        1 - self.val_split - self.test_split,
-                        self.val_split,
-                        self.test_split,
-                    ],
-                )
+            (
+                self.train_dataset,
+                self.val_dataset,
+                self.test_dataset,
+            ) = torch.utils.data.random_split(
+                self.data,
+                [
+                    1 - self.val_split - self.test_split,
+                    self.val_split,
+                    self.test_split,
+                ],
             )
 
     def train_dataloader(self) -> DataLoader:
@@ -101,7 +104,7 @@ class ZDataset(Dataset):
         return len(self.z)
 
     def __getitem__(self, idx):
-        return self.z[idx]
+        return self.z[idx], torch.tensor(0)
 
 
 def build_predict_dataloader(

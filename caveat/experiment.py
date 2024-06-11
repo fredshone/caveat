@@ -199,7 +199,10 @@ class Experiment(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def predict_step(self, batch):
-        return self.model.predict_step(batch, device=self.curr_device)
+        z, conditionals = batch
+        return self.model.predict_step(
+            z, conditionals=conditionals, device=self.curr_device
+        )
 
 
 def unpack(x, y, current_device):

@@ -89,7 +89,7 @@ class CVAE_LSTM(Base):
         return log_probs, probs
 
     def predict_step(
-        self, batch: Tuple[Tensor, Tensor], device: int, **kwargs
+        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
@@ -99,7 +99,6 @@ class CVAE_LSTM(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        z, conditionals = batch
         z = z.to(device)
         conditionals = conditionals.to(device)
         prob_samples = self.decode(z=z, conditionals=conditionals, **kwargs)[1]
