@@ -4,6 +4,8 @@ import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor, nn
 
+from caveat.experiment import Experiment
+
 
 class BaseEncoder(LightningModule):
     def __init__(self, **kwargs):
@@ -15,7 +17,7 @@ class BaseDecoder(LightningModule):
         raise NotImplementedError
 
 
-class Base(LightningModule):
+class BaseVAE(Experiment):
     def __init__(
         self,
         in_shape: tuple,
@@ -23,8 +25,7 @@ class Base(LightningModule):
         encoding_weights: Optional[Tensor] = None,
         conditionals_size: Optional[tuple] = None,
         sos: int = 0,
-        *args,
-        **config,
+        **kwargs,
     ) -> None:
         """Base VAE.
 
@@ -36,25 +37,23 @@ class Base(LightningModule):
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
-        super(Base, self).__init__()
-        self.save_hyperparameters()
+        super(BaseVAE, self).__init__(**kwargs)
 
         self.in_shape = in_shape
         self.encodings = encodings
         self.encoding_weights = encoding_weights
         self.conditionals_size = conditionals_size
         self.sos = sos
-        self.config = config
 
-        self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0.5)
+        self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
         print(f"Using teacher forcing ratio: {self.teacher_forcing_ratio}")
-        self.kld_weight = config.get("kld_weight", 0.0001)
+        self.kld_weight = kwargs.get("kld_weight", 0.0001)
         print(f"Using KLD weight: {self.kld_weight}")
-        self.duration_weight = config.get("duration_weight", 1)
+        self.duration_weight = kwargs.get("duration_weight", 1)
         print(f"Using duration weight: {self.duration_weight}")
-        self.use_mask = config.get("use_mask", True)  # defaults to True
+        self.use_mask = kwargs.get("use_mask", True)  # defaults to True
         print(f"Using mask: {self.use_mask}")
-        self.use_weighted_loss = config.get(
+        self.use_weighted_loss = kwargs.get(
             "weighted_loss", True
         )  # defaults to True
         print(f"Using weighted loss: {self.use_weighted_loss}")
@@ -67,7 +66,7 @@ class Base(LightningModule):
         self.base_NLLL = nn.NLLLoss(reduction="none")
         self.MSE = nn.MSELoss()
 
-        self.build(**config)
+        self.build(**kwargs)
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
@@ -473,7 +472,7 @@ class Base(LightningModule):
             durations = durations.unsqueeze(-1)
         return torch.cat((acts, durations), dim=-1)
 
-    def predict_step(self, z: Tensor, device: int, **kwargs) -> Tensor:
+    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:

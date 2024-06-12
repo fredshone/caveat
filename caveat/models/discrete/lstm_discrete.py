@@ -4,10 +4,10 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models.base_VAE import Base
+from caveat.models.base_VAE import BaseVAE
 
 
-class LSTM_Discrete(Base):
+class LSTM_Discrete(BaseVAE):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)

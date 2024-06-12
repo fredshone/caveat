@@ -36,8 +36,8 @@ experiment_params:
   kld_weight: 0.00025
 
 trainer_params:
-  patience: 3
-  max_epochs: 5
+  patience: 2
+  max_epochs: 3
 
 seed: 1234
   

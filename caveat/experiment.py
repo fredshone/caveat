@@ -1,19 +1,18 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
 from torch import Tensor, optim
 
-from caveat.models.base_VAE import Base
 from caveat.models.utils import ScheduledOptim
 
 
 class Experiment(pl.LightningModule):
+
     def __init__(
         self,
-        model: Base,
         gen: bool = False,
         test: bool = False,
         LR: float = 0.005,
@@ -23,7 +22,6 @@ class Experiment(pl.LightningModule):
         **kwargs,
     ) -> None:
         super(Experiment, self).__init__()
-        self.model = model
         self.gen = gen
         self.test = test
         self.LR = LR
@@ -32,16 +30,16 @@ class Experiment(pl.LightningModule):
         self.kld_weight = kld_weight
         self.duration_weight = duration_weight
         self.curr_device = None
-        self.save_hyperparameters(ignore=["model"])
+        self.save_hyperparameters()
 
-    def forward(
-        self,
-        x: Tensor,
-        conditionals: Optional[Tensor] = None,
-        target=None,
-        **kwargs,
-    ) -> List[Tensor]:
-        return self.model(x, conditionals, target, **kwargs)
+    # def forward(
+    #     self,
+    #     x: Tensor,
+    #     conditionals: Optional[Tensor] = None,
+    #     target=None,
+    #     **kwargs,
+    # ) -> List[Tensor]:
+    #     return self.model(x, conditionals, target, **kwargs)
 
     def training_step(self, batch, batch_idx):
         (x, x_mask), (y, y_mask), conditionals = batch
@@ -49,7 +47,7 @@ class Experiment(pl.LightningModule):
         self.curr_device = x.device
 
         results = self.forward(x, conditionals=conditionals, target=y)
-        train_loss = self.model.loss_function(
+        train_loss = self.loss_function(
             *results,
             target=y,
             mask=y_mask,
@@ -68,7 +66,7 @@ class Experiment(pl.LightningModule):
         self.curr_device = x.device
 
         results = self.forward(x, conditionals=conditionals)
-        val_loss = self.model.loss_function(
+        val_loss = self.loss_function(
             *results,
             target=y,
             mask=y_mask,
@@ -97,7 +95,7 @@ class Experiment(pl.LightningModule):
             self.curr_device = x.device
 
             results = self.forward(x, conditionals=conditionals)
-            test_loss = self.model.loss_function(
+            test_loss = self.loss_function(
                 *results,
                 target=y,
                 mask=y_mask,
@@ -132,7 +130,7 @@ class Experiment(pl.LightningModule):
         name: str,
         conditionals: Optional[Tensor] = None,
     ):
-        y_probs = self.model.generate(
+        y_probs = self.generate(
             x, conditionals=conditionals, device=self.curr_device
         ).squeeze()
         image = unpack(target, y_probs, self.curr_device)
@@ -155,8 +153,8 @@ class Experiment(pl.LightningModule):
             iter(self.trainer.datamodule.test_dataloader())
         )
         conditionals = conditionals.to(self.curr_device)
-        z = torch.randn(len(conditionals), self.model.latent_dim)
-        y_probs = self.model.predict_step(
+        z = torch.randn(len(conditionals), self.latent_dim)
+        y_probs = self.predict(
             z, conditionals=conditionals, device=self.curr_device
         )
         vutils.save_image(
@@ -173,7 +171,7 @@ class Experiment(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(
-            self.model.parameters(), lr=self.LR, weight_decay=self.weight_decay
+            self.parameters(), lr=self.LR, weight_decay=self.weight_decay
         )
 
         if self.kwargs.get("scheduler_gamma") is not None:
@@ -200,7 +198,7 @@ class Experiment(pl.LightningModule):
 
     def predict_step(self, batch):
         z, conditionals = batch
-        return self.model.predict_step(
+        return self.predict(
             z, conditionals=conditionals, device=self.curr_device
         )
 

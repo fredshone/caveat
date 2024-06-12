@@ -5,10 +5,10 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from caveat.models.base_VAE import Base
+from caveat.models.base_VAE import BaseVAE
 
 
-class AttentionDiscrete(Base):
+class AttentionDiscrete(BaseVAE):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -77,7 +77,7 @@ class AttentionDiscrete(Base):
             return [log_prob_y, prob_y, mu, log_var]
 
         # no target so assume generating
-        log_prob, prob = self.predict(z, current_device=z.device)
+        log_prob, prob = self.predict_sequences(z, current_device=z.device)
         return [log_prob, prob, mu, log_var]
 
     def decode(
@@ -112,7 +112,7 @@ class AttentionDiscrete(Base):
             log_probs, probs, mu, log_var, target, mask, **kwargs
         )
 
-    def predict_step(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
+    def predict(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
@@ -122,10 +122,10 @@ class AttentionDiscrete(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        _, prob_samples = self.predict(z, current_device)
+        _, prob_samples = self.predict_sequences(z, current_device)
         return prob_samples
 
-    def predict(
+    def predict_sequences(
         self, z: Tensor, current_device: int, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         """Given samples from the latent space, return the corresponding decoder space map.

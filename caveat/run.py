@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 from pandas import DataFrame
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     LearningRateMonitor,
@@ -727,7 +727,7 @@ def build_dataloader(
 
 def build_experiment(
     dataset: encoding.BaseDataset, config: dict, test: bool, gen: bool
-) -> Experiment:
+) -> LightningModule:
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     model = model(
@@ -736,10 +736,11 @@ def build_experiment(
         encoding_weights=dataset.encoding_weights,
         conditionals_size=dataset.conditionals_shape,
         **config["model_params"],
+        test=test,
+        gen=gen,
+        **config.get("experiment_params", {}),
     )
-    return Experiment(
-        model, test=test, gen=gen, **config.get("experiment_params", {})
-    )
+    return model
 
 
 def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
