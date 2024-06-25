@@ -2,12 +2,18 @@
 <!--- --8<-- [start:docs] -->
 ![caveat](resources/logos/title.png)
 
-Deep models for human activity schedules.
+Deep learning for modelling human activity schedules.
 
 [![Daily CI Build](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg)](https://github.com/fredshone/caveat/actions/workflows/daily-scheduled-ci.yml)
 [![Documentation](https://github.com/fredshone/caveat/actions/workflows/pages/pages-build-deployment/badge.svg)](https://fredshone.github.io/caveat)
 
-Caveat is for building and evaluating models of human activity schedules. Activity scheduling is required component of activity-based models. There are applications for modelling transport, energy and epidemiological systems.
+Caveat is for building and evaluating models of human activity schedules. Activity schedules are a useful representation of human behaviours, used for modelling transport, energy and epidemiological systems.
+
+Activity scheduling is required component of activity-based models. But Caveat also has application for (i) diverse upsampling, (ii) bias correction, (iii) simple forecasting.
+
+## Research
+
+Caveat is part of an ongoing research project. Overview of presented work can be found in the [papers](https://github.com/fredshone/caveat/blob/main/paper/README.md) module, including key information allowing presented results to be **reproduced**.
 
 ## Example Applications
 
