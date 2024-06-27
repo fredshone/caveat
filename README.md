@@ -12,10 +12,10 @@ Caveat is for building and evaluating models of human activity schedules. Activi
 ## Example Applications
 
 **Generation** for up-sampling or anonymisation an observed population of activity schedules:
-- `caveat run configs/example_run.yaml --gen` - train a generative model using an observed population of schedules, sample a new synthetic population of schedules, and evaluate it's quality.
+- `caveat run configs/example_run.yaml` - train a generative model using an observed population of schedules, sample a new synthetic population of schedules, and evaluate it's quality.
 
 **Conditional Generation** for bias correction and simple forecasting from an observed population of schedules and attributes:
-- `caveat run configs/example_run_conditional.yaml --gen` - train a model using an observed population of schedules with attributes, sample a new population conditional on new person attributes, and evaluate it's quality.
+- `caveat run configs/example_run_conditional.yaml` - train a model using an observed population of schedules with attributes, sample a new population conditional on new person attributes, and evaluate it's quality.
 
 **Predict**
 - `caveat run configs/example_seq2score.yaml --test` - train and test a model to predict MATSim plan scores.
@@ -33,8 +33,8 @@ Caveat provides various commands to facilitate rapid and reproducible experiment
 
 Train and evaluate a model. The run data, encoder, model and other parameters are controlled using a run config. For example:
 
-- `caveat run configs/example_run.yaml -g`
-- `caveat run configs/example_run_conditional.yaml -g` (conditional generation)
+- `caveat run configs/example_run.yaml`
+- `caveat run configs/example_run_conditional.yaml` (conditional generation)
 
 ### Batch
 
@@ -51,7 +51,7 @@ Batch allows training and comparison of multiple models and/or hyper-params as p
 
 Nrun is a simplified version of batch used to repeat the same model training and evaluation. This is intended to test for variance in model training and sampling. For example, run and evaluate the variance of _n=3_ of the same experiment using:
 
-- `caveat nrun configs/toy_run.yaml --n 3`
+- `caveat nrun configs/example_run.yaml --n 3`
 
 The config is as per a regular run config but `seed` is ignored.
 
@@ -61,7 +61,7 @@ The config is as per a regular run config but `seed` is ignored.
 
 As per nrun but only assesses variance from the sampling/generative process (not model training):
 
-- `caveat ngen configs/toy_run.yaml --n 3`
+- `caveat ngen configs/example_run.yaml --n 3`
 
 ### Reporting
 

@@ -22,35 +22,41 @@ def cli():
 @cli.command(name="run")
 @click.argument("config_path", type=click.Path(exists=True))
 @click.option("--test", "-t", is_flag=True)
-@click.option("--gen", "-g", is_flag=True)
+@click.option("--no-gen", "-ng", is_flag=True)
 @click.option("--verbose", "-v", is_flag=True)
-def run(config_path: click.Path, test: bool, gen: bool, verbose: bool):
+def run(config_path: click.Path, test: bool, no_gen: bool, verbose: bool):
     """Train and report on an encoder and model as per the given configuration file."""
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
-        run_command(config, verbose=verbose, test=test, gen=gen)
+        run_command(config, verbose=verbose, test=test, gen=not no_gen)
 
 
 @cli.command()
 @click.argument("config_path", type=click.Path(exists=True))
 @click.option("--test", "-t", is_flag=True)
-@click.option("--gen", "-g", is_flag=True)
+@click.option("--no-gen", "-ng", is_flag=True)
 @click.option("--stats", "-s", is_flag=True)
 @click.option("--verbose", "-v", is_flag=True)
 def batch(
-    config_path: click.Path, test: bool, gen: bool, stats: bool, verbose: bool
+    config_path: click.Path,
+    test: bool,
+    no_gen: bool,
+    stats: bool,
+    verbose: bool,
 ):
     """Train and report on a batch of encoders and models as per the given configuration file."""
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
-        batch_command(config, stats=stats, verbose=verbose, test=test, gen=gen)
+        batch_command(
+            config, stats=stats, verbose=verbose, test=test, gen=not no_gen
+        )
 
 
 @cli.command()
 @click.argument("config_path", type=click.Path(exists=True))
 @click.option("--n", type=int, default=5)
 @click.option("--test", "-t", is_flag=True)
-@click.option("--gen", "-g", is_flag=True)
+@click.option("--no-gen", "-ng", is_flag=True)
 @click.option("--stats", "-s", is_flag=True)
 @click.option("--verbose", "-v", is_flag=True)
 def nrun(
@@ -58,14 +64,14 @@ def nrun(
     n: int,
     stats: bool,
     test: bool,
-    gen: bool,
+    no_gen: bool,
     verbose: bool,
 ):
     """Train and report variance on n identical runs with varying seeds."""
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
         nrun_command(
-            config, n=n, stats=stats, test=test, gen=gen, verbose=verbose
+            config, n=n, stats=stats, test=test, gen=not no_gen, verbose=verbose
         )
 
 

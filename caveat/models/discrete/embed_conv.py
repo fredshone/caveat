@@ -2,11 +2,11 @@ from typing import Optional, Tuple, Union
 
 from torch import Tensor, nn
 
-from caveat.models.base_VAE import Base
+from caveat.models.base_VAE import BaseVAE
 from caveat.models.utils import calc_output_padding, conv_size
 
 
-class Conv(Base):
+class Conv(BaseVAE):
     def __init__(self, *args, **kwargs):
         """Convolution based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)

@@ -4,10 +4,10 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationModeDistanceEmbedding
+from caveat.models import BaseVAE, CustomDurationModeDistanceEmbedding
 
 
-class Seq2SeqLSTM(Base):
+class Seq2SeqLSTM(BaseVAE):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with conditionality."""
         super().__init__(*args, **kwargs)

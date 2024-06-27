@@ -4,10 +4,10 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import BaseVAE, CustomDurationEmbedding
 
 
-class ConditionalLSTM(Base):
+class ConditionalLSTM(BaseVAE):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)
@@ -129,10 +129,9 @@ class ConditionalLSTM(Base):
 
         return log_probs, probs
 
-    def predict_step(
-        self, batch: Tuple[Tensor, Tensor], device: int, **kwargs
+    def predict(
+        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
-        z, conditionals = batch
         z = z.to(device)
         conditionals = conditionals.to(device)
         return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]

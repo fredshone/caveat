@@ -1,0 +1,106 @@
+global:
+  logging_params:
+    log_dir: "logs"
+    name: "gen-demo"
+
+  schedules_path: "tmp/nts_home_schedules_5yrs.csv"
+  attributes_path: "tmp/nts_home_attributes_5yrs.csv"
+
+  loader_params:
+    train_batch_size: 256
+    val_batch_size:  256
+    num_workers: 4
+
+  trainer_params:
+    max_epochs: 100
+    min_epochs: 10
+    patience: 10
+
+  encoder_params:
+    name: "sequence_staggered"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.1
+
+  conditionals:
+    gender: nominal
+    age: {ordinal: [0, 100]}
+    income: {ordinal: [0, 5]}
+    area: nominal
+
+  evaluation_params:
+    split_on: [gender, age, area]
+
+  seed: 1234
+
+3x64:
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 3
+    hidden_size: 64
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.001
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+
+4x64:
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 4
+    hidden_size: 64
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.001
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+
+4x128:
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.001
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+
+5x64:
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 5
+    hidden_size: 64
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.001
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+
+5x128:
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 5
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.001
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+
+5x256:
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 5
+    hidden_size: 256
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.001
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95

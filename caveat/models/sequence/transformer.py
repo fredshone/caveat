@@ -349,7 +349,7 @@ class Transformer(nn.Module):
             "KLD": kld_loss.detach(),
         }
 
-    def predict_step(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
+    def predict(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
 
         Args:
