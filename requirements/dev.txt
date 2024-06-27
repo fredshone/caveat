@@ -1,6 +1,6 @@
 jupyter < 2
 jupyter_contrib_nbextensions
-mike < 2
+mike >= 2, < 3
 mkdocs < 1.6
 mkdocs-click < 0.7
 mkdocs-jupyter < 0.25
