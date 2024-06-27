@@ -46,7 +46,7 @@ global:
     LR: 0.005
     weight_decay: 0.0
     scheduler_gamma: 0.95
-    kld_weight: 0.001
+    kld_weight: 0.0001
   loader_params:
     train_batch_size: 256
     val_batch_size:  256
@@ -62,23 +62,23 @@ discrete_model:
     step_size: 10
   model_params:
     name: "VAE_Conv_Discrete"
-    hidden_layers: [64,64]
-    latent_dim: 3
+    hidden_layers: [128,128,128,128]
+    latent_dim: 6
     stride: [2,2]
+    dropout: 0.1
 
 sequence_model:
   encoder_params:
     name: "sequence"
     max_length: 16
     norm_duration: 1440
-    jitter: 0.3
   model_params:
     name: "VAE_LSTM"
     hidden_layers: 4
     hidden_size: 128
     latent_dim: 6
-    dropout: 0.3
-    kld_weight: 0.001
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
 ```
 
 ## MUM 2024
