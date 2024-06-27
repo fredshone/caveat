@@ -1,7 +1,7 @@
 jupyter < 2
 jupyter_contrib_nbextensions
 mike < 2
-mkdocs < 2
+mkdocs < 1.6
 mkdocs-click < 0.7
 mkdocs-jupyter < 0.25
 mkdocstrings-python < 2
