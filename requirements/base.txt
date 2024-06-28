@@ -8,3 +8,4 @@ torchvision
 tensorboard
 cml-pam
 pot
+scipy<=1.13
