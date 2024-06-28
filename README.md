@@ -13,7 +13,7 @@ Activity scheduling is required component of activity-based models. But Caveat a
 
 ## Research
 
-Caveat is part of an ongoing research project. Overview of presented work can be found in the [papers](https://github.com/fredshone/caveat/blob/main/paper/README.md) module, including key information allowing presented results to be **reproduced**.
+Caveat is part of an ongoing research project. Overview of presented work can be found in the [papers](https://github.com/fredshone/caveat/blob/main/papers/README.md) module, including key information allowing presented results to be **reproduced**.
 
 ## Example Applications
 
