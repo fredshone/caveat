@@ -1,30 +1,28 @@
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models import BaseVAE, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationEmbedding
 
 
-class VAE_LSTM(BaseVAE):
+class AutoSeqLSTM(Base):
     def __init__(self, *args, **kwargs):
-        """RNN based encoder and decoder with encoder embedding layer."""
+        """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)
+        if self.conditionals_size is None:
+            raise UserWarning(
+                "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
+            )
 
     def build(self, **config):
-        self.latent_dim = config["latent_dim"]
+        self.latent_dim = 1  # dummy value for the predict dataloader
         self.hidden_size = config["hidden_size"]
         self.hidden_layers = config["hidden_layers"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
 
-        self.encoder = Encoder(
-            input_size=self.encodings,
-            hidden_size=self.hidden_size,
-            num_layers=self.hidden_layers,
-            dropout=self.dropout,
-        )
         self.decoder = Decoder(
             input_size=self.encodings,
             hidden_size=self.hidden_size,
@@ -36,14 +34,68 @@ class VAE_LSTM(BaseVAE):
         )
         self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
-        self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
-        self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+        self.fc_hidden = nn.Linear(self.conditionals_size, flat_size_encode)
 
-        if config.get("share_embed", False):
-            self.decoder.embedding.weight = self.encoder.embedding.weight
+    def forward(
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target: Optional[Tensor] = None,
+        **kwargs,
+    ) -> List[Tensor]:
 
-    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
+        log_probs, probs = self.decode(
+            z=x, conditionals=conditionals, target=target
+        )
+        return [log_probs, probs]
+
+    def loss_function(
+        self,
+        log_probs: Tensor,
+        probs: Tensor,
+        target: Tensor,
+        mask: Tensor,
+        **kwargs,
+    ) -> dict:
+        """Loss function for sequence encoding [N, L, 2]."""
+        # unpack act probs and durations
+        target_acts, target_durations = self.unpack_encoding(target)
+        pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        acts, _ = self.unpack_encoding(probs)
+
+        # activity loss
+        recon_act_nlll = self.base_NLLL(
+            pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
+        )
+        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+
+        # duration loss
+        recon_dur_mse = self.duration_weight * self.MSE(
+            pred_durations, target_durations
+        )
+        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+
+        # reconstruction loss
+        recons_loss = recon_act_nlll + recon_dur_mse
+
+        return {
+            "loss": recons_loss,
+            "recon_loss": recons_loss.detach(),
+            "recon_act_nlll_loss": recon_act_nlll.detach(),
+            "recon_time_mse_loss": recon_dur_mse.detach(),
+            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
+        }
+
+    def encode(self, input: Tensor):
+        return None
+
+    def decode(
+        self,
+        z: None,
+        conditionals: Tensor,
+        target: Optional[Tensor] = None,
+        **kwargs,
+    ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -52,8 +104,7 @@ class VAE_LSTM(BaseVAE):
         Returns:
             tensor: Output sequence batch [N, steps, acts].
         """
-        # initialize hidden state as inputs
-        h = self.fc_hidden(z)
+        h = self.fc_hidden(conditionals)
 
         # initialize hidden state
         hidden = h.unflatten(
@@ -78,64 +129,12 @@ class VAE_LSTM(BaseVAE):
 
         return log_probs, probs
 
-
-class VAE_LSTM_Unweighted(VAE_LSTM):
-    def loss_function(
-        self,
-        log_probs: Tensor,
-        probs: Tensor,
-        input: Tensor,
-        mu: Tensor,
-        log_var: Tensor,
-        mask: Tensor,
-        **kwargs,
-    ) -> dict:
-        return self.unweighted_seq_loss(
-            log_probs, probs, input, mu, log_var, mask, **kwargs
-        )
-
-
-class Encoder(nn.Module):
-    def __init__(
-        self,
-        input_size: int,
-        hidden_size: int,
-        num_layers: int,
-        dropout: float = 0.1,
-    ):
-        """LSTM Encoder.
-
-        Args:
-            input_size (int): lstm input size.
-            hidden_size (int): lstm hidden size.
-            num_layers (int): number of lstm layers.
-            dropout (float): dropout. Defaults to 0.1.
-        """
-        super(Encoder, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.embedding = CustomDurationEmbedding(
-            input_size, hidden_size, dropout=dropout
-        )
-        self.lstm = nn.LSTM(
-            hidden_size,
-            hidden_size,
-            num_layers,
-            batch_first=True,
-            bidirectional=False,
-        )
-        self.norm = nn.LayerNorm(hidden_size)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        embedded = self.embedding(x)
-        _, (h1, h2) = self.lstm(embedded)
-        # ([layers, N, C (output_size)], [layers, N, C (output_size)])
-        h1 = self.norm(h1)
-        h2 = self.norm(h2)
-        hidden = torch.cat((h1, h2)).permute(1, 0, 2).flatten(start_dim=1)
-        # [N, flatsize]
-        return hidden
+    def predict(
+        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
+    ) -> Tensor:
+        z = z.to(device)
+        conditionals = conditionals.to(device)
+        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
 
 
 class Decoder(nn.Module):
@@ -201,7 +200,7 @@ class Decoder(nn.Module):
                 decoder_input = target[:, i : i + 1, :]  # (slice maintains dim)
             else:
                 # no teacher forcing use decoder output
-                decoder_input = self.pack(decoder_output)
+                decoder_input = self.sample(decoder_output)
 
         outputs = torch.stack(outputs).permute(1, 0, 2)  # [N, steps, acts]
 
@@ -224,13 +223,16 @@ class Decoder(nn.Module):
         # [N, 1, encodings+1]
         return prediction, hidden
 
-    def pack(self, x):
+    def sample(self, x):
         # [N, 1, encodings+1]
         acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-        _, topi = acts.topk(1)
-        act = (
-            topi.squeeze(-1).detach().unsqueeze(-1)
-        )  # detach from history as input
+        act = torch.multinomial(
+            self.activity_prob_activation(acts.squeeze()), 1
+        ).unsqueeze(-2)
+        # _, topi = acts.topk(1)
+        # act = (
+        #     topi.squeeze(-1).detach().unsqueeze(-1)
+        # )  # detach from history as input
         duration = self.duration_activation(duration)
         outputs = torch.cat((act, duration), dim=-1)
         # [N, 1, 2]

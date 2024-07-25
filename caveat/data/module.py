@@ -44,25 +44,22 @@ class DataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         if self.test_split is None:
-            (
-                self.train_dataset,
-                self.val_dataset,
-            ) = torch.utils.data.random_split(
-                self.data, [1 - self.val_split, self.val_split]
+            (self.train_dataset, self.val_dataset) = (
+                torch.utils.data.random_split(
+                    self.data, [1 - self.val_split, self.val_split]
+                )
             )
             self.test_dataset = self.val_dataset
         else:
-            (
-                self.train_dataset,
-                self.val_dataset,
-                self.test_dataset,
-            ) = torch.utils.data.random_split(
-                self.data,
-                [
-                    1 - self.val_split - self.test_split,
-                    self.val_split,
-                    self.test_split,
-                ],
+            (self.train_dataset, self.val_dataset, self.test_dataset) = (
+                torch.utils.data.random_split(
+                    self.data,
+                    [
+                        1 - self.val_split - self.test_split,
+                        self.val_split,
+                        self.test_split,
+                    ],
+                )
             )
 
     def train_dataloader(self) -> DataLoader:
@@ -136,6 +133,9 @@ def build_conditional_dataloader(
     batch_size: int = 256,
     num_workers: int = 4,
 ):
+    print(
+        f"Building dataloader with {len(attributes)} samples, latent_dim={latent_dim}, batch_size={batch_size}, num_workers={num_workers}"
+    )
     return DataLoader(
         ConditionalDataset(attributes, latent_dim),
         batch_size=batch_size,

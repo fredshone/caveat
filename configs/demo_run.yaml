@@ -1,0 +1,34 @@
+logging_params:
+  log_dir: "logs"
+  name: "z_demo"
+
+schedules_path: "tmp/nts_home_schedules.csv"
+
+encoder_params:
+  name: "discrete"
+  duration: 1440
+  step_size: 20
+
+model_params:
+  name: "VAE_Conv_Discrete"
+  hidden_layers: [128,128,128,128,128]
+  latent_dim: 6
+
+loader_params:
+  train_batch_size: 256
+  val_batch_size:  256
+  num_workers: 3
+
+experiment_params:
+  LR: 0.005
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.001
+
+trainer_params:
+  min_epochs: 10
+  patience: 10
+  max_epochs: 100
+
+seed: 1234
+  

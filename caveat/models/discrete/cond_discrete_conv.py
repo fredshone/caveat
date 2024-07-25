@@ -1,15 +1,19 @@
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from torch import Tensor, nn
 
-from caveat.models.base_VAE import BaseVAE
+from caveat.models.base import Base
 from caveat.models.utils import calc_output_padding, conv_size
 
 
-class Conv(BaseVAE):
+class CondDiscConv(Base):
     def __init__(self, *args, **kwargs):
         """Convolution based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
+        if self.conditionals_size is None:
+            raise UserWarning(
+                "Model requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
+            )
 
     def build(self, **config):
         hidden_layers = list
@@ -21,7 +25,7 @@ class Conv(BaseVAE):
 
         embed_size = config.get("embed_size", self.encodings)
         hidden_layers = config["hidden_layers"]
-        latent_dim = config["latent_dim"]
+        latent_dim = 1
         dropout = config.get("dropout", 0)
         kernel_size = config.get("kernel_size", 3)
         stride = config.get("stride", 2)
@@ -39,18 +43,57 @@ class Conv(BaseVAE):
             stride=stride,
             padding=padding,
         )
+        self.target_shapes = self.encoder.target_shapes
+        self.flat_size = self.encoder.flat_size
+        self.shape_before_flattening = self.encoder.shape_before_flattening
+        self.encoder = None  # just used encoder to get target shapes :(
+
         self.decoder = Decoder(
-            target_shapes=self.encoder.target_shapes,
+            target_shapes=self.target_shapes,
             hidden_layers=hidden_layers,
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
         )
-        self.fc_mu = nn.Linear(self.encoder.flat_size, latent_dim)
-        self.fc_var = nn.Linear(self.encoder.flat_size, latent_dim)
-        self.fc_hidden = nn.Linear(latent_dim, self.encoder.flat_size)
 
-    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
+        self.fc_hidden = nn.Linear(self.conditionals_size, self.flat_size)
+
+    def forward(
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target: Optional[Tensor] = None,
+        **kwargs,
+    ) -> List[Tensor]:
+
+        log_probs, probs = self.decode(
+            z=x, conditionals=conditionals, target=target
+        )
+        return [log_probs, probs]
+
+    def loss_function(
+        self,
+        log_probs: Tensor,
+        probs: Tensor,
+        target: Tensor,
+        mask: Tensor,
+        **kwargs,
+    ) -> dict:
+        """Loss function for discretized encoding [N, L]."""
+        # activity loss
+        recon_act_nlll = self.NLLL(log_probs.squeeze().permute(0, 2, 1), target)
+
+        # loss
+        loss = recon_act_nlll
+
+        return {"loss": loss, "recon_act_nlll_loss": recon_act_nlll}
+
+    def encode(self, input: Tensor):
+        return None
+
+    def decode(
+        self, z: Tensor, conditionals: Tensor, **kwargs
+    ) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
 
         Args:
@@ -60,17 +103,17 @@ class Conv(BaseVAE):
             tensor: Output sequence batch [N, steps, acts].
         """
         # initialize hidden state as inputs
-        hidden = self.fc_hidden(z)
-        hidden = hidden.view(self.encoder.shape_before_flattening)
+        hidden = self.fc_hidden(conditionals)
+        hidden = hidden.view(self.shape_before_flattening)
         log_probs, probs = self.decoder(hidden)
         return log_probs, probs
 
-    def loss_function(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
-    ) -> dict:
-        return self.discretized_loss(
-            log_probs, probs, mu, log_var, target, mask, **kwargs
-        )
+    def predict(
+        self, z: Tensor, conditionals: Tensor, device: int, **kwargs
+    ) -> Tensor:
+        z = z.to(device)
+        conditionals = conditionals.to(device)
+        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
 
 
 class Encoder(nn.Module):
@@ -130,13 +173,6 @@ class Encoder(nn.Module):
         self.shape_before_flattening = (-1, channels, h, w)
         self.encoder = nn.Sequential(*modules)
         self.flat_size = int(channels * h * w)
-
-    def forward(self, x):
-        y = self.dropout(self.embedding(x.int()))
-        y = y.unsqueeze(1)  # add channel dim for Conv
-        y = self.encoder(y)
-        y = y.flatten(start_dim=1)
-        return y
 
 
 class Decoder(nn.Module):

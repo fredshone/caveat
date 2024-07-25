@@ -42,6 +42,12 @@ class AttributeEncoder:
                 self.config[k] = {"nominal": nominal_encodings}
                 encoded.append(nominal_encoded)
 
+            elif v == "ordinal":  # Undefined ordinal encoding
+                min = data[k].min()
+                max = data[k].max()
+                encoded.append(ordinal_encode(data[k], min, max))
+                self.config[k] = {"ordinal": [min, max]}
+
             else:
                 raise UserWarning(
                     f"Unrecognised attribute encoding in configuration: {v}"

@@ -4,10 +4,10 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models import BaseVAE, CustomDurationEmbedding
+from caveat.models import Base, CustomDurationEmbedding
 
 
-class CVAE_LSTM(BaseVAE):
+class CVAESeqLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer and conditionality."""
         super().__init__(*args, **kwargs)

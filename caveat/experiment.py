@@ -32,15 +32,6 @@ class Experiment(pl.LightningModule):
         self.curr_device = None
         self.save_hyperparameters()
 
-    # def forward(
-    #     self,
-    #     x: Tensor,
-    #     conditionals: Optional[Tensor] = None,
-    #     target=None,
-    #     **kwargs,
-    # ) -> List[Tensor]:
-    #     return self.model(x, conditionals, target, **kwargs)
-
     def training_step(self, batch, batch_idx):
         (x, x_mask), (y, y_mask), conditionals = batch
 
@@ -221,6 +212,11 @@ def unpack(x, y, current_device):
         ximage = eye[acts.long()].squeeze()
         ximage = torch.cat((ximage, durations), dim=-1)
         return ximage
+    elif 1 in x.shape:
+        print(f"Unknown encoding; {x.shape}, squeezing")
+        return unpack(x.squeeze(), y.squeeze(), current_device)
+    else:
+        print(f"Unknown encoding; {x.shape}, returning input x")
     return x
 
 

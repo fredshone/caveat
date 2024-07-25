@@ -5,10 +5,10 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from caveat.models.base_VAE import BaseVAE
+from caveat.models.base import Base
 
 
-class AttentionDiscrete(BaseVAE):
+class VAEDiscTrans(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)

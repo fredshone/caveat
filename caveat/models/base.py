@@ -17,7 +17,7 @@ class BaseDecoder(LightningModule):
         raise NotImplementedError
 
 
-class BaseVAE(Experiment):
+class Base(Experiment):
     def __init__(
         self,
         in_shape: tuple,
@@ -37,9 +37,10 @@ class BaseVAE(Experiment):
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
-        super(BaseVAE, self).__init__(**kwargs)
+        super(Base, self).__init__(**kwargs)
 
         self.in_shape = in_shape
+        print(f"Found input shape: {self.in_shape}")
         self.encodings = encodings
         self.encoding_weights = encoding_weights
         self.conditionals_size = conditionals_size
@@ -51,14 +52,12 @@ class BaseVAE(Experiment):
         print(f"Using KLD weight: {self.kld_weight}")
         self.duration_weight = kwargs.get("duration_weight", 1)
         print(f"Using duration weight: {self.duration_weight}")
-        self.use_mask = kwargs.get("use_mask", True)  # defaults to True
+        self.use_mask = kwargs.get("use_mask", True)
         print(f"Using mask: {self.use_mask}")
-        self.use_weighted_loss = kwargs.get(
-            "weighted_loss", True
-        )  # defaults to True
-        print(f"Using weighted loss: {self.use_weighted_loss}")
+        self.use_weighted_loss = kwargs.get("weighted_loss", True)
 
-        if self.use_weighted_loss:
+        if self.use_weighted_loss and encoding_weights is not None:
+            print("Using weighted loss function")
             self.NLLL = nn.NLLLoss(weight=encoding_weights)
         else:
             self.NLLL = nn.NLLLoss()
@@ -94,6 +93,28 @@ class BaseVAE(Experiment):
         self.fc_mu = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_var = nn.Linear(flat_size_encode, self.latent_dim)
         self.fc_hidden = nn.Linear(self.latent_dim, flat_size_encode)
+
+    def forward(
+        self,
+        x: Tensor,
+        conditionals: Optional[Tensor] = None,
+        target=None,
+        **kwargs,
+    ) -> List[Tensor]:
+        """Forward pass, also return latent parameterization.
+
+        Args:
+            x (tensor): Input sequences [N, L, Cin].
+
+        Returns:
+            list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
+        """
+        mu, log_var = self.encode(x)
+        z = self.reparameterize(mu, log_var)
+        log_prob_y, prob_y = self.decode(
+            z, conditionals=conditionals, target=target
+        )
+        return [log_prob_y, prob_y, mu, log_var]
 
     def encode(self, input: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -143,28 +164,6 @@ class BaseVAE(Experiment):
             )
 
         return log_probs, probs
-
-    def forward(
-        self,
-        x: Tensor,
-        conditionals: Optional[Tensor] = None,
-        target=None,
-        **kwargs,
-    ) -> List[Tensor]:
-        """Forward pass, also return latent parameterization.
-
-        Args:
-            x (tensor): Input sequences [N, L, Cin].
-
-        Returns:
-            list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
-        """
-        mu, log_var = self.encode(x)
-        z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y, mu, log_var]
 
     def loss_function(
         self,

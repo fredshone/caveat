@@ -47,7 +47,7 @@ class DiscreteEncoder(BaseEncoder):
         )
 
         return BaseDataset(
-            schedules=encoded,
+            schedules=encoded.long(),
             masks=masks,
             activity_encodings=activity_encodings,
             activity_weights=encoding_weights,
@@ -122,7 +122,7 @@ class DiscreteEncoderPadded(BaseEncoder):
 
         schedules = schedules.copy()
         schedules.act = schedules.act.map(acts_to_index)
-        activity_encodings = schedules.act.nunique() + 1  # <PAD>
+        activity_encodings = len(acts_to_index)
 
         # calc weightings
         weights = (
@@ -136,14 +136,16 @@ class DiscreteEncoderPadded(BaseEncoder):
         encoded = discretise_population(
             schedules, duration=self.duration, step_size=self.step_size
         )
-        masks = torch.ones((encoded.shape[0], encoded.shape[-1] + 1))
+        masks = torch.ones(
+            (encoded.shape[0], encoded.shape[-1] + 1), dtype=torch.int8
+        )
 
         augment = (
             DiscreteJitter(self.step_size, self.jitter) if self.jitter else None
         )
 
         return PaddedDatatset(
-            schedules=encoded,
+            schedules=encoded.long(),
             masks=masks,
             activity_encodings=activity_encodings,
             activity_weights=activity_weights,
@@ -206,7 +208,7 @@ def discretise_population(
     """
     persons = data.pid.nunique()
     steps = duration // step_size
-    encoded = np.zeros((persons, steps), dtype=np.int8)
+    encoded = np.zeros((persons, steps))
 
     for pid, (_, trace) in enumerate(data.groupby("pid")):
         trace_encoding = discretise_trace(
@@ -218,7 +220,7 @@ def discretise_population(
 
 
 def discretise_trace(
-    acts: Iterable[str], starts: Iterable[int], ends: Iterable[int], length: int
+    acts: Iterable[int], starts: Iterable[int], ends: Iterable[int], length: int
 ) -> np.ndarray:
     """Create categorical encoding from ranges with step of 1.
 
@@ -231,7 +233,7 @@ def discretise_trace(
     Returns:
         np.array: _description_
     """
-    encoding = np.zeros((length), dtype=np.int8)
+    encoding = np.zeros((length))
     for act, start, end in zip(acts, starts, ends):
         encoding[start:end] = act
     return encoding

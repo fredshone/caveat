@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 from pandas import DataFrame
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     LearningRateMonitor,
@@ -19,7 +19,6 @@ from caveat import cuda_available, data, encoding, models
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.evaluate import evaluate
-from caveat.experiment import Experiment
 
 
 def run_command(
@@ -430,10 +429,6 @@ def load_data(config: dict) -> Tuple[DataFrame, DataFrame, DataFrame]:
     attributes, synthetic_attributes = data.load_and_validate_attributes(
         config, schedules
     )
-    if attributes is not None:
-        print(
-            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
-        )
     return schedules, attributes, synthetic_attributes
 
 
@@ -638,6 +633,7 @@ def evaluate_synthetics(
     stats: bool = True,
     verbose: bool = False,
 ) -> None:
+    print("\n======= Evaluating synthetic schedules =======")
     head = eval_params.get("head", 10)
 
     eval_schedules_path = eval_params.get("schedules_path", None)
@@ -652,6 +648,7 @@ def evaluate_synthetics(
 
     split_on = eval_params.get("split_on", [])
     if split_on:
+        print(f"Splitting evaluation on {split_on}")
         eval_attributes_path = eval_params.get("attributes_path", None)
         if eval_attributes_path:
             eval_attributes = data.load_and_validate_attributes(

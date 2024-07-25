@@ -4,10 +4,10 @@ import torch
 from torch import Tensor, nn
 
 from caveat import current_device
-from caveat.models.base_VAE import BaseVAE
+from caveat.models.base import Base
 
 
-class LSTM_Discrete(BaseVAE):
+class VAEDiscLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with encoder embedding layer."""
         super().__init__(*args, **kwargs)
@@ -186,7 +186,7 @@ class Decoder(nn.Module):
         decoder_input = torch.zeros(
             batch_size, 1, device=hidden.device
         )  # [N, L=0]
-        decoder_input[:, 0] = 0  # set as SOS
+        decoder_input[:, 0] = self.sos  # set as SOS
         hidden = hidden.contiguous()
         cell = cell.contiguous()
         decoder_hidden = (hidden, cell)

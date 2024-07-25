@@ -1,21 +1,32 @@
-from .base_VAE import BaseVAE
-from .discrete.embed_conv import Conv
-from .discrete.lstm_discrete import LSTM_Discrete
-from .discrete.transformer_discrete import AttentionDiscrete
+from .base import Base
+from .discrete.auto_discrete_lstm import AutoDiscLSTM
+from .discrete.cond_discrete_conv import CondDiscConv
+from .discrete.cond_discrete_lstm import CondDiscLSTM
+from .discrete.vae_discrete_conv import VAEDiscConv
+from .discrete.vae_discrete_lstm import VAEDiscLSTM
+from .discrete.vae_discrete_transformer import VAEDiscTrans
 from .embed import CustomDurationEmbedding, CustomDurationModeDistanceEmbedding
 from .seq2score.lstm import Seq2ScoreLSTM
 from .seq2seq.lstm import Seq2SeqLSTM
-from .sequence.cond_gen_lstm import CVAE_LSTM
-from .sequence.cond_lstm import ConditionalLSTM
-from .sequence.gen_lstm import VAE_LSTM
+from .sequence.auto_sequence_lstm import AutoSeqLSTM
+from .sequence.cond_sequence_lstm import CondSeqLSTM
+from .sequence.cvae_sequence_lstm import CVAESeqLSTM
+from .sequence.cvae_sequence_lstm_2 import CVAESeqLSTM2
+from .sequence.vae_sequence_lstm import VAESeqLSTM
 
 library = {
-    "VAE_Conv_Discrete": Conv,
-    "VAE_LSTM": VAE_LSTM,
-    "CVAE_LSTM": CVAE_LSTM,
-    "C_LSTM": ConditionalLSTM,
-    "VAE_LSTM_Discrete": LSTM_Discrete,
-    "Attention_Discrete": AttentionDiscrete,
-    "Seq2Seq_LSTM": Seq2SeqLSTM,
-    "Seq2Score_LSTM": Seq2ScoreLSTM,
+    "Koushik": CondDiscLSTM,
+    "CondDiscLSTM": CondDiscLSTM,
+    "CondDiscConv": CondDiscConv,
+    "CondSeqLSTM": CondSeqLSTM,
+    "AutoDiscLSTM": AutoDiscLSTM,
+    "AutoSeqLSTM": AutoSeqLSTM,
+    "VAEDiscConv": VAEDiscConv,
+    "VAESeqLSTM": VAESeqLSTM,
+    "VAEDiscLSTM": VAEDiscLSTM,
+    "VAEDiscTrans": VAEDiscTrans,
+    "CVAESeqLSTM": CVAESeqLSTM,
+    "CVAESeqLSTM2": CVAESeqLSTM2,
+    "Seq2SeqLSTM": Seq2SeqLSTM,
+    "Seq2ScoreLSTM": Seq2ScoreLSTM,
 }
