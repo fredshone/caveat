@@ -28,6 +28,38 @@ def average(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
     )
 
 
+def weighted_variance(values, weights):
+    """
+    Return the weighted standard deviation.
+
+    They weights are in effect first normalized so that they
+    sum to 1 (and so they must not all be 0).
+
+    values, weights -- NumPy ndarrays with the same shape.
+    """
+    average = np.average(values, weights=weights)
+    variance = np.average((values - average) ** 2, weights=weights)
+    return variance
+
+
+def variance(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
+    return Series(
+        {
+            k: weighted_variance(v, weights=w).sum()
+            for k, (v, w) in features.items()
+        }
+    )
+
+
+def sd(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
+    return Series(
+        {
+            k: np.sqrt(weighted_variance(v, weights=w)).sum()
+            for k, (v, w) in features.items()
+        }
+    )
+
+
 def average2d(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
     return Series(
         {
