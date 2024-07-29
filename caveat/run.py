@@ -90,6 +90,7 @@ def run_command(
             trainer=trainer,
             population=synthetic_population,
             schedule_encoder=schedule_encoder,
+            attribute_encoder=attribute_encoder,
             config=config,
             write_dir=Path(logger.log_dir),
             seed=seed,
@@ -195,6 +196,7 @@ def batch_command(
                 trainer=trainer,
                 population=synthetic_population,
                 schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
                 config=combined_config,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
@@ -288,6 +290,7 @@ def nrun_command(
                 trainer=trainer,
                 population=synthetic_population,
                 schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
                 config=config,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
@@ -367,6 +370,7 @@ def ngen_command(
             trainer=trainer,
             population=synthetic_population,
             schedule_encoder=schedule_encoder,
+            attribute_encoder=attribute_encoder,
             config=config,
             write_dir=Path(logger.log_dir),
             seed=seed,
@@ -549,6 +553,7 @@ def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
     schedule_encoder: encoding.BaseEncoder,
+    attribute_encoder: encoding.AttributeEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
@@ -563,7 +568,7 @@ def generate(
     batch_size = config.get("generator_params", {}).get("batch_size", 256)
     if isinstance(population, int):
         print(f"\n======= Sampling {population} new schedules =======")
-        predictions = generate_n(
+        synthetic_schedules = generate_n(
             trainer,
             n=population,
             batch_size=batch_size,
@@ -571,11 +576,12 @@ def generate(
             seed=seed,
             ckpt_path=ckpt_path,
         )
+        synthetic_attributes = None
     elif isinstance(population, Tensor):
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
         )
-        predictions = generate_from_attributes(
+        synthetic_attributes, synthetic_schedules = generate_from_attributes(
             trainer,
             attributes=population,
             batch_size=batch_size,
@@ -583,12 +589,13 @@ def generate(
             seed=seed,
             ckpt_path=ckpt_path,
         )
+        synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
+        synthetic_attributes.to_csv(write_dir / "synthetic_attributes.csv")
 
-    synthetic = schedule_encoder.decode(schedules=predictions)
-    data.validate_schedules(synthetic)
-    synthesis_path = write_dir / "synthetic.csv"
-    synthetic.to_csv(synthesis_path)
-    return synthetic
+    synthetic_schedules = schedule_encoder.decode(schedules=synthetic_schedules)
+    data.validate_schedules(synthetic_schedules)
+    synthetic_schedules.to_csv(write_dir / "synthetic_schedules.csv")
+    return synthetic_attributes, synthetic_schedules
 
 
 def generate_n(
@@ -618,9 +625,12 @@ def generate_from_attributes(
     dataloaders = data.build_conditional_dataloader(
         attributes, latent_dims, batch_size
     )
-    predictions = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
-    predictions = torch.concat(predictions)
-    return predictions
+    synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
+    synthetic_attributes, synthetic_schedules = zip(*synth)
+
+    synthetic_attributes = torch.concat(synthetic_attributes)
+    synthetic_schedules = torch.concat(synthetic_schedules)
+    return synthetic_attributes, synthetic_schedules
 
 
 def evaluate_synthetics(

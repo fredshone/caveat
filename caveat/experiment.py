@@ -189,7 +189,7 @@ class Experiment(pl.LightningModule):
 
     def predict_step(self, batch):
         z, conditionals = batch
-        return self.predict(
+        return conditionals, self.predict(
             z, conditionals=conditionals, device=self.curr_device
         )
 
