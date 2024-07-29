@@ -2,7 +2,7 @@ global:
   seed: 1234
   logging_params:
     log_dir: "experiments"
-    name: "experiments4"
+    name: "experiments6"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes.csv"
@@ -23,12 +23,12 @@ global:
     scheduler_gamma: 0.95
 
   conditionals:
-    gender: nominal
-    age: nominal
-    ethnicity: nominal
-    education: nominal
-    license: nominal
-    car_access: nominal
+    # gender: nominal
+    # age: nominal
+    # ethnicity: nominal
+    # education: nominal
+    # license: nominal
+    # car_access: nominal
     work_status: nominal
     # area: nominal
     # income: ordinal
@@ -48,128 +48,96 @@ global:
     norm_duration: 1440
     jitter: 0.2
 
-DiscLSTM:
-  encoder_params:
-    name: "discrete"
-    step_size: 5
-    duration: 1440
-    jitter: 0.2
-  model_params:
-    name: "CondDiscLSTM"
-    latent_dim: 6
-    hidden_layers: 2
-    hidden_size: 128
-    dropout: 0.2
-    bidirectional: True
-DiscLSTM_L:
-  encoder_params:
-    name: "discrete"
-    step_size: 5
-    duration: 1440
-    jitter: 0.2
-  model_params:
-    name: "CondDiscLSTM"
-    latent_dim: 6
-    hidden_layers: 3
-    hidden_size: 128
-    dropout: 0.2
-    bidirectional: True
+# DiscLSTM:
+#   encoder_params:
+#     name: "discrete"
+#     step_size: 5
+#     duration: 1440
+#     jitter: 0.2
+#   model_params:
+#     name: "CondDiscLSTM"
+#     latent_dim: 6
+#     hidden_layers: 2
+#     hidden_size: 128
+#     dropout: 0.2
+#     bidirectional: True
 
-CVAESeqLSTM_XXXL:
-  conditionals:
-    gender: nominal
-    age: nominal
-    ethnicity: nominal
-    education: nominal
-    license: nominal
-    car_access: nominal
-    work_status: nominal
+CVAESeqLSTM_XXXL_L1:
   model_params:
     name: "CVAESeqLSTM2"
-    latent_dim: 6
+    latent_dim: 1
     hidden_layers: 7
     hidden_size: 1024
     dropout: 0.2
-CVAESeqLSTM_XXXXL:
-  conditionals:
-    gender: nominal
-    age: nominal
-    ethnicity: nominal
-    education: nominal
-    license: nominal
-    car_access: nominal
-    work_status: nominal
+  experiment_params:
+    LR: 0.0001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+
+CVAESeqLSTM_XXXL_L2:
   model_params:
     name: "CVAESeqLSTM2"
-    latent_dim: 6
-    hidden_layers: 8
-    hidden_size: 1024
-    dropout: 0.2
-
-CVAESeqLSTM3_XXL:
-  conditionals:
-    gender: nominal
-    age: nominal
-    ethnicity: nominal
-    education: nominal
-    license: nominal
-    car_access: nominal
-    work_status: nominal
-  model_params:
-    name: "CVAESeqLSTM3"
-    latent_dim: 6
-    hidden_layers: 6
-    hidden_size: 512
-    dropout: 0.2
-CVAESeqLSTM3_XXXL:
-  conditionals:
-    gender: nominal
-    age: nominal
-    ethnicity: nominal
-    education: nominal
-    license: nominal
-    car_access: nominal
-    work_status: nominal
-  model_params:
-    name: "CVAESeqLSTM3"
-    latent_dim: 6
+    latent_dim: 2
     hidden_layers: 7
     hidden_size: 1024
     dropout: 0.2
-CVAESeqLSTM3_XXXXL:
-  conditionals:
-    gender: nominal
-    age: nominal
-    ethnicity: nominal
-    education: nominal
-    license: nominal
-    car_access: nominal
-    work_status: nominal
-  model_params:
-    name: "CVAESeqLSTM3"
-    latent_dim: 6
-    hidden_layers: 8
-    hidden_size: 1024
-    dropout: 0.2
+  experiment_params:
+    LR: 0.0001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
 
-VAESeqLSTM_XXL:
+CVAESeqLSTM_XXXL_L3:
   model_params:
-    name: "VAESeqLSTM"
-    latent_dim: 6
-    hidden_layers: 6
-    hidden_size: 512
-    dropout: 0.2
-VAESeqLSTM_XXXL:
-  model_params:
-    name: "VAESeqLSTM"
-    latent_dim: 6
+    name: "CVAESeqLSTM2"
+    latent_dim: 3
     hidden_layers: 7
     hidden_size: 1024
     dropout: 0.2
-VAESeqLSTM_XXXXL:
+  experiment_params:
+    LR: 0.0001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+
+CVAESeqLSTM_XXXL_kL4:
   model_params:
-    name: "VAESeqLSTM"
-    latent_dim: 6
-    hidden_layers: 8
+    name: "CVAESeqLSTM2"
+    latent_dim: 4
+    hidden_layers: 7
     hidden_size: 1024
     dropout: 0.2
+  experiment_params:
+    LR: 0.0001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+
+CVAESeqLSTM_XXXL_L5:
+  model_params:
+    name: "CVAESeqLSTM2"
+    latent_dim: 5
+    hidden_layers: 7
+    hidden_size: 1024
+    dropout: 0.2
+  experiment_params:
+    LR: 0.0001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+
+# VAESeqLSTM_XXXL:
+#   model_params:
+#     name: "VAESeqLSTM"
+#     latent_dim: 6
+#     hidden_layers: 7
+#     hidden_size: 1024
+#     dropout: 0.2
+# VAESeqLSTM_XXXXL:
+#   model_params:
+#     name: "VAESeqLSTM"
+#     latent_dim: 6
+#     hidden_layers: 8
+#     hidden_size: 1024
+#     dropout: 0.2
