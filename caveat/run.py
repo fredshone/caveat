@@ -566,6 +566,8 @@ def generate(
         "latent_dim", 2
     )  # default of 2
     batch_size = config.get("generator_params", {}).get("batch_size", 256)
+    print("\n======= Testing =======")
+    trainer.test(ckpt_path=ckpt_path, datamodule=trainer.datamodule)
     if isinstance(population, int):
         print(f"\n======= Sampling {population} new schedules =======")
         synthetic_schedules = generate_n(
@@ -595,7 +597,7 @@ def generate(
     synthetic_schedules = schedule_encoder.decode(schedules=synthetic_schedules)
     data.validate_schedules(synthetic_schedules)
     synthetic_schedules.to_csv(write_dir / "synthetic_schedules.csv")
-    return synthetic_attributes, synthetic_schedules
+    return synthetic_schedules
 
 
 def generate_n(
@@ -788,4 +790,5 @@ def initiate_logger(save_dir: Union[Path, str], name: str) -> TensorBoardLogger:
     Path(f"{tb_logger.log_dir}/reconstructions").mkdir(
         exist_ok=True, parents=True
     )
+    Path(f"{tb_logger.log_dir}/val_z").mkdir(exist_ok=True, parents=True)
     return tb_logger

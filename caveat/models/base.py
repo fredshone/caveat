@@ -37,6 +37,7 @@ class Base(Experiment):
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
+        print(f"init Base: {kwargs}")
         super(Base, self).__init__(**kwargs)
 
         self.in_shape = in_shape
@@ -44,14 +45,16 @@ class Base(Experiment):
         self.encodings = encodings
         self.encoding_weights = encoding_weights
         self.conditionals_size = conditionals_size
+        if self.conditionals_size is not None:
+            print(f"Found conditionals size: {self.conditionals_size}")
         self.sos = sos
 
         self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
-        print(f"Using teacher forcing ratio: {self.teacher_forcing_ratio}")
+        print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
         self.kld_weight = kwargs.get("kld_weight", 0.0001)
-        print(f"Using KLD weight: {self.kld_weight}")
+        print(f"Found KLD weight: {self.kld_weight}")
         self.duration_weight = kwargs.get("duration_weight", 1)
-        print(f"Using duration weight: {self.duration_weight}")
+        print(f"Found duration weight: {self.duration_weight}")
         self.use_mask = kwargs.get("use_mask", True)
         print(f"Using mask: {self.use_mask}")
         self.use_weighted_loss = kwargs.get("weighted_loss", True)
@@ -114,7 +117,7 @@ class Base(Experiment):
         log_prob_y, prob_y = self.decode(
             z, conditionals=conditionals, target=target
         )
-        return [log_prob_y, prob_y, mu, log_var]
+        return [log_prob_y, prob_y, mu, log_var, z]
 
     def encode(self, input: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.

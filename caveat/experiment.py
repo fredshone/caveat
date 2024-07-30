@@ -4,6 +4,7 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
+from pandas import DataFrame
 from torch import Tensor, optim
 
 from caveat.models.utils import ScheduledOptim
@@ -21,9 +22,13 @@ class Experiment(pl.LightningModule):
         duration_weight: float = 1.0,
         **kwargs,
     ) -> None:
+        print(f"init Experiment: {kwargs}")
         super(Experiment, self).__init__()
         self.gen = gen
         self.test = test
+        self.test_z = kwargs.get("test_z", False)
+        if self.test_z:
+            print("Testing z")
         self.LR = LR
         self.weight_decay = weight_decay
         self.kwargs = kwargs
@@ -57,6 +62,15 @@ class Experiment(pl.LightningModule):
         self.curr_device = x.device
 
         results = self.forward(x, conditionals=conditionals)
+        z = results[-1]
+        DataFrame(z.cpu().numpy()).to_csv(
+            Path(
+                self.logger.log_dir,
+                "val_z",
+                f"z_epoch_{self.current_epoch}.csv",
+            ),
+            index=False,
+        )
         val_loss = self.loss_function(
             *results,
             target=y,
@@ -81,6 +95,17 @@ class Experiment(pl.LightningModule):
             self.sample_sequences()
 
     def test_step(self, batch, batch_idx):
+        if self.test_z:
+            print("Testing z")
+            (x, _), (y, y_mask), conditionals = batch
+            self.curr_device = x.device
+            results = self.forward(x, conditionals=conditionals)
+            z = results[-1]
+            DataFrame(z.cpu().numpy()).to_csv(
+                Path(self.logger.log_dir, f"z_epoch_{self.current_epoch}.csv"),
+                index=False,
+            )
+
         if self.test:
             (x, _), (y, y_mask), conditionals = batch
             self.curr_device = x.device
