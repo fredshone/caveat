@@ -578,7 +578,6 @@ def generate(
             seed=seed,
             ckpt_path=ckpt_path,
         )
-        synthetic_attributes = None
     elif isinstance(population, Tensor):
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
@@ -610,9 +609,10 @@ def generate_n(
 ) -> torch.Tensor:
     torch.manual_seed(seed)
     dataloaders = data.build_predict_dataloader(n, latent_dims, batch_size)
-    predictions = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
-    predictions = torch.concat(predictions)
-    return predictions
+    synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
+    _, synthetic_schedules = zip(*synth)
+    synthetic_schedules = torch.concat(synthetic_schedules)
+    return synthetic_schedules
 
 
 def generate_from_attributes(
@@ -622,7 +622,7 @@ def generate_from_attributes(
     latent_dims: int,
     seed: int,
     ckpt_path: str,
-) -> torch.Tensor:
+) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.manual_seed(seed)
     dataloaders = data.build_conditional_dataloader(
         attributes, latent_dims, batch_size

@@ -70,6 +70,8 @@ class Experiment(pl.LightningModule):
                 f"z_epoch_{self.current_epoch}.csv",
             ),
             index=False,
+            header=False,
+            mode="a",
         )
         val_loss = self.loss_function(
             *results,
@@ -96,14 +98,18 @@ class Experiment(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         if self.test_z:
-            print("Testing z")
             (x, _), (y, y_mask), conditionals = batch
             self.curr_device = x.device
             results = self.forward(x, conditionals=conditionals)
             z = results[-1]
             DataFrame(z.cpu().numpy()).to_csv(
-                Path(self.logger.log_dir, f"z_epoch_{self.current_epoch}.csv"),
+                Path(
+                    self.logger.log_dir,
+                    f"test_z_epoch_{self.current_epoch}.csv",
+                ),
                 index=False,
+                mode="a",
+                header=False,
             )
 
         if self.test:

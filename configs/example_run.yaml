@@ -21,6 +21,7 @@ loader_params:
   num_workers: 3
 
 experiment_params:
+  test_z: True
   LR: 0.005
   weight_decay: 0.0
   scheduler_gamma: 0.95

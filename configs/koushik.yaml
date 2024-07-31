@@ -2,7 +2,7 @@ global:
   seed: 1234
   logging_params:
     log_dir: "experiments"
-    name: "experiments10"
+    name: "beta_kld"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes.csv"
@@ -40,8 +40,8 @@ global:
     # hh_bikes: ordinal
     # hh_motorcycles: ordinal
   
-  evaluation_params:
-    split_on: [gender, age, ethnicity, education, license, car_access, work_status]
+  # evaluation_params:
+  #   split_on: [gender, age, ethnicity, education, license, car_access, work_status]
   
   encoder_params:
     name: "sequence"
@@ -63,58 +63,50 @@ global:
 #     dropout: 0.2
 #     bidirectional: True
 
-# CVAESeqLSTM_6x512_L6kld10000:
+# CVAESeqLSTM_7x1024_kld0:
 #   model_params:
 #     name: "CVAESeqLSTM2"
 #     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
+#     hidden_layers: 7
+#     hidden_size: 1024
 #     dropout: 0.2
-#   experiment_params:
-#     LR: 0.0001
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
-#     kld_weight: 1.0
+#     kld_weight: 0.0
 
-# CVAESeqLSTM_6x512_L6kld100:
+# CVAESeqLSTM_7x1024_kld0001:
 #   model_params:
 #     name: "CVAESeqLSTM2"
 #     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
+#     hidden_layers: 7
+#     hidden_size: 1024
 #     dropout: 0.2
-#   experiment_params:
-#     LR: 0.0001
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
-#     kld_weight: 0.01
-
-# CVAESeqLSTM_6x512_L6kld1:
-#   model_params:
-#     name: "CVAESeqLSTM2"
-#     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 512
-#     dropout: 0.2
-#   experiment_params:
-#     LR: 0.0001
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
 #     kld_weight: 0.0001
 
-CVAESeqLSTM_7x1024_L6:
+# CVAESeqLSTM_7x1024_kld0005:
+#   model_params:
+#     name: "CVAESeqLSTM2"
+#     latent_dim: 6
+#     hidden_layers: 7
+#     hidden_size: 1024
+#     dropout: 0.2
+#     kld_weight: 0.0005
+
+# CVAESeqLSTM_7x1024_kld_001:
+#   model_params:
+#     name: "CVAESeqLSTM2"
+#     latent_dim: 6
+#     hidden_layers: 7
+#     hidden_size: 1024
+#     dropout: 0.2
+#     kld_weight: 0.001
+
+CVAESeqLSTM_7x1024_kld_005:
   model_params:
     name: "CVAESeqLSTM2"
     latent_dim: 6
     hidden_layers: 7
     hidden_size: 1024
     dropout: 0.2
-  experiment_params:
-    test_z: True
-    LR: 0.0001
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.0001
+    kld_weight: 0.005
 
 # VAESeqLSTM_XXXL:
 #   model_params:
