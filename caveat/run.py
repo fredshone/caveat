@@ -22,7 +22,11 @@ from caveat.evaluate import evaluate
 
 
 def run_command(
-    config: dict, verbose: bool = False, gen: bool = True, test: bool = False
+    config: dict,
+    verbose: bool = False,
+    gen: bool = True,
+    test: bool = False,
+    infer=True,
 ) -> None:
     """
     Runs the training and reporting process using the provided configuration.
@@ -76,6 +80,18 @@ def run_command(
             seed=seed,
         )
 
+    if infer:
+        test_infer_path = Path(f"{logger.log_dir}/test_inference")
+        test_infer_path.mkdir(exist_ok=True, parents=True)
+
+        test_inference(
+            trainer=trainer,
+            schedule_encoder=schedule_encoder,
+            attribute_encoder=attribute_encoder,
+            write_dir=test_infer_path,
+            seed=seed,
+        )
+
     if gen:
         # prepare synthetic attributes
         if synthetic_attributes is not None:
@@ -114,6 +130,7 @@ def batch_command(
     stats: bool = True,
     verbose: bool = False,
     test: bool = False,
+    infer: bool = True,
     gen: bool = True,
 ) -> None:
     """
@@ -179,6 +196,17 @@ def batch_command(
                 write_dir=Path(logger.log_dir),
                 seed=seed,
             )
+        if infer:
+            test_infer_path = Path(f"{logger.log_dir}/test_inference")
+            test_infer_path.mkdir(exist_ok=True, parents=True)
+
+            test_inference(
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                write_dir=test_infer_path,
+                seed=seed,
+            )
         if gen:
             # prepare synthetic attributes
             if synthetic_attributes is not None:
@@ -221,6 +249,7 @@ def nrun_command(
     stats: bool = True,
     verbose: bool = False,
     test: bool = False,
+    infer: bool = True,
     gen: bool = True,
 ) -> None:
     """
@@ -275,6 +304,17 @@ def nrun_command(
                 write_dir=Path(logger.log_dir),
                 seed=seed,
             )
+        if infer:
+            test_infer_path = Path(f"{logger.log_dir}/test_inference")
+            test_infer_path.mkdir(exist_ok=True, parents=True)
+
+            test_inference(
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                write_dir=test_infer_path,
+                seed=seed,
+            )
         if gen:
             # prepare synthetic attributes
             if synthetic_attributes is not None:
@@ -310,7 +350,11 @@ def nrun_command(
 
 
 def ngen_command(
-    config: dict, n: int = 5, stats: bool = False, verbose: bool = False
+    config: dict,
+    n: int = 5,
+    infer: bool = True,
+    stats: bool = False,
+    verbose: bool = False,
 ) -> None:
     """
     Repeat a single run with multiple samples varying the seed.
@@ -366,6 +410,18 @@ def ngen_command(
     for i in range(n):
         logger = initiate_logger(training_logger.log_dir, f"nsample{i}")
         seed = seeder()
+        if infer:
+            test_infer_path = Path(f"{logger.log_dir}/test_inference")
+            test_infer_path.mkdir(exist_ok=True, parents=True)
+
+            test_inference(
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                write_dir=test_infer_path,
+                seed=seed,
+            )
+
         synthetic_schedules[f"nsample{i}"] = generate(
             trainer=trainer,
             population=synthetic_population,
@@ -549,6 +605,46 @@ def run_test(
     return test_in, test_target, predictions
 
 
+def test_inference(
+    trainer: Trainer,
+    schedule_encoder: encoding.BaseEncoder,
+    attribute_encoder: encoding.AttributeEncoder,
+    write_dir: Path,
+    seed: int,
+    ckpt_path: Optional[str] = None,
+):
+    torch.manual_seed(seed)
+    if ckpt_path is None:
+        ckpt_path = "best"
+
+    print("\n======= Testing Inference =======")
+    inference = trainer.predict(
+        ckpt_path=ckpt_path, dataloaders=trainer.datamodule.test_dataloader()
+    )
+    input_schedules, inferred_schedules, zs, conditionals = zip(*inference)
+
+    input_schedules = torch.concat(input_schedules)
+    inferred_schedules = torch.concat(inferred_schedules)
+    zs = torch.concat(zs)
+    conditionals = torch.concat(conditionals)
+
+    input_schedules = schedule_encoder.decode(input_schedules, argmax=False)
+    data.validate_schedules(input_schedules)
+    input_schedules.to_csv(write_dir / "input_schedules.csv")
+
+    inferred_schedules = schedule_encoder.decode(inferred_schedules)
+    data.validate_schedules(inferred_schedules)
+    inferred_schedules.to_csv(write_dir / "inferred_schedules.csv")
+
+    DataFrame(zs.cpu().numpy()).to_csv(
+        Path(write_dir, "zs.csv"), index=False, header=False
+    )
+
+    if attribute_encoder is not None:
+        attributes = attribute_encoder.decode(conditionals)
+        attributes.to_csv(write_dir / "input_attributes.csv")
+
+
 def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
@@ -566,11 +662,10 @@ def generate(
         "latent_dim", 2
     )  # default of 2
     batch_size = config.get("generator_params", {}).get("batch_size", 256)
-    print("\n======= Testing =======")
-    trainer.test(ckpt_path=ckpt_path, datamodule=trainer.datamodule)
+
     if isinstance(population, int):
         print(f"\n======= Sampling {population} new schedules =======")
-        synthetic_schedules = generate_n(
+        synthetic_schedules, zs = generate_n(
             trainer,
             n=population,
             batch_size=batch_size,
@@ -582,13 +677,15 @@ def generate(
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="
         )
-        synthetic_attributes, synthetic_schedules = generate_from_attributes(
-            trainer,
-            attributes=population,
-            batch_size=batch_size,
-            latent_dims=latent_dims,
-            seed=seed,
-            ckpt_path=ckpt_path,
+        synthetic_attributes, synthetic_schedules, zs = (
+            generate_from_attributes(
+                trainer,
+                attributes=population,
+                batch_size=batch_size,
+                latent_dims=latent_dims,
+                seed=seed,
+                ckpt_path=ckpt_path,
+            )
         )
         synthetic_attributes = attribute_encoder.decode(synthetic_attributes)
         synthetic_attributes.to_csv(write_dir / "synthetic_attributes.csv")
@@ -596,6 +693,9 @@ def generate(
     synthetic_schedules = schedule_encoder.decode(schedules=synthetic_schedules)
     data.validate_schedules(synthetic_schedules)
     synthetic_schedules.to_csv(write_dir / "synthetic_schedules.csv")
+    DataFrame(zs.cpu().numpy()).to_csv(
+        Path(write_dir, "synthetic_zs.csv"), index=False, header=False
+    )
     return synthetic_schedules
 
 
@@ -608,11 +708,12 @@ def generate_n(
     ckpt_path: str,
 ) -> torch.Tensor:
     torch.manual_seed(seed)
-    dataloaders = data.build_predict_dataloader(n, latent_dims, batch_size)
+    dataloaders = data.build_latent_dataloader(n, latent_dims, batch_size)
     synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
-    _, synthetic_schedules = zip(*synth)
+    _, synthetic_schedules, zs = zip(*synth)
     synthetic_schedules = torch.concat(synthetic_schedules)
-    return synthetic_schedules
+    zs = torch.concat(zs)
+    return synthetic_schedules, zs
 
 
 def generate_from_attributes(
@@ -624,15 +725,15 @@ def generate_from_attributes(
     ckpt_path: str,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.manual_seed(seed)
-    dataloaders = data.build_conditional_dataloader(
+    dataloaders = data.build_latent_conditional_dataloader(
         attributes, latent_dims, batch_size
     )
     synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
-    synthetic_attributes, synthetic_schedules = zip(*synth)
-
+    synthetic_attributes, synthetic_schedules, zs = zip(*synth)
     synthetic_attributes = torch.concat(synthetic_attributes)
     synthetic_schedules = torch.concat(synthetic_schedules)
-    return synthetic_attributes, synthetic_schedules
+    zs = torch.concat(zs)
+    return synthetic_attributes, synthetic_schedules, zs
 
 
 def evaluate_synthetics(
@@ -707,7 +808,7 @@ def conditional_sample(
 ) -> DataFrame:
     torch.manual_seed(seed)
     print("\n======= Sampling =======")
-    predict_loader = data.build_predict_dataloader(
+    predict_loader = data.build_latent_dataloader(
         population_size, config["model_params"]["latent_dim"], 256
     )
     predictions = trainer.predict(ckpt_path="best", dataloaders=predict_loader)

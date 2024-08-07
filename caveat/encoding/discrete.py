@@ -55,7 +55,7 @@ class DiscreteEncoder(BaseEncoder):
             conditionals=conditionals,
         )
 
-    def decode(self, schedules: Tensor) -> pd.DataFrame:
+    def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
         """Decode decretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -70,7 +70,8 @@ class DiscreteEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        schedules = torch.argmax(schedules, dim=-1)
+        if argmax:
+            schedules = torch.argmax(schedules, dim=-1)
         decoded = []
 
         for pid in range(len(schedules)):

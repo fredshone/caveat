@@ -26,9 +26,6 @@ class Experiment(pl.LightningModule):
         super(Experiment, self).__init__()
         self.gen = gen
         self.test = test
-        self.test_z = kwargs.get("test_z", False)
-        if self.test_z:
-            print("Testing z")
         self.LR = LR
         self.weight_decay = weight_decay
         self.kwargs = kwargs
@@ -36,6 +33,7 @@ class Experiment(pl.LightningModule):
         self.duration_weight = duration_weight
         self.curr_device = None
         self.save_hyperparameters()
+        self.test_outputs = []
 
     def training_step(self, batch, batch_idx):
         (x, x_mask), (y, y_mask), conditionals = batch
@@ -97,21 +95,6 @@ class Experiment(pl.LightningModule):
             self.sample_sequences()
 
     def test_step(self, batch, batch_idx):
-        if self.test_z:
-            (x, _), (y, y_mask), conditionals = batch
-            self.curr_device = x.device
-            results = self.forward(x, conditionals=conditionals)
-            z = results[-1]
-            DataFrame(z.cpu().numpy()).to_csv(
-                Path(
-                    self.logger.log_dir,
-                    f"test_z_epoch_{self.current_epoch}.csv",
-                ),
-                index=False,
-                mode="a",
-                header=False,
-            )
-
         if self.test:
             (x, _), (y, y_mask), conditionals = batch
             self.curr_device = x.device
@@ -152,12 +135,13 @@ class Experiment(pl.LightningModule):
         name: str,
         conditionals: Optional[Tensor] = None,
     ):
-        y_probs = self.generate(
+        probs, _ = self.infer(
             x, conditionals=conditionals, device=self.curr_device
-        ).squeeze()
-        image = unpack(target, y_probs, self.curr_device)
-        div = torch.ones_like(y_probs)
-        images = torch.cat((image.squeeze(), div, y_probs), dim=-1)
+        )
+        probs = probs.squeeze()
+        image = unpack(target, probs, self.curr_device)
+        div = torch.ones_like(probs)
+        images = torch.cat((image.squeeze(), div, probs), dim=-1)
         vutils.save_image(
             pre_process(images.data),
             Path(
@@ -219,10 +203,21 @@ class Experiment(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def predict_step(self, batch):
-        z, conditionals = batch
-        return conditionals, self.predict(
-            z, conditionals=conditionals, device=self.curr_device
+        if len(batch) == 2:  # generative process
+            zs, conditionals = batch
+            return (
+                conditionals,
+                self.predict(
+                    zs, conditionals=conditionals, device=self.curr_device
+                ),
+                zs,
+            )
+        # inference process only
+        (x, _), (_, _), conditionals = batch
+        preds, zs = self.infer(
+            x, conditionals=conditionals, device=self.curr_device
         )
+        return x, preds, zs, conditionals
 
 
 def unpack(x, y, current_device):

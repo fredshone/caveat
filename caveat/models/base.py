@@ -37,7 +37,6 @@ class Base(Experiment):
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
-        print(f"init Base: {kwargs}")
         super(Base, self).__init__(**kwargs)
 
         self.in_shape = in_shape
@@ -174,6 +173,7 @@ class Base(Experiment):
         probs: Tensor,
         mu: Tensor,
         log_var: Tensor,
+        z: Tensor,
         target: Tensor,
         mask: Tensor,
         **kwargs,
@@ -207,6 +207,35 @@ class Base(Experiment):
             mask=mask,
             **kwargs,
         )
+
+    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
+        """Given samples from the latent space, return the corresponding decoder space map.
+
+        Args:
+            z (tensor): [N, latent_dims].
+            current_device (int): Device to run the model.
+
+        Returns:
+            tensor: [N, steps, acts].
+        """
+        z = z.to(device)
+        prob_samples = self.decode(z, **kwargs)[1]
+        return prob_samples
+
+    def infer(self, x: Tensor, device: int, **kwargs) -> Tensor:
+        """Given an encoder input, return reconstructed output and z samples.
+
+        Args:
+            x (tensor): [N, steps, acts].
+
+        Returns:
+            (tensor: [N, steps, acts], tensor: [N, latent_dims]).
+        """
+        results = self.forward(x, **kwargs)
+        _, prob_samples, _, _, zs = results
+        prob_samples = prob_samples.to(device)
+        zs = zs.to(device)
+        return prob_samples, zs
 
     def unweighted_seq_loss(
         self, log_probs, probs, mu, log_var, target, mask, **kwargs
@@ -283,15 +312,17 @@ class Base(Experiment):
         recons_loss = recon_act_nlll + recon_dur_mse
 
         # kld loss
-        norm_kld_weight = self.kld_weight * self.latent_dim
+        norm_kld_weight = self.kld_weight
 
-        kld_loss = norm_kld_weight * torch.mean(
+        unweighted_kld = torch.mean(
             -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
         )
+        kld_loss = norm_kld_weight * unweighted_kld
 
         return {
             "loss": recons_loss + kld_loss,
-            "KLD": kld_loss.detach(),
+            "KLD": unweighted_kld.detach(),
+            "betaKLD": kld_loss.detach(),
             "recon_loss": recons_loss.detach(),
             "recon_act_nlll_loss": recon_act_nlll.detach(),
             "recon_time_mse_loss": recon_dur_mse.detach(),
@@ -473,30 +504,3 @@ class Base(Experiment):
         if len(durations.shape) == 2:
             durations = durations.unsqueeze(-1)
         return torch.cat((acts, durations), dim=-1)
-
-    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
-        """Given samples from the latent space, return the corresponding decoder space map.
-
-        Args:
-            z (tensor): [N, latent_dims].
-            current_device (int): Device to run the model.
-
-        Returns:
-            tensor: [N, steps, acts].
-        """
-        z = z.to(device)
-        prob_samples = self.decode(z, **kwargs)[1]
-        return prob_samples
-
-    def generate(self, x: Tensor, device: int, **kwargs) -> Tensor:
-        """Given an encoder input, return reconstructed output.
-
-        Args:
-            x (tensor): [N, steps, acts].
-
-        Returns:
-            tensor: [N, steps, acts].
-        """
-        prob_samples = self.forward(x, **kwargs)[1]
-        prob_samples = prob_samples.to(device)
-        return prob_samples

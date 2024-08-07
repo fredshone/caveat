@@ -127,7 +127,9 @@ class Decoder(nn.Module):
         sos: int = 0,
         bidirectional: bool = False,
     ):
-        """LSTM Decoder with teacher forcing.
+        """LSTM Decoder.
+        No teacher forcing.
+        LSTM unit input is conditionals.
 
         Args:
             input_size (int): lstm input size.

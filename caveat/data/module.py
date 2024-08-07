@@ -104,7 +104,7 @@ class ZDataset(Dataset):
         return self.z[idx], torch.tensor(0)
 
 
-def build_predict_dataloader(
+def build_latent_dataloader(
     num_samples, latent_dim: int, batch_size: int = 256, num_workers: int = 4
 ):
     return DataLoader(
@@ -127,7 +127,7 @@ class ConditionalDataset(Dataset):
         return self.z[idx], self.attributes[idx]
 
 
-def build_conditional_dataloader(
+def build_latent_conditional_dataloader(
     attributes: torch.Tensor,
     latent_dim: int,
     batch_size: int = 256,
@@ -138,6 +138,35 @@ def build_conditional_dataloader(
     )
     return DataLoader(
         ConditionalDataset(attributes, latent_dim),
+        batch_size=batch_size,
+        num_workers=num_workers,
+        persistent_workers=True,
+    )
+
+
+class CustomGenDataset(Dataset):
+    def __init__(self, attributes: torch.Tensor, z: torch.Tensor):
+        self.z = z
+        self.attributes = attributes
+
+    def __len__(self):
+        return len(self.attributes)
+
+    def __getitem__(self, idx):
+        return self.z[idx], self.attributes[idx]
+
+
+def build_custom_gen_dataloader(
+    attributes: torch.Tensor,
+    z: torch.Tensor,
+    batch_size: int = 256,
+    num_workers: int = 4,
+):
+    print(
+        f"Building dataloader with {len(attributes)} samples, latent_dim={len(z)}, batch_size={batch_size}, num_workers={num_workers}"
+    )
+    return DataLoader(
+        CustomGenDataset(attributes, z),
         batch_size=batch_size,
         num_workers=num_workers,
         persistent_workers=True,

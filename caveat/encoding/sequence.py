@@ -105,7 +105,7 @@ class SequenceEncoder(BaseEncoder):
     def _unit_act_weights(self, n: int) -> Dict[str, float]:
         return np.array([1 for _ in range(n)])
 
-    def decode(self, schedules: Tensor) -> pd.DataFrame:
+    def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -118,10 +118,13 @@ class SequenceEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        schedules, durations = torch.split(
-            schedules, [self.encodings, 1], dim=-1
-        )
-        schedules = schedules.argmax(dim=-1).numpy()
+        if argmax:
+            schedules, durations = torch.split(
+                schedules, [self.encodings, 1], dim=-1
+            )
+            schedules = schedules.argmax(dim=-1).numpy()
+        else:
+            schedules, durations = torch.split(schedules, [1, 1], dim=-1)
         decoded = []
 
         for pid in range(len(schedules)):

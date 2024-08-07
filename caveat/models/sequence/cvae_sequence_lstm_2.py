@@ -71,7 +71,7 @@ class CVAESeqLSTM2(Base):
         log_prob_y, prob_y = self.decode(
             z, conditionals=conditionals, target=target
         )
-        return [log_prob_y, prob_y, mu, log_var]
+        return [log_prob_y, prob_y, mu, log_var, z]
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.

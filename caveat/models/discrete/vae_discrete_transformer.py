@@ -163,19 +163,6 @@ class VAEDiscTrans(Base):
 
         return log_probs, probs
 
-    def generate(self, x: Tensor, current_device: int, **kwargs) -> Tensor:
-        """Given an encoder input, return reconstructed output.
-
-        Args:
-            x (tensor): [N, steps, acts].
-
-        Returns:
-            tensor: [N, steps, acts].
-        """
-        prob_samples = self.forward(x)[1]
-        prob_samples = prob_samples.to(current_device)
-        return prob_samples
-
 
 class AttentionHead(nn.Module):
     """one head of self-attention"""

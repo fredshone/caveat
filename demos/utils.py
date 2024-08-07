@@ -9,7 +9,7 @@ from pandas import DataFrame
 from pytorch_lightning import Trainer
 
 from caveat import models
-from caveat.data import build_conditional_dataloader
+from caveat.data import build_latent_conditional_dataloader
 
 
 def to_datetime(minutes: int):
@@ -72,7 +72,7 @@ class Generator:
     def _gen(self, synthetics):
         synthetic_conditionals = self.attributes_encoder.encode(synthetics)
 
-        dataloader = build_conditional_dataloader(
+        dataloader = build_latent_conditional_dataloader(
             synthetic_conditionals, 6, max(len(synthetic_conditionals), 256)
         )
 
