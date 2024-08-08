@@ -18,6 +18,7 @@ from .sequence.cvae_sequence_lstm_add2 import CVAESeqLSTMAdd2
 from .sequence.cvae_sequence_lstm_after import CVAESeqLSTMAfter
 from .sequence.cvae_sequence_lstm_all import CVAESeqLSTMAll
 from .sequence.cvae_sequence_lstm_feed import CVAESeqLSTMFeed
+from .sequence.cvae_sequence_lstm_nudger import CVAESeqLSTMNudger
 from .sequence.vae_sequence_lstm import VAESeqLSTM
 
 library = {
@@ -38,6 +39,7 @@ library = {
     "CVAESeqLSTMFeed": CVAESeqLSTMFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMAfter": CVAESeqLSTMAfter,  # conditionals concat after LSTM output
     "CVAESeqLSTMAll": CVAESeqLSTMAll,  # labels cat to latents and added to unit in/outs
+    "CVAESeqLSTMNudge": CVAESeqLSTMNudger,  # nudger model
     "Seq2SeqLSTM": Seq2SeqLSTM,
     "Seq2ScoreLSTM": Seq2ScoreLSTM,
 }
