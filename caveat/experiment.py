@@ -22,7 +22,6 @@ class Experiment(pl.LightningModule):
         duration_weight: float = 1.0,
         **kwargs,
     ) -> None:
-        print(f"init Experiment: {kwargs}")
         super(Experiment, self).__init__()
         self.gen = gen
         self.test = test
@@ -60,17 +59,17 @@ class Experiment(pl.LightningModule):
         self.curr_device = x.device
 
         results = self.forward(x, conditionals=conditionals)
-        z = results[-1]
-        DataFrame(z.cpu().numpy()).to_csv(
-            Path(
-                self.logger.log_dir,
-                "val_z",
-                f"z_epoch_{self.current_epoch}.csv",
-            ),
-            index=False,
-            header=False,
-            mode="a",
-        )
+        # z = results[-1]
+        # DataFrame(z.cpu().numpy()).to_csv(
+        #     Path(
+        #         self.logger.log_dir,
+        #         "val_z",
+        #         f"z_epoch_{self.current_epoch}.csv",
+        #     ),
+        #     index=False,
+        #     header=False,
+        #     mode="a",
+        # )
         val_loss = self.loss_function(
             *results,
             target=y,
@@ -175,11 +174,7 @@ class Experiment(pl.LightningModule):
             pad_value=1,
         )
 
-    def configure_optimizers(self):
-        optimizer = optim.Adam(
-            self.parameters(), lr=self.LR, weight_decay=self.weight_decay
-        )
-
+    def get_scheduler(self, optimizer):
         if self.kwargs.get("scheduler_gamma") is not None:
             scheduler = optim.lr_scheduler.ExponentialLR(
                 optimizer, gamma=self.kwargs["scheduler_gamma"]
@@ -199,6 +194,18 @@ class Experiment(pl.LightningModule):
                 "monitor": "val_loss",
                 "interval": "step",
             }
+
+        else:
+            raise UserWarning("No scheduler specified")
+
+        return scheduler
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(
+            self.parameters(), lr=self.LR, weight_decay=self.weight_decay
+        )
+
+        scheduler = self.get_scheduler(optimizer)
 
         return [optimizer], [scheduler]
 

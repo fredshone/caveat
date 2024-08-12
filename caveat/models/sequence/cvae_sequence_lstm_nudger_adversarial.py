@@ -1,13 +1,163 @@
 from typing import List, Optional, Tuple
 
 import torch
+from pytorch_lightning import LightningModule
 from torch import Tensor, nn
 
 from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
 
 
-class CVAESeqLSTMNudgerAdversarial(Base):
+class CVAESeqLSTMNudgerAdversarial(LightningModule):
+    def __init__(
+        self,
+        in_shape: tuple,
+        encodings: int,
+        encoding_weights: Optional[Tensor] = None,
+        conditionals_size: Optional[tuple] = None,
+        sos: int = 0,
+        **kwargs,
+    ):
+        super().__init__()
+        self.save_hyperparameters()
+        self.automatic_optimization = False
+        latent_dim = kwargs.get("latent_dim", 6)
+        hidden_size = kwargs.get("hidden_size", 256)
+        self.LR = kwargs.get("LR", 0.001)
+        self.weight_decay = kwargs.get("weight_decay", 0.0)
+        self.kld_weight = kwargs.get("kld_weight", 0.0001)
+        self.duration_weight = kwargs.get("duration_weight", 1.0)
+        self.adv_weight = kwargs.get("adv_weight", 1.0)
+        print(f"KLD weight: {self.kld_weight}")
+        print(f"duration weight: {self.duration_weight}")
+        print(f"adversarial weight: {self.adv_weight}")
+
+        self.generator = CVAESeqLSTMNudger(
+            in_shape,
+            encodings,
+            encoding_weights,
+            conditionals_size,
+            sos,
+            **kwargs,
+        )
+        self.discriminator = Discriminator(
+            latent_dim=latent_dim,
+            hidden_size=hidden_size,
+            output_size=conditionals_size,
+        )
+
+    def adversarial_loss(self, y_hat: Tensor, y: Tensor) -> Tensor:
+        """Adversarial loss for nudging the latent space."""
+        return nn.functional.mse_loss(y_hat, y)
+
+    def training_step(self, batch, batch_idx):
+        (x, _), (y, y_mask), conditionals = batch
+        optimizer_g, optimizer_d = self.optimizers()
+
+        self.curr_device = x.device
+
+        # train generator
+        self.toggle_optimizer(optimizer_g)
+        results = self.generator.forward(x, conditionals=conditionals, target=y)
+        losses = self.generator.loss_function(
+            *results,
+            target=y,
+            mask=y_mask,
+            kld_weight=self.kld_weight,
+            duration_weight=self.duration_weight,
+            batch_idx=batch_idx,
+        )
+
+        # generator loss
+        z = results[-1]
+        conditionals_hat = self.discriminator(z)
+
+        adversarial_loss = self.adversarial_loss(
+            conditionals_hat, conditionals
+        ).detach()
+        losses["adversarial_loss"] = adversarial_loss
+        losses["adversarial_weight"] = torch.Tensor([self.adv_weight]).float()
+        weighted_adversarial_loss = adversarial_loss * self.adv_weight
+        losses["adversarial_loss_weighted"] = weighted_adversarial_loss
+        losses["loss"] /= weighted_adversarial_loss
+
+        self.manual_backward(losses["loss"])
+        optimizer_g.step()
+        optimizer_g.zero_grad()
+        self.untoggle_optimizer(optimizer_g)
+
+        # train discriminator
+        self.toggle_optimizer(optimizer_d)
+        conditionals_hat = self.discriminator(results[-1].detach())
+        d_loss = self.adversarial_loss(conditionals_hat, conditionals)
+        losses["discriminator_loss"] = d_loss
+
+        self.manual_backward(d_loss)
+        optimizer_d.step()
+        optimizer_d.zero_grad()
+        self.untoggle_optimizer(optimizer_d)
+
+        self.log_dict(
+            {key: val.item() for key, val in losses.items()}, sync_dist=True
+        )
+
+    def configure_optimizers(self):
+        opt_g = torch.optim.Adam(
+            self.generator.parameters(), self.LR, weight_decay=self.weight_decay
+        )
+        opt_d = torch.optim.Adam(
+            self.discriminator.parameters(),
+            self.LR,
+            weight_decay=self.weight_decay,
+        )
+        return [opt_g, opt_d], []
+
+    def validation_step(self, batch, batch_idx, optimizer_idx=0):
+        (x, _), (y, y_mask), conditionals = batch
+        self.curr_device = x.device
+
+        results = self.generator.forward(x, conditionals=conditionals)
+        val_loss = self.generator.loss_function(
+            *results,
+            target=y,
+            mask=y_mask,
+            kld_weight=self.kld_weight,
+            duration_weight=self.duration_weight,
+            optimizer_idx=optimizer_idx,
+            batch_idx=batch_idx,
+        )
+
+        self.log_dict(
+            {f"val_{key}": val.item() for key, val in val_loss.items()},
+            sync_dist=True,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
+
+    def predict_step(self, batch):
+        return self.generator.predict_step(batch)
+
+
+class Discriminator(nn.Module):
+    def __init__(self, latent_dim: int, hidden_size: int, output_size: int):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Linear(latent_dim, hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size, output_size),
+        )
+        self.activation = nn.Softmax(dim=-1)  # TODO!!
+
+    def forward(self, x):
+        x = self.block(x)
+        x = self.activation(x)
+        return x
+
+
+class CVAESeqLSTMNudger(Base):
     def __init__(self, *args, **kwargs):
         """
         RNN based encoder and decoder with encoder embedding layer and conditionality.
@@ -15,7 +165,6 @@ class CVAESeqLSTMNudgerAdversarial(Base):
         Adds latent layer to decoder instead of concatenating.
         """
         super().__init__(*args, **kwargs)
-        self.automatic_optimization = False
         if self.conditionals_size is None:
             raise UserWarning(
                 "ConditionalLSTM requires conditionals_size, please check you have configures a compatible encoder and condition attributes"
@@ -46,11 +195,6 @@ class CVAESeqLSTMNudgerAdversarial(Base):
             max_length=length,
             dropout=self.dropout,
             sos=self.sos,
-        )
-        self.discriminator = Discriminator(
-            input_size=self.latent_dim,
-            hidden_size=self.hidden_size,
-            output_size=self.conditionals_size,
         )
         self.unflattened_shape = (2 * self.hidden_layers, self.hidden_size)
         flat_size_encode = self.hidden_layers * self.hidden_size * 2
@@ -163,79 +307,6 @@ class CVAESeqLSTMNudgerAdversarial(Base):
         conditionals = conditionals.to(device)
         prob_samples = self.decode(z=z, conditionals=conditionals, **kwargs)[1]
         return prob_samples
-
-    def adversarial_loss(self, y_hat: Tensor, y: Tensor) -> Tensor:
-        """Adversarial loss for nudging the latent space."""
-        return nn.functional.binary_cross_entropy(y_hat, y)
-
-    def training_step(self, batch, batch_idx):
-        # https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/basic-gan.html
-
-        (x, x_mask), (y, y_mask), conditionals = batch
-        optimizer_g, optimizer_d = self.optimizers()
-
-        self.curr_device = x.device
-
-        # train generator
-        self.toggle_optimizer(optimizer_g)
-        results = self.forward(x, conditionals=conditionals, target=y)
-
-        # adversarial loss
-        conditionals_hat = self.discriminator(results[-1])
-        train_losses = self.loss_function(
-            *results,
-            target=y,
-            mask=y_mask,
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
-            batch_idx=batch_idx,
-        )
-
-        adversarial_loss = self.adversarial_loss(conditionals_hat, conditionals)
-        train_losses["adversarial"] = adversarial_loss
-        train_losses["loss"] += adversarial_loss
-        self.log_dict(
-            {key: val.item() for key, val in train_losses.items()},
-            sync_dist=True,
-        )
-
-        self.manual_backward(train_losses["loss"])
-        optimizer_g.step()
-        optimizer_g.zero_grad()
-        self.untoggle_optimizer(optimizer_g)
-
-        # train discriminator
-        self.toggle_optimizer(optimizer_d)
-        # conditionals_hat = self.discriminator(results[-1])
-        d_loss = self.adversarial_loss(conditionals_hat, conditionals)
-
-        self.manual_backward(d_loss)
-        optimizer_d.step()
-        optimizer_d.zero_grad()
-        self.untoggle_optimizer(optimizer_d)
-
-    def configure_optimizers(self):
-        opt_g = torch.optim.Adam(self.parameters())
-        opt_d = torch.optim.Adam(self.discriminator.parameters())
-        return [opt_g, opt_d], []
-
-
-class Discriminator(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(Discriminator, self).__init__()
-        self.block = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, output_size),
-        )
-        self.activation = nn.Sigmoid()
-
-    def forward(self, x):
-        x = self.block(x)
-        x = self.activation(x)
-        return x
 
 
 class Encoder(nn.Module):

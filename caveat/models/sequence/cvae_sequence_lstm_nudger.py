@@ -76,10 +76,10 @@ class CVAESeqLSTMNudger(Base):
         """
         mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
+        log_prob_y, prob_y, nudged_z = self.decode(
             z, conditionals=conditionals, target=target
         )
-        return [log_prob_y, prob_y, mu, log_var, z]
+        return [log_prob_y, prob_y, mu, log_var, nudged_z]
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -90,17 +90,6 @@ class CVAESeqLSTMNudger(Base):
         Returns:
             list[tensor]: Latent layer input (means and variances) [N, latent_dims].
         """
-        # h1, h2 = (
-        #     self.fc_conditionals(conditionals)
-        #     .unflatten(1, (2 * self.hidden_layers, self.hidden_size))
-        #     .permute(1, 0, 2)
-        #     .split(
-        #         self.hidden_layers
-        #     )  # ([hidden, N, layers, [hidden, N, layers]])
-        # )
-        # h1 = h1.contiguous()
-        # h2 = h2.contiguous()
-        # [N, L, C]
         hidden = self.encoder(input)
         conditionals = self.fc_conditionals(conditionals)
         hidden = hidden + conditionals
@@ -151,7 +140,7 @@ class CVAESeqLSTMNudger(Base):
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs, probs, z
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
