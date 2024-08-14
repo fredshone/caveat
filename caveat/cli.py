@@ -3,6 +3,7 @@
 import click
 import yaml
 
+from caveat.mmrun import mmrun_command
 from caveat.run import (
     batch_command,
     ngen_command,
@@ -41,6 +42,34 @@ def run(
             test=test,
             gen=not no_gen,
             infer=not no_infer,
+        )
+
+
+@cli.command(name="mmrun")
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--test", "-t", is_flag=True)
+@click.option("--no-infer", "-ni", is_flag=True)
+@click.option("--no-gen", "-ng", is_flag=True)
+@click.option("--verbose", "-v", is_flag=True)
+@click.option("--cool-start", "-cs", is_flag=True)
+def mmrun(
+    config_path: click.Path,
+    test: bool,
+    no_gen: bool,
+    no_infer: bool,
+    verbose: bool,
+    cool_start: bool,
+):
+    """Multi-model variation of run command for brute-force conditionality."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        mmrun_command(
+            config,
+            verbose=verbose,
+            test=test,
+            gen=not no_gen,
+            infer=not no_infer,
+            warm_start=not cool_start,
         )
 
 

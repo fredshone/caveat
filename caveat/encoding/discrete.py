@@ -15,6 +15,7 @@ class DiscreteEncoder(BaseEncoder):
         self.step_size = step_size
         self.steps = duration // step_size
         self.jitter = kwargs.get("jitter", 0)
+        self.acts_to_index = None
         print(
             f"DiscreteEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
         )
@@ -22,21 +23,31 @@ class DiscreteEncoder(BaseEncoder):
     def encode(
         self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
     ) -> BaseDataset:
+        if self.acts_to_index is None:
+            self.setup_encoder(schedules)
+        return self._encode(schedules, conditionals)
+
+    def setup_encoder(self, schedules: pd.DataFrame) -> None:
         self.index_to_acts = {
             i: a for i, a in enumerate(schedules.act.unique())
         }
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-
-        schedules = schedules.copy()
-        schedules.act = schedules.act.map(self.acts_to_index)
-        activity_encodings = schedules.act.nunique()
 
         # calc weightings
         weights = (
             schedules.groupby("act", observed=True).duration.sum().to_dict()
         )
         weights = np.array([weights[k] for k in range(len(weights))])
-        encoding_weights = torch.from_numpy(1 / weights).float()
+        self.encoding_weights = torch.from_numpy(1 / weights).float()
+
+    def _encode(
+        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+    ) -> BaseDataset:
+
+        schedules = schedules.copy()
+        schedules.act = schedules.act.map(self.acts_to_index)
+        activity_encodings = schedules.act.nunique()
+
         encoded = discretise_population(
             schedules, duration=self.duration, step_size=self.step_size
         )
@@ -50,7 +61,7 @@ class DiscreteEncoder(BaseEncoder):
             schedules=encoded.long(),
             masks=masks,
             activity_encodings=activity_encodings,
-            activity_weights=encoding_weights,
+            activity_weights=self.encoding_weights,
             augment=augment,
             conditionals=conditionals,
         )

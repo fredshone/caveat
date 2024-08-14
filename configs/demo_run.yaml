@@ -1,6 +1,6 @@
 logging_params:
   log_dir: "logs"
-  name: "z_demo"
+  name: "demo"
 
 schedules_path: "tmp/nts_home_schedules.csv"
 

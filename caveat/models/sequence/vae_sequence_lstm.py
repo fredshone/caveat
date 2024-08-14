@@ -194,7 +194,7 @@ class Decoder(nn.Module):
             decoder_output, decoder_hidden = self.forward_step(
                 decoder_input, decoder_hidden
             )
-            outputs.append(decoder_output.squeeze())
+            outputs.append(decoder_output.squeeze(-2))
 
             if target is not None:
                 # teacher forcing for next step

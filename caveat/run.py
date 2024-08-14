@@ -102,7 +102,7 @@ def run_command(
             synthetic_population = input_schedules.pid.nunique()
 
         # generate synthetic schedules
-        synthetic_schedules = generate(
+        synthetic_schedules, _, _ = generate(
             trainer=trainer,
             population=synthetic_population,
             schedule_encoder=schedule_encoder,
@@ -228,7 +228,7 @@ def batch_command(
                 config=combined_config,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
-            )
+            )[0]
     if gen:
         # evaluate synthetic schedules
         evaluate_synthetics(
@@ -334,7 +334,7 @@ def nrun_command(
                 config=config,
                 write_dir=Path(logger.log_dir),
                 seed=seed,
-            )
+            )[0]
 
     if gen:
         evaluate_synthetics(
@@ -430,7 +430,7 @@ def ngen_command(
             config=config,
             write_dir=Path(logger.log_dir),
             seed=seed,
-        )
+        )[0]
         all_synthetic_attributes[f"nsample{i}"] = synthetic_attributes
 
     evaluate_synthetics(
@@ -539,6 +539,7 @@ def train(
     gen: bool,
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
+    ckpt_path: Optional[Path] = None,
 ) -> Tuple[Trainer, encoding.BaseEncoder]:
     """
     Trains a model on the observed data. Return model trainer (which includes model) and encoder.
@@ -563,7 +564,7 @@ def train(
     torch.cuda.empty_cache()
     experiment = build_experiment(encoded_schedules, config, test, gen)
     trainer = build_trainer(logger, config)
-    trainer.fit(experiment, datamodule=data_loader)
+    trainer.fit(experiment, datamodule=data_loader, ckpt_path=ckpt_path)
     return trainer
 
 
@@ -658,9 +659,10 @@ def generate(
     torch.manual_seed(seed)
     if ckpt_path is None:
         ckpt_path = "best"
-    latent_dims = config.get("model_params", {}).get(
-        "latent_dim", 2
-    )  # default of 2
+    latent_dims = config.get("model_params", {}).get("latent_dim")
+    if latent_dims is None:
+        latent_dims = config.get("experiment_params", {}).get("latent_dims", 2)
+        # default of 2
     batch_size = config.get("generator_params", {}).get("batch_size", 256)
 
     if isinstance(population, int):
@@ -696,7 +698,7 @@ def generate(
     DataFrame(zs.cpu().numpy()).to_csv(
         Path(write_dir, "synthetic_zs.csv"), index=False, header=False
     )
-    return synthetic_schedules
+    return synthetic_schedules, synthetic_attributes, zs
 
 
 def generate_n(
@@ -860,7 +862,7 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
         dirpath=Path(logger.log_dir, "checkpoints"),
         monitor="val_loss",
         save_top_k=2,
-        save_weights_only=True,
+        save_weights_only=False,
     )
     return Trainer(
         logger=logger,
