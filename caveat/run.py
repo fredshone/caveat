@@ -562,9 +562,12 @@ def train(
         torch.set_float32_matmul_precision("medium")
 
     torch.cuda.empty_cache()
-    experiment = build_experiment(encoded_schedules, config, test, gen)
+    if ckpt_path is not None:
+        experiment = load_experiment(ckpt_path, config)
+    else:
+        experiment = build_experiment(encoded_schedules, config, test, gen)
     trainer = build_trainer(logger, config)
-    trainer.fit(experiment, datamodule=data_loader, ckpt_path=ckpt_path)
+    trainer.fit(experiment, datamodule=data_loader)
     return trainer
 
 
@@ -853,6 +856,12 @@ def build_experiment(
         **config.get("experiment_params", {}),
     )
     return model
+
+
+def load_experiment(ckpt_path: Path, config: dict) -> LightningModule:
+    model_name = config["model_params"]["name"]
+    model = models.library[model_name]
+    return model.load_from_checkpoint(ckpt_path)
 
 
 def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
