@@ -8,11 +8,8 @@ from torch.utils.data import Dataset
 
 from caveat.data import ScheduleAugment
 
-from .attributes import OneHotAttributeEncoder
-
 
 class BaseEncoder(ABC):
-    conditionals_encoder = OneHotAttributeEncoder
 
     def __init__(self, schedules: DataFrame, **kwargs) -> None:
         raise NotImplementedError

@@ -4,22 +4,7 @@ from pandas.testing import assert_frame_equal
 from torch import Tensor
 from torch.testing import assert_close
 
-from caveat.encoding.attributes import TokenAttributeEncoder, tokenize
-
-
-def test_encode_no_encodings():
-    data = pd.Series(["M", "F", "F"])
-    encoded, encodings = tokenize(data, None)
-    assert_close(encoded, Tensor([1, 0, 0]).int())
-    assert encodings == {"M": 1, "F": 0}
-
-
-def test_encode_with_encodings():
-    data = pd.Series(["M", "F", "F"])
-    encodings = {"M": 0, "F": 1}
-    encoded, encodings = tokenize(data, encodings)
-    assert_close(encoded, Tensor([0, 1, 1]).int())
-    assert encodings == {"M": 0, "F": 1}
+from caveat.attribute_encoding.tokenise import TokenAttributeEncoder
 
 
 def test_encoder_ordinal():

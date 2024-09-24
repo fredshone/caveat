@@ -1,4 +1,3 @@
-from caveat.encoding.attributes import OneHotAttributeEncoder
 from caveat.encoding.base import (
     BaseDataset,
     BaseEncoder,

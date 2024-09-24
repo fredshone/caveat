@@ -15,7 +15,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import cuda_available, data, encoding, models
+from caveat import attribute_encoding, cuda_available, data, encoding, models
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.evaluate import evaluate
@@ -520,7 +520,11 @@ def encode_input_attributes(
         conditionals_config = config.get("conditionals", None)
         if conditionals_config is None:
             raise UserWarning("Config must contain conditionals configuration.")
-        attribute_encoder = encoding.OneHotAttributeEncoder(conditionals_config)
+
+        encoder_name = config.get("attribute_encoder", "onehot")
+        attribute_encoder = attribute_encoding.library[encoder_name](
+            conditionals_config
+        )
         input_attributes = attribute_encoder.encode(input_attributes)
 
     pickle.dump(
@@ -612,7 +616,7 @@ def run_test(
 def test_inference(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: encoding.OneHotAttributeEncoder,
+    attribute_encoder: attribute_encoding.BaseAttributeEncoder,
     write_dir: Path,
     seed: int,
     ckpt_path: Optional[str] = None,
@@ -653,7 +657,7 @@ def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: encoding.OneHotAttributeEncoder,
+    attribute_encoder: attribute_encoding.BaseAttributeEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
