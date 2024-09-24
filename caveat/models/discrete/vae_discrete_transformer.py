@@ -78,7 +78,7 @@ class VAEDiscTrans(Base):
 
         # no target so assume generating
         log_prob, prob = self.predict_sequences(z, current_device=z.device)
-        return [log_prob, prob, mu, log_var]
+        return [log_prob, prob, mu, log_var, z]
 
     def decode(
         self, z: Tensor, context=None, **kwargs

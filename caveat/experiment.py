@@ -210,6 +210,7 @@ class Experiment(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def predict_step(self, batch):
+        # YUCK
         if len(batch) == 2:  # generative process
             zs, conditionals = batch
             return (
@@ -219,7 +220,7 @@ class Experiment(pl.LightningModule):
                 ),
                 zs,
             )
-        # inference process only
+        # inference process
         (x, _), (_, _), conditionals = batch
         preds, zs = self.infer(
             x, conditionals=conditionals, device=self.curr_device

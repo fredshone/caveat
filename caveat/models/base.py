@@ -173,7 +173,6 @@ class Base(Experiment):
         probs: Tensor,
         mu: Tensor,
         log_var: Tensor,
-        z: Tensor,
         target: Tensor,
         mask: Tensor,
         **kwargs,

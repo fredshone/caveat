@@ -66,7 +66,7 @@ class VAEDiscConv(Base):
         return log_probs, probs
 
     def loss_function(
-        self, log_probs, probs, mu, log_var, z, target, mask, *args, **kwargs
+        self, log_probs, probs, mu, log_var, target, mask, *args, **kwargs
     ) -> dict:
         return self.discretized_loss(
             log_probs, probs, mu, log_var, target, mask, *args, **kwargs
