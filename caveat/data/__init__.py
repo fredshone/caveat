@@ -6,7 +6,8 @@ from .loaders import (
 )
 from .module import (
     DataModule,
-    build_predict_dataloader,
-    build_conditional_dataloader,
+    build_custom_gen_dataloader,
+    build_latent_conditional_dataloader,
+    build_latent_dataloader,
 )
 from .samplers import sample_data

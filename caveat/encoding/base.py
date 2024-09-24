@@ -74,11 +74,11 @@ class BaseDataset(Dataset):
 class PaddedDatatset(BaseDataset):
 
     def shape(self):
-        return self.schedules[0].shape[0] + 1
+        _, L = self.schedules.shape
+        return (L + 1,)
 
     def __getitem__(self, idx):
         sample = self.schedules[idx]
-        print(sample.shape)
         if self.augment:
             sample = self.augment(sample)
 

@@ -99,6 +99,7 @@ def load_and_validate_attributes(
         else:
             synthetic_attributes = attributes
             print("Using input attributes as synthetic attributes")
+
     else:
         synthetic_attributes = None
 

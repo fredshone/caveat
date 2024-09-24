@@ -15,6 +15,7 @@ class DiscreteEncoder(BaseEncoder):
         self.step_size = step_size
         self.steps = duration // step_size
         self.jitter = kwargs.get("jitter", 0)
+        self.acts_to_index = None
         print(
             f"DiscreteEncoder: {self.duration=}, {self.step_size=}, {self.jitter=}"
         )
@@ -22,21 +23,31 @@ class DiscreteEncoder(BaseEncoder):
     def encode(
         self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
     ) -> BaseDataset:
+        if self.acts_to_index is None:
+            self.setup_encoder(schedules)
+        return self._encode(schedules, conditionals)
+
+    def setup_encoder(self, schedules: pd.DataFrame) -> None:
         self.index_to_acts = {
             i: a for i, a in enumerate(schedules.act.unique())
         }
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
-
-        schedules = schedules.copy()
-        schedules.act = schedules.act.map(self.acts_to_index)
-        activity_encodings = schedules.act.nunique()
 
         # calc weightings
         weights = (
             schedules.groupby("act", observed=True).duration.sum().to_dict()
         )
         weights = np.array([weights[k] for k in range(len(weights))])
-        encoding_weights = torch.from_numpy(1 / weights).float()
+        self.encoding_weights = torch.from_numpy(1 / weights).float()
+
+    def _encode(
+        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+    ) -> BaseDataset:
+
+        schedules = schedules.copy()
+        schedules.act = schedules.act.map(self.acts_to_index)
+        activity_encodings = schedules.act.nunique()
+
         encoded = discretise_population(
             schedules, duration=self.duration, step_size=self.step_size
         )
@@ -47,15 +58,15 @@ class DiscreteEncoder(BaseEncoder):
         )
 
         return BaseDataset(
-            schedules=encoded,
+            schedules=encoded.long(),
             masks=masks,
             activity_encodings=activity_encodings,
-            activity_weights=encoding_weights,
+            activity_weights=self.encoding_weights,
             augment=augment,
             conditionals=conditionals,
         )
 
-    def decode(self, schedules: Tensor) -> pd.DataFrame:
+    def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
         """Decode decretised a sequences ([B, C, T, A]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -70,7 +81,8 @@ class DiscreteEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        schedules = torch.argmax(schedules, dim=-1)
+        if argmax:
+            schedules = torch.argmax(schedules, dim=-1)
         decoded = []
 
         for pid in range(len(schedules)):
@@ -122,7 +134,7 @@ class DiscreteEncoderPadded(BaseEncoder):
 
         schedules = schedules.copy()
         schedules.act = schedules.act.map(acts_to_index)
-        activity_encodings = schedules.act.nunique() + 1  # <PAD>
+        activity_encodings = len(acts_to_index)
 
         # calc weightings
         weights = (
@@ -136,14 +148,16 @@ class DiscreteEncoderPadded(BaseEncoder):
         encoded = discretise_population(
             schedules, duration=self.duration, step_size=self.step_size
         )
-        masks = torch.ones((encoded.shape[0], encoded.shape[-1] + 1))
+        masks = torch.ones(
+            (encoded.shape[0], encoded.shape[-1] + 1), dtype=torch.int8
+        )
 
         augment = (
             DiscreteJitter(self.step_size, self.jitter) if self.jitter else None
         )
 
         return PaddedDatatset(
-            schedules=encoded,
+            schedules=encoded.long(),
             masks=masks,
             activity_encodings=activity_encodings,
             activity_weights=activity_weights,
@@ -206,7 +220,7 @@ def discretise_population(
     """
     persons = data.pid.nunique()
     steps = duration // step_size
-    encoded = np.zeros((persons, steps), dtype=np.int8)
+    encoded = np.zeros((persons, steps))
 
     for pid, (_, trace) in enumerate(data.groupby("pid")):
         trace_encoding = discretise_trace(
@@ -218,7 +232,7 @@ def discretise_population(
 
 
 def discretise_trace(
-    acts: Iterable[str], starts: Iterable[int], ends: Iterable[int], length: int
+    acts: Iterable[int], starts: Iterable[int], ends: Iterable[int], length: int
 ) -> np.ndarray:
     """Create categorical encoding from ranges with step of 1.
 
@@ -231,7 +245,7 @@ def discretise_trace(
     Returns:
         np.array: _description_
     """
-    encoding = np.zeros((length), dtype=np.int8)
+    encoding = np.zeros((length))
     for act, start, end in zip(acts, starts, ends):
         encoding[start:end] = act
     return encoding

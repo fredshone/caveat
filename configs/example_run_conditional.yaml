@@ -17,7 +17,7 @@ encoder_params:
   jitter: 0.1
 
 model_params:
-  name: "CVAE_LSTM"
+  name: "CVAESeqLSTM"
   hidden_layers: 1
   hidden_size: 32
   latent_dim: 6
@@ -36,8 +36,8 @@ experiment_params:
   kld_weight: 0.00025
 
 trainer_params:
-  patience: 2
-  max_epochs: 3
+  patience: 3
+  max_epochs: 10
 
 seed: 1234
   

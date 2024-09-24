@@ -64,7 +64,8 @@ def sequence_prob_plot(
     )
     acts = list(observed.act.value_counts(ascending=False).index)
     _probs_plot(observed, acts, ax=axs[0], cmap=cmap)
-    axs[0].set_title("Observed")
+    observed_title = kwargs.pop("observed_title", "Observed")
+    axs[0].set_title(observed_title)
     if ys is None:
         return fig
     for i, (name, y) in enumerate(ys.items()):

@@ -10,7 +10,7 @@ encoder_params:
   step_size: 10
 
 model_params:
-  name: "VAE_Conv_Discrete"
+  name: "VAEDiscConv"
   hidden_layers: [64,64]
   latent_dim: 2
   stride: [2,2]

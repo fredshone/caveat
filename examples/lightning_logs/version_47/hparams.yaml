@@ -1,0 +1,20 @@
+LR: 0.001
+conditionals_size: 3
+dropout: 0.2
+duration_weight: 1.0
+encoding_weights: null
+encodings: 10
+gen: true
+hidden_layers: 6
+hidden_size: 512
+in_shape: !!python/object/apply:torch.Size
+- !!python/tuple
+  - 16
+  - 2
+kld_weight: 0.01
+latent_dim: 6
+name: CVAESeqLSTMAdd2
+scheduler_gamma: 0.95
+sos: 0
+test: false
+weight_decay: 0.0

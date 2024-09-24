@@ -1,0 +1,120 @@
+global:
+  seed: 1234
+  logging_params:
+    log_dir: "logs_cond"
+    name: "test"
+
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes.csv"
+
+  loader_params:
+    train_batch_size: 256
+    val_batch_size:  256
+    num_workers: 8
+
+  trainer_params:
+    max_epochs: 100
+    patience: 5
+
+  experiment_params:
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    duration_weight: 0.01
+
+  conditionals:
+    gender: nominal
+    age: nominal
+    work_status: nominal
+    education: nominal
+    license: nominal
+    car_access: nominal
+
+  # evaluation_params:
+  #   split_on: [gender, age, work_status, education, license, car_access]
+
+cond:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+
+  model_params:
+    name: "C_LSTM"
+    hidden_layers: 2
+    hidden_size: 128
+    dropout: 0.2
+
+gen:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+
+  model_params:
+    name: "VAE_LSTM"
+    hidden_layers: 2
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.0001
+
+cond_gen:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 2
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.0001
+
+cond_stag:
+  encoder_params:
+    name: "sequence_staggered"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+
+  model_params:
+    name: "C_LSTM"
+    hidden_layers: 2
+    hidden_size: 128
+    dropout: 0.2
+
+gen_stag:
+  encoder_params:
+    name: "sequence_staggered"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+
+  model_params:
+    name: "VAE_LSTM"
+    hidden_layers: 2
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.0001
+
+cond_gen_stag:
+  encoder_params:
+    name: "sequence_staggered"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0
+
+  model_params:
+    name: "CVAE_LSTM"
+    hidden_layers: 2
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.2
+    kld_weight: 0.0001

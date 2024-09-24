@@ -3,10 +3,10 @@ from typing import List, Optional
 import torch
 from torch import Tensor, nn
 
-from caveat.models import BaseVAE, CustomDurationModeDistanceEmbedding
+from caveat.models import Base, CustomDurationModeDistanceEmbedding
 
 
-class Seq2ScoreLSTM(BaseVAE):
+class Seq2ScoreLSTM(Base):
     def __init__(self, *args, **kwargs):
         """RNN based encoder and decoder with conditionality."""
         super().__init__(*args, **kwargs)

@@ -44,25 +44,22 @@ class DataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         if self.test_split is None:
-            (
-                self.train_dataset,
-                self.val_dataset,
-            ) = torch.utils.data.random_split(
-                self.data, [1 - self.val_split, self.val_split]
+            (self.train_dataset, self.val_dataset) = (
+                torch.utils.data.random_split(
+                    self.data, [1 - self.val_split, self.val_split]
+                )
             )
             self.test_dataset = self.val_dataset
         else:
-            (
-                self.train_dataset,
-                self.val_dataset,
-                self.test_dataset,
-            ) = torch.utils.data.random_split(
-                self.data,
-                [
-                    1 - self.val_split - self.test_split,
-                    self.val_split,
-                    self.test_split,
-                ],
+            (self.train_dataset, self.val_dataset, self.test_dataset) = (
+                torch.utils.data.random_split(
+                    self.data,
+                    [
+                        1 - self.val_split - self.test_split,
+                        self.val_split,
+                        self.test_split,
+                    ],
+                )
             )
 
     def train_dataloader(self) -> DataLoader:
@@ -107,7 +104,7 @@ class ZDataset(Dataset):
         return self.z[idx], torch.tensor(0)
 
 
-def build_predict_dataloader(
+def build_latent_dataloader(
     num_samples, latent_dim: int, batch_size: int = 256, num_workers: int = 4
 ):
     return DataLoader(
@@ -130,14 +127,46 @@ class ConditionalDataset(Dataset):
         return self.z[idx], self.attributes[idx]
 
 
-def build_conditional_dataloader(
+def build_latent_conditional_dataloader(
     attributes: torch.Tensor,
     latent_dim: int,
     batch_size: int = 256,
     num_workers: int = 4,
 ):
+    print(
+        f"Building dataloader with {len(attributes)} samples, latent_dim={latent_dim}, batch_size={batch_size}, num_workers={num_workers}"
+    )
     return DataLoader(
         ConditionalDataset(attributes, latent_dim),
+        batch_size=batch_size,
+        num_workers=num_workers,
+        persistent_workers=True,
+    )
+
+
+class CustomGenDataset(Dataset):
+    def __init__(self, attributes: torch.Tensor, z: torch.Tensor):
+        self.z = z
+        self.attributes = attributes
+
+    def __len__(self):
+        return len(self.attributes)
+
+    def __getitem__(self, idx):
+        return self.z[idx], self.attributes[idx]
+
+
+def build_custom_gen_dataloader(
+    attributes: torch.Tensor,
+    z: torch.Tensor,
+    batch_size: int = 256,
+    num_workers: int = 4,
+):
+    print(
+        f"Building dataloader with {len(attributes)} samples, latent_dim={len(z)}, batch_size={batch_size}, num_workers={num_workers}"
+    )
+    return DataLoader(
+        CustomGenDataset(attributes, z),
         batch_size=batch_size,
         num_workers=num_workers,
         persistent_workers=True,

@@ -4,6 +4,7 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
+from pandas import DataFrame
 from torch import Tensor, optim
 
 from caveat.models.utils import ScheduledOptim
@@ -31,15 +32,7 @@ class Experiment(pl.LightningModule):
         self.duration_weight = duration_weight
         self.curr_device = None
         self.save_hyperparameters()
-
-    # def forward(
-    #     self,
-    #     x: Tensor,
-    #     conditionals: Optional[Tensor] = None,
-    #     target=None,
-    #     **kwargs,
-    # ) -> List[Tensor]:
-    #     return self.model(x, conditionals, target, **kwargs)
+        self.test_outputs = []
 
     def training_step(self, batch, batch_idx):
         (x, x_mask), (y, y_mask), conditionals = batch
@@ -66,6 +59,17 @@ class Experiment(pl.LightningModule):
         self.curr_device = x.device
 
         results = self.forward(x, conditionals=conditionals)
+        # z = results[-1]
+        # DataFrame(z.cpu().numpy()).to_csv(
+        #     Path(
+        #         self.logger.log_dir,
+        #         "val_z",
+        #         f"z_epoch_{self.current_epoch}.csv",
+        #     ),
+        #     index=False,
+        #     header=False,
+        #     mode="a",
+        # )
         val_loss = self.loss_function(
             *results,
             target=y,
@@ -130,12 +134,13 @@ class Experiment(pl.LightningModule):
         name: str,
         conditionals: Optional[Tensor] = None,
     ):
-        y_probs = self.generate(
+        probs, _ = self.infer(
             x, conditionals=conditionals, device=self.curr_device
-        ).squeeze()
-        image = unpack(target, y_probs, self.curr_device)
-        div = torch.ones_like(y_probs)
-        images = torch.cat((image.squeeze(), div, y_probs), dim=-1)
+        )
+        probs = probs.squeeze()
+        image = unpack(target, probs, self.curr_device)
+        div = torch.ones_like(probs)
+        images = torch.cat((image.squeeze(), div, probs), dim=-1)
         vutils.save_image(
             pre_process(images.data),
             Path(
@@ -169,11 +174,7 @@ class Experiment(pl.LightningModule):
             pad_value=1,
         )
 
-    def configure_optimizers(self):
-        optimizer = optim.Adam(
-            self.parameters(), lr=self.LR, weight_decay=self.weight_decay
-        )
-
+    def get_scheduler(self, optimizer):
         if self.kwargs.get("scheduler_gamma") is not None:
             scheduler = optim.lr_scheduler.ExponentialLR(
                 optimizer, gamma=self.kwargs["scheduler_gamma"]
@@ -194,13 +195,37 @@ class Experiment(pl.LightningModule):
                 "interval": "step",
             }
 
+        else:
+            raise UserWarning("No scheduler specified")
+
+        return scheduler
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(
+            self.parameters(), lr=self.LR, weight_decay=self.weight_decay
+        )
+
+        scheduler = self.get_scheduler(optimizer)
+
         return [optimizer], [scheduler]
 
     def predict_step(self, batch):
-        z, conditionals = batch
-        return self.predict(
-            z, conditionals=conditionals, device=self.curr_device
+        # YUCK
+        if len(batch) == 2:  # generative process
+            zs, conditionals = batch
+            return (
+                conditionals,
+                self.predict(
+                    zs, conditionals=conditionals, device=self.curr_device
+                ),
+                zs,
+            )
+        # inference process
+        (x, _), (_, _), conditionals = batch
+        preds, zs = self.infer(
+            x, conditionals=conditionals, device=self.curr_device
         )
+        return x, preds, zs, conditionals
 
 
 def unpack(x, y, current_device):
@@ -221,6 +246,11 @@ def unpack(x, y, current_device):
         ximage = eye[acts.long()].squeeze()
         ximage = torch.cat((ximage, durations), dim=-1)
         return ximage
+    elif 1 in x.shape:
+        print(f"Unknown encoding; {x.shape}, squeezing")
+        return unpack(x.squeeze(), y.squeeze(), current_device)
+    else:
+        print(f"Unknown encoding; {x.shape}, returning input x")
     return x
 
 

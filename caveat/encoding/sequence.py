@@ -22,25 +22,35 @@ class SequenceEncoder(BaseEncoder):
         self.max_length = max_length
         self.norm_duration = norm_duration
         self.jitter = kwargs.get("jitter", 0)
+        self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
 
     def encode(
         self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
     ) -> BaseDataset:
+        if self.encodings is None:
+            self.setup_encoder(schedules)
+        return self._encode(schedules, conditionals)
+
+    def setup_encoder(self, schedules: pd.DataFrame) -> None:
         self.sos = 0
         self.eos = 1
+
         self.index_to_acts = {
-            i + 2: a for i, a in enumerate(schedules.act.unique())
+            int(i + 2): a for i, a in enumerate(schedules.act.unique())
         }
         self.index_to_acts[0] = "<SOS>"
         self.index_to_acts[1] = "<EOS>"
-        acts_to_index = {a: i for i, a in self.index_to_acts.items()}
+        self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
         self.encodings = len(self.index_to_acts)
 
+    def _encode(
+        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+    ) -> BaseDataset:
         # prepare schedules dataframe
         schedules = schedules.copy()
         schedules.duration = schedules.duration / self.norm_duration
-        schedules.act = schedules.act.map(acts_to_index)
+        schedules.act = schedules.act.map(self.acts_to_index).astype(int)
 
         # encode
         encoded_schedules, masks = self._encode_sequences(
@@ -96,6 +106,9 @@ class SequenceEncoder(BaseEncoder):
         )
         n = data.pid.nunique()
         act_weights.update({self.sos: n, self.eos: n})
+        for act in self.index_to_acts.keys():
+            if act not in act_weights:
+                act_weights[act] = n
         act_weights = np.array(
             [act_weights[k] for k in range(len(act_weights))]
         )
@@ -105,7 +118,7 @@ class SequenceEncoder(BaseEncoder):
     def _unit_act_weights(self, n: int) -> Dict[str, float]:
         return np.array([1 for _ in range(n)])
 
-    def decode(self, schedules: Tensor) -> pd.DataFrame:
+    def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
         """Decode a sequences ([N, max_length, encoding]) into DataFrame of 'traces', eg:
 
         pid | act | start | end
@@ -118,10 +131,13 @@ class SequenceEncoder(BaseEncoder):
         Returns:
             pd.DataFrame: _description_
         """
-        schedules, durations = torch.split(
-            schedules, [self.encodings, 1], dim=-1
-        )
-        schedules = schedules.argmax(dim=-1).numpy()
+        if argmax:
+            schedules, durations = torch.split(
+                schedules, [self.encodings, 1], dim=-1
+            )
+            schedules = schedules.argmax(dim=-1).numpy()
+        else:
+            schedules, durations = torch.split(schedules, [1, 1], dim=-1)
         decoded = []
 
         for pid in range(len(schedules)):
