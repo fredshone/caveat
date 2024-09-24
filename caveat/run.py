@@ -520,7 +520,7 @@ def encode_input_attributes(
         conditionals_config = config.get("conditionals", None)
         if conditionals_config is None:
             raise UserWarning("Config must contain conditionals configuration.")
-        attribute_encoder = encoding.AttributeEncoder(conditionals_config)
+        attribute_encoder = encoding.OneHotAttributeEncoder(conditionals_config)
         input_attributes = attribute_encoder.encode(input_attributes)
 
     pickle.dump(
@@ -612,7 +612,7 @@ def run_test(
 def test_inference(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: encoding.AttributeEncoder,
+    attribute_encoder: encoding.OneHotAttributeEncoder,
     write_dir: Path,
     seed: int,
     ckpt_path: Optional[str] = None,
@@ -653,7 +653,7 @@ def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: encoding.AttributeEncoder,
+    attribute_encoder: encoding.OneHotAttributeEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
