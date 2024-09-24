@@ -475,7 +475,7 @@ class Base(Experiment):
         """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
-        return eps * std + mu
+        return (eps * std) + mu
 
     def unpack_encoding(self, input: Tensor) -> tuple[Tensor, Tensor]:
         """Split the input into activity and duration.
