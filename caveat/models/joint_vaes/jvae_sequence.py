@@ -10,9 +10,8 @@ from caveat.models import Base, CustomDurationEmbedding
 class JVAESeqLSTM(Base):
     def __init__(self, *args, **kwargs):
         """
-        Joint Sequence and Attribute generating VAE with LSTM sequence encoder and decoder.
+        Joint Sequence and Label generating VAE with LSTM sequence encoder and decoder.
         """
-        super().__init__(*args, **kwargs)
         self.attribute_embed_sizes = kwargs.get("attribute_embed_sizes", None)
         if self.attribute_embed_sizes is None:
             raise UserWarning("ConditionalLSTM requires attribute_embed_sizes")
@@ -20,6 +19,7 @@ class JVAESeqLSTM(Base):
             raise UserWarning(
                 "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
             )
+        super().__init__(*args, **kwargs)
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
@@ -102,7 +102,7 @@ class JVAESeqLSTM(Base):
         target_x: Tensor,
         target_y: Tensor,
         mask_x: Tensor,
-        mask_y: Tensor,
+        # mask_y: Tensor,
         **kwargs,
     ) -> dict:
         """Calculate the loss function for the model.
@@ -181,8 +181,6 @@ class JVAESeqLSTM(Base):
         """
         # schedule encode
         hidden = self.encoder(input)
-        conditionals = self.fc_conditionals(conditionals)
-        hidden = hidden + conditionals
         mu = self.fc_mu(hidden)
         log_var = self.fc_var(hidden)
 
@@ -256,9 +254,9 @@ class AttributeEncoder(nn.Module):
         Embedding outputs are the same size but use different weights so that they can be different sizes.
         Each embedding is then stacked and summed to give single encoding."""
         super(AttributeEncoder, self).__init__()
-        self.embeds = [
-            nn.Embedding(s, hidden_size) for s in attribute_embed_sizes
-        ]
+        self.embeds = nn.ModuleList(
+            [nn.Embedding(s, hidden_size) for s in attribute_embed_sizes]
+        )
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.activation = nn.ReLU()
         self.fc_mu = nn.Linear(hidden_size, latent_size)
@@ -280,10 +278,12 @@ class AttributeDecoder(nn.Module):
         super(AttributeDecoder, self).__init__()
         self.fc = nn.Linear(latent_size, hidden_size)
         self.activation = nn.ReLU()
-        self.attribute_nets = [
-            nn.Sequential([nn.Linear(hidden_size, s), nn.LogSoftmax(dim=-1)])
-            for s in attribute_embed_sizes
-        ]
+        self.attribute_nets = nn.ModuleList(
+            [
+                nn.Sequential(nn.Linear(hidden_size, s), nn.LogSoftmax(dim=-1))
+                for s in attribute_embed_sizes
+            ]
+        )
 
     def forward(self, x):
         x = self.fc(x)

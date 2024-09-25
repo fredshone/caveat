@@ -5,10 +5,11 @@ import torch
 from torch import Tensor
 
 
-class BaseAttributeEncoder:
+class BaseLabelEncoder:
     def __init__(self, config: dict) -> None:
         """Base Attribute Encoder class."""
         self.config = config
+        self.label_kwargs = {}
 
     def encode(self, data: pd.DataFrame) -> Tensor:
         raise NotImplementedError

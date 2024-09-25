@@ -124,7 +124,7 @@ def test_padded_encoder():
     )
     encoded = encoder.encode(traces, None)
     assert torch.equal(encoded.schedules, encode)
-    assert torch.equal(encoded.masks, masks)
+    assert torch.equal(encoded.schedule_weights, masks)
     assert torch.equal(encoded.encoding_weights, weights)
     (left, mask_left), (right, mask_right), _ = encoded[0]
     assert torch.equal(left, pad_left[0])

@@ -2,16 +2,15 @@ import pandas as pd
 import torch
 from torch import Tensor
 
-from caveat.attribute_encoding.base import BaseAttributeEncoder, tokenize
+from caveat.attribute_encoding.base import BaseLabelEncoder, tokenize
 
 
-class TokenAttributeEncoder(BaseAttributeEncoder):
-    def __init__(self, config: dict) -> None:
-        self.config = config
-        self.sizes = []
+class TokenAttributeEncoder(BaseLabelEncoder):
 
     def encode(self, data: pd.DataFrame) -> Tensor:
         encoded = []
+        self.label_kwargs["attribute_embed_sizes"] = []
+
         for i, (k, v) in enumerate(self.config.copy().items()):
             if k not in data.columns:
                 raise UserWarning(f"Conditional '{k}' not found in attributes")
@@ -25,14 +24,15 @@ class TokenAttributeEncoder(BaseAttributeEncoder):
                         raise UserWarning(
                             "Nominal encoding must be a dict of categories to index"
                         )
-                    nominal_encoded, _ = tokenize(data[k], v["nominal"])
+                    nominal_encoded, nominal_encodings = tokenize(
+                        data[k], v["nominal"]
+                    )
                     encoded.append(nominal_encoded)
                     self.config[k].update(
-                        {
-                            "location": i,
-                            # "size": len(v["nominal"]),
-                            "type": data[k].dtype,
-                        }
+                        {"location": i, "type": data[k].dtype}
+                    )
+                    self.label_kwargs["attribute_embed_sizes"].append(
+                        len(nominal_encodings)
                     )
                 else:
                     raise UserWarning(
@@ -45,10 +45,11 @@ class TokenAttributeEncoder(BaseAttributeEncoder):
                 self.config[k] = {
                     "nominal": nominal_encodings,
                     "location": i,
-                    # "size": len(nominal_encodings),
                     "type": data[k].dtype,
                 }
-                self.sizes.append(len(nominal_encodings))
+                self.label_kwargs["attribute_embed_sizes"].append(
+                    len(nominal_encodings)
+                )
 
             elif v == "ordinal":  # Undefined ordinal encoding
                 raise UserWarning(
@@ -63,7 +64,7 @@ class TokenAttributeEncoder(BaseAttributeEncoder):
         if not encoded:
             raise UserWarning("No attribute encoding found.")
 
-        return torch.stack(encoded, dim=-1)
+        return torch.stack(encoded, dim=-1).long()
 
     def decode(self, data: Tensor) -> pd.DataFrame:
         decoded = {"pid": list(range(data.shape[0]))}

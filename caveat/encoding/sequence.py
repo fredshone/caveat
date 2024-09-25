@@ -45,7 +45,7 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
 
     def _encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self, schedules: pd.DataFrame, labels: Optional[Tensor]
     ) -> BaseDataset:
         # prepare schedules dataframe
         schedules = schedules.copy()
@@ -62,11 +62,12 @@ class SequenceEncoder(BaseEncoder):
 
         return BaseDataset(
             schedules=encoded_schedules,
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=len(self.index_to_acts),
             activity_weights=None,
             augment=augment,
-            conditionals=conditionals,
+            labels=labels,
+            label_weights=None,
         )
 
     def _encode_sequences(
@@ -199,11 +200,11 @@ class SequenceEncoderStaggered(SequenceEncoder):
 
         return StaggeredDataset(
             schedules=encoded_schedules,
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=len(self.index_to_acts),
             activity_weights=None,
             augment=augment,
-            conditionals=conditionals,
+            labels=conditionals,
         )
 
 

@@ -3,15 +3,13 @@ import torch
 from torch import Tensor
 
 from caveat.attribute_encoding.base import (
-    BaseAttributeEncoder,
+    BaseLabelEncoder,
     onehot_encode,
     ordinal_encode,
 )
 
 
-class OneHotAttributeEncoder(BaseAttributeEncoder):
-    def __init__(self, config: dict) -> None:
-        self.config = config
+class OneHotAttributeEncoder(BaseLabelEncoder):
 
     def encode(self, data: pd.DataFrame) -> Tensor:
         i = 0

@@ -60,7 +60,7 @@ def test_encoder():
     encoder = seq.SequenceEncoder(max_length=length, norm_duration=duration)
     encoded_data = encoder.encode(schedules, None)
     encoded_schedule = encoded_data.schedules
-    masks = encoded_data.masks
+    masks = encoded_data.schedule_weights
 
     assert torch.equal(encoded_schedule[0], expected)
     assert torch.equal(masks[0], expected_weights)

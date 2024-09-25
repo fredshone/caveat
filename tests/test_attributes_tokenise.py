@@ -24,14 +24,13 @@ def test_encoder_nominal():
     )
     encoder = TokenAttributeEncoder(config=config)
     encoded = encoder.encode(data)
-    expected = Tensor([[1], [0], [0]]).int()
+    expected = Tensor([[1], [0], [0]]).long()
     assert_close(encoded, expected)
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
         "type": "object",
     }
-    assert encoder.sizes == [2]
 
 
 def test_re_encoder_nominal():
@@ -45,13 +44,12 @@ def test_re_encoder_nominal():
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "M", "F"]}
     )
     new_encoded = encoder.encode(new)
-    assert_close(new_encoded, Tensor([[1], [1], [0]]).int())
+    assert_close(new_encoded, Tensor([[1], [1], [0]]).long())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
         "type": "object",
     }
-    assert encoder.sizes == [2]
 
 
 def test_re_encoder_new_cat_nominal():
@@ -100,7 +98,7 @@ def test_encoder_multi():
     )
     encoder = TokenAttributeEncoder(config=config)
     encoded = encoder.encode(data)
-    expected = Tensor([[1, 0], [0, 0], [0, 1]]).int()
+    expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
@@ -112,7 +110,7 @@ def test_encoder_multi():
         "location": 1,
         "type": "object",
     }
-    assert encoder.sizes == [2, 2]
+    assert encoder.label_kwargs == {"attribute_embed_sizes": [2, 2]}
 
 
 def test_re_encoder_mixed():
@@ -134,7 +132,7 @@ def test_re_encoder_mixed():
         }
     )
     new_encoded = encoder.encode(new_data)
-    expected = Tensor([[1, 1], [1, 0], [0, 1]]).int()
+    expected = Tensor([[1, 1], [1, 0], [0, 1]]).long()
     assert_close(new_encoded, expected)
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
@@ -146,7 +144,7 @@ def test_re_encoder_mixed():
         "location": 1,
         "type": "object",
     }
-    assert encoder.sizes == [2, 2]
+    assert encoder.label_kwargs == {"attribute_embed_sizes": [2, 2]}
 
 
 def test_decode_attributes():
@@ -160,7 +158,7 @@ def test_decode_attributes():
     )
     encoder = TokenAttributeEncoder(config=config)
     encoded = encoder.encode(data)
-    expected = Tensor([[1, 0], [0, 0], [0, 1]]).int()
+    expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
 
     preds = Tensor(

@@ -6,6 +6,7 @@ from .discrete.vae_discrete_conv import VAEDiscConv
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_transformer import VAEDiscTrans
 from .embed import CustomDurationEmbedding, CustomDurationModeDistanceEmbedding
+from .joint_vaes.jvae_sequence import JVAESeqLSTM
 from .seq2score.lstm import Seq2ScoreLSTM
 from .seq2seq.lstm import Seq2SeqLSTM
 from .sequence.auto_sequence_lstm import AutoSeqLSTM
@@ -48,4 +49,5 @@ library = {
     "CVAESeqLSTMNudgeAdv": CVAESeqLSTMNudgerAdversarial,  # adversarial nudger model
     "Seq2SeqLSTM": Seq2SeqLSTM,
     "Seq2ScoreLSTM": Seq2ScoreLSTM,
+    "JVAESeqLSTM": JVAESeqLSTM,
 }

@@ -60,12 +60,12 @@ class Seq2ScoreEncoder(BaseEncoder):
         return LHS2RHSDataset(
             lhs=encoded_schedules,
             rhs=encoded_target,
-            masks=masks,
+            weights=masks,
             act_encodings=len(self.index_to_acts),
             mode_encodings=len(self.index_to_modes),
             activity_weights=None,
             augment=augment,
-            conditionals=conditionals,
+            labels=conditionals,
         )
 
     def _encode_sequences(

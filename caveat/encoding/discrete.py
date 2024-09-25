@@ -41,7 +41,7 @@ class DiscreteEncoder(BaseEncoder):
         self.encoding_weights = torch.from_numpy(1 / weights).float()
 
     def _encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self, schedules: pd.DataFrame, labels: Optional[Tensor]
     ) -> BaseDataset:
 
         schedules = schedules.copy()
@@ -59,11 +59,11 @@ class DiscreteEncoder(BaseEncoder):
 
         return BaseDataset(
             schedules=encoded.long(),
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=activity_encodings,
             activity_weights=self.encoding_weights,
             augment=augment,
-            conditionals=conditionals,
+            labels=labels,
         )
 
     def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
@@ -158,11 +158,11 @@ class DiscreteEncoderPadded(BaseEncoder):
 
         return PaddedDatatset(
             schedules=encoded.long(),
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=activity_encodings,
             activity_weights=activity_weights,
             augment=augment,
-            conditionals=conditionals,
+            labels=conditionals,
         )
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:

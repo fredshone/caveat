@@ -64,6 +64,7 @@ def run_command(
         name=name,
         data_loader=data_loader,
         encoded_schedules=encoded_schedules,
+        label_kwargs=attribute_encoder.label_kwargs,
         config=config,
         test=test,
         gen=gen,
@@ -182,6 +183,7 @@ def batch_command(
             name=name,
             data_loader=data_loader,
             encoded_schedules=encoded_schedules,
+            label_kwargs=attribute_encoder.label_kwargs,
             config=combined_config,
             test=test,
             gen=gen,
@@ -291,6 +293,7 @@ def nrun_command(
             name=run_name,
             data_loader=data_loader,
             encoded_schedules=encoded_schedules,
+            label_kwargs=attribute_encoder.label_kwargs,
             config=config,
             test=test,
             gen=gen,
@@ -391,6 +394,7 @@ def ngen_command(
         name=name,
         data_loader=data_loader,
         encoded_schedules=encoded_schedules,
+        label_kwargs=attribute_encoder.label_kwargs,
         config=config,
         test=False,
         gen=True,
@@ -525,13 +529,13 @@ def encode_input_attributes(
         attribute_encoder = attribute_encoding.library[encoder_name](
             conditionals_config
         )
-        input_attributes = attribute_encoder.encode(input_attributes)
+        encoded_attributes = attribute_encoder.encode(input_attributes)
 
     pickle.dump(
         attribute_encoder, open(f"{log_dir}/attribute_encoder.pkl", "wb")
     )
 
-    return (attribute_encoder, input_attributes)
+    return (attribute_encoder, encoded_attributes)
 
 
 def train(
@@ -544,6 +548,7 @@ def train(
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
     ckpt_path: Optional[Path] = None,
+    label_kwargs: dict = {},
 ) -> Tuple[Trainer, encoding.BaseEncoder]:
     """
     Trains a model on the observed data. Return model trainer (which includes model) and encoder.
@@ -567,9 +572,11 @@ def train(
 
     torch.cuda.empty_cache()
     if ckpt_path is not None:
-        experiment = load_experiment(ckpt_path, config)
+        experiment = load_model(ckpt_path, config)
     else:
-        experiment = build_experiment(encoded_schedules, config, test, gen)
+        experiment = build_model(
+            encoded_schedules, config, test, gen, label_kwargs
+        )
     trainer = build_trainer(logger, config)
     trainer.fit(experiment, datamodule=data_loader)
     return trainer
@@ -616,7 +623,7 @@ def run_test(
 def test_inference(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: attribute_encoding.BaseAttributeEncoder,
+    attribute_encoder: attribute_encoding.BaseLabelEncoder,
     write_dir: Path,
     seed: int,
     ckpt_path: Optional[str] = None,
@@ -657,7 +664,7 @@ def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: attribute_encoding.BaseAttributeEncoder,
+    attribute_encoder: attribute_encoding.BaseLabelEncoder,
     config: dict,
     write_dir: Path,
     seed: int,
@@ -844,8 +851,12 @@ def build_dataloader(
     return datamodule
 
 
-def build_experiment(
-    dataset: encoding.BaseDataset, config: dict, test: bool, gen: bool
+def build_model(
+    dataset: encoding.BaseDataset,
+    config: dict,
+    test: bool,
+    gen: bool,
+    label_kwargs: dict,
 ) -> LightningModule:
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
@@ -853,16 +864,17 @@ def build_experiment(
         in_shape=dataset.shape(),
         encodings=dataset.activity_encodings,
         encoding_weights=dataset.encoding_weights,
-        conditionals_size=dataset.conditionals_shape,
+        conditionals_size=dataset.labels_shape,
         **config["model_params"],
         test=test,
         gen=gen,
         **config.get("experiment_params", {}),
+        **label_kwargs,
     )
     return model
 
 
-def load_experiment(ckpt_path: Path, config: dict) -> LightningModule:
+def load_model(ckpt_path: Path, config: dict) -> LightningModule:
     model_name = config["model_params"]["name"]
     model = models.library[model_name]
     return model.load_from_checkpoint(ckpt_path)
