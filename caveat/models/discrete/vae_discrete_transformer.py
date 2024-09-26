@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat.models.base import Base
 
@@ -69,16 +69,16 @@ class VAEDiscTrans(Base):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x)
+        mu, log_var = self.encode(x, conditionals=None)
         z = self.reparameterize(mu, log_var)
 
         if target is not None:  # training
-            log_prob_y, prob_y = self.decode(z, context=x)
-            return [log_prob_y, prob_y, mu, log_var]
+            log_prob_y = self.decode(z, context=x)
+            return [log_prob_y, mu, log_var]
 
         # no target so assume generating
-        log_prob, prob = self.predict_sequences(z, current_device=z.device)
-        return [log_prob, prob, mu, log_var, z]
+        log_prob = self.predict_sequences(z, current_device=z.device)
+        return [log_prob, mu, log_var, z]
 
     def decode(
         self, z: Tensor, context=None, **kwargs
@@ -94,14 +94,13 @@ class VAEDiscTrans(Base):
         # initialize hidden state as inputs
         hidden = self.fc_hidden(z)
         hidden = hidden.unflatten(1, self.unflattened_shape)
-        log_probs, probs = self.decoder(hidden, context)
+        log_probs = self.decoder(hidden, context)
 
-        return log_probs, probs
+        return log_probs
 
     def loss_function(
         self,
         log_probs: Tensor,
-        probs: Tensor,
         mu: Tensor,
         log_var: Tensor,
         target: Tensor,
@@ -109,7 +108,7 @@ class VAEDiscTrans(Base):
         **kwargs,
     ) -> dict:
         return self.discretized_loss(
-            log_probs, probs, mu, log_var, target, mask, **kwargs
+            log_probs, mu, log_var, target, mask, **kwargs
         )
 
     def predict(self, z: Tensor, current_device: int, **kwargs) -> Tensor:
@@ -122,8 +121,8 @@ class VAEDiscTrans(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        _, prob_samples = self.predict_sequences(z, current_device)
-        return prob_samples
+        log_prob_samples = self.predict_sequences(z, current_device)
+        return exp(log_prob_samples)
 
     def predict_sequences(
         self, z: Tensor, current_device: int, **kwargs
@@ -159,9 +158,8 @@ class VAEDiscTrans(Base):
             sequences = torch.cat((sequences, next), dim=1)  # (B, T+1)
 
         log_probs = torch.cat(log_outputs, dim=1)
-        probs = torch.cat(outputs, dim=1)
 
-        return log_probs, probs
+        return log_probs
 
 
 class AttentionHead(nn.Module):

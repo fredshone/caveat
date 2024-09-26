@@ -1,12 +1,9 @@
 import datetime
 from pathlib import Path
 
-import pandas as pd
-from torch import concat as torch_concat
 from torch.random import seed as seeder
 
 from caveat.run import (
-    build_dataloader,
     encode_input_attributes,
     encode_schedules,
     evaluate_synthetics,
@@ -36,9 +33,9 @@ def jrun_command(
         None
     """
     attribute_encoder = config.get("attribute_encoder", None)
-    if attribute_encoder is None or attribute_encoder != "token":
+    if attribute_encoder is None or attribute_encoder != "tokens":
         raise ValueError(
-            "Joint model requires attribute_encoder to be configured as 'token'."
+            "Joint model requires attribute_encoder to be configured as 'tokens'."
         )
 
     conditionals = config.get("conditionals", None)
@@ -72,6 +69,7 @@ def jrun_command(
         name=name,
         data_loader=data_loader,
         encoded_schedules=encoded_schedules,
+        label_encoder=attribute_encoder,
         config=config,
         test=test,
         gen=gen,

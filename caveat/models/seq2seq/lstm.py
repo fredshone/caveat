@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat import current_device
 from caveat.models import Base, CustomDurationModeDistanceEmbedding
@@ -73,8 +73,8 @@ class Seq2SeqLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
         z = self.encode(x)  # [N, flat]
-        results = self.decode(z, conditionals=conditionals, target=target)
-        return results
+        log_probs = self.decode(z, conditionals=conditionals, target=target)
+        return log_probs
 
     def encode(self, input: Tensor) -> Tensor:
         # [N, L, C]
@@ -109,23 +109,18 @@ class Seq2SeqLSTM(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            results = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            results = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return results
+        return log_probs
 
     def loss_function(
-        self,
-        log_probs: Tensor,
-        probs: Tensor,
-        target: Tensor,
-        mask: Tensor,
-        **kwargs,
+        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
     ) -> dict:
         # unpack log_probs
         log_act_probs, durations, log_mode_probs, distances = torch.split(
@@ -187,10 +182,10 @@ class Seq2SeqLSTM(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        (x, _), (y, _), conditionals = batch
+        (x, _), (y, _), (labels, _) = batch
         x = x.to(device)
-        prob_samples = self.forward(x=x, conditionals=conditionals, **kwargs)[1]
-        return x, y, conditionals, prob_samples
+        prob_samples = exp(self.forward(x=x, conditionals=labels, **kwargs))
+        return x, y, labels, prob_samples
 
 
 class Encoder(nn.Module):
@@ -332,12 +327,10 @@ class Decoder(nn.Module):
         acts_logits, durations, mode_logits, distances = torch.split(
             outputs, [self.act_embeddings, 1, self.mode_embeddings, 1], dim=-1
         )
-        act_probs = self.activity_prob_activation(acts_logits)
         act_log_probs = self.activity_logprob_activation(acts_logits)
 
         durations = self.duration_activation(durations)
 
-        mode_probs = self.mode_prob_activation(mode_logits)
         mode_log_probs = self.mode_logprob_activation(mode_logits)
 
         distances = self.distance_activation(distances)
@@ -345,11 +338,8 @@ class Decoder(nn.Module):
         log_prob_outputs = torch.cat(
             (act_log_probs, durations, mode_log_probs, distances), dim=-1
         )
-        prob_outputs = torch.cat(
-            (act_probs, durations, mode_probs, distances), dim=-1
-        )
 
-        return [log_prob_outputs, prob_outputs]
+        return log_prob_outputs
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]

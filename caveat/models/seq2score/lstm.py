@@ -49,7 +49,6 @@ class Seq2ScoreLSTM(Base):
             flat_size_encode + self.conditionals_size, flat_size_encode
         )
         self.score_layer = nn.Linear(flat_size_encode, 1)
-        self.score_activation = nn.Sigmoid()  # todo REMOVE?
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
@@ -62,8 +61,8 @@ class Seq2ScoreLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
         z = self.encode(x)  # [N, flat]
-        results = self.decode(z, conditionals=conditionals, target=target)
-        return results
+        score = self.decode(z, conditionals=conditionals, target=target)
+        return score
 
     def encode(self, input: Tensor) -> Tensor:
         # [N, L, C]
@@ -85,7 +84,7 @@ class Seq2ScoreLSTM(Base):
         # initialize hidden state as inputs
         h = self.fc_hidden(z)
         h = self.score_layer(h)
-        return [h]
+        return h
 
     def loss_function(
         self, scores: Tensor, target: Tensor, mask: Tensor, **kwargs
@@ -106,14 +105,9 @@ class Seq2ScoreLSTM(Base):
         Returns:
             tensor: [N, steps, acts].
         """
-        (x, _), (y, _), conditionals = batch
+        (x, _), (y, _), (labels, _) = batch
         x = x.to(device)
-        return (
-            x,
-            y,
-            conditionals,
-            self.forward(x=x, conditionals=conditionals, **kwargs)[0],
-        )
+        return (x, y, labels, self.forward(x=x, conditionals=labels, **kwargs))
 
 
 class Encoder(nn.Module):

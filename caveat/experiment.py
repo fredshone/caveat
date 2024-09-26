@@ -4,7 +4,6 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
-from pandas import DataFrame
 from torch import Tensor, optim
 
 from caveat.models.utils import ScheduledOptim
@@ -35,13 +34,17 @@ class Experiment(pl.LightningModule):
         self.test_outputs = []
 
     def training_step(self, batch, batch_idx):
-        (x, x_mask), (y, y_mask), conditionals = batch
+        (x, _), (y, y_mask), (labels, _) = batch
 
         self.curr_device = x.device
 
-        results = self.forward(x, conditionals=conditionals, target=y)
+        log_probs, mu, log_var, z = self.forward(
+            x, conditionals=labels, target=y
+        )
         train_loss = self.loss_function(
-            *results,
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
             target=y,
             mask=y_mask,
             kld_weight=self.kld_weight,
@@ -55,10 +58,10 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, _), (y, y_mask), conditionals = batch
+        (x, _), (y, y_weights), (labels, _) = batch
         self.curr_device = x.device
 
-        results = self.forward(x, conditionals=conditionals)
+        log_probs, mu, log_var, z = self.forward(x, conditionals=labels)
         # z = results[-1]
         # DataFrame(z.cpu().numpy()).to_csv(
         #     Path(
@@ -71,9 +74,11 @@ class Experiment(pl.LightningModule):
         #     mode="a",
         # )
         val_loss = self.loss_function(
-            *results,
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
             target=y,
-            mask=y_mask,
+            mask=y_weights,
             kld_weight=self.kld_weight,
             duration_weight=self.duration_weight,
             optimizer_idx=optimizer_idx,
@@ -95,14 +100,18 @@ class Experiment(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         if self.test:
-            (x, _), (y, y_mask), conditionals = batch
+            (x, _), (y, y_weights), conditionals = batch
             self.curr_device = x.device
 
-            results = self.forward(x, conditionals=conditionals)
+            log_probs_x, mu, log_var, z = self.forward(
+                x, conditionals=conditionals
+            )
             test_loss = self.loss_function(
-                *results,
+                log_probs_x=log_probs_x,
+                mu=mu,
+                log_var=log_var,
                 target=y,
-                mask=y_mask,
+                mask=y_weights,
                 kld_weight=self.kld_weight,
                 duration_weight=self.duration_weight,
                 batch_idx=batch_idx,
@@ -117,14 +126,14 @@ class Experiment(pl.LightningModule):
             )
 
     def regenerate_val_batch(self):
-        (x, _), (y, _), conditionals = next(
+        (x, _), (y, _), (labels, _) = next(
             iter(self.trainer.datamodule.val_dataloader())
         )
         x = x.to(self.curr_device)
         y = y.to(self.curr_device)
-        conditionals = conditionals.to(self.curr_device)
+        labels = labels.to(self.curr_device)
         self.regenerate_batch(
-            x, target=y, name="reconstructions", conditionals=conditionals
+            x, target=y, name="reconstructions", conditionals=labels
         )
 
     def regenerate_batch(
@@ -154,14 +163,12 @@ class Experiment(pl.LightningModule):
         )
 
     def sample_sequences(self, name: str = "samples") -> None:
-        _, _, conditionals = next(
+        _, _, (labels, _) = next(
             iter(self.trainer.datamodule.test_dataloader())
         )
-        conditionals = conditionals.to(self.curr_device)
-        z = torch.randn(len(conditionals), self.latent_dim)
-        y_probs = self.predict(
-            z, conditionals=conditionals, device=self.curr_device
-        )
+        labels = labels.to(self.curr_device)
+        z = torch.randn(len(labels), self.latent_dim)
+        y_probs = self.predict(z, conditionals=labels, device=self.curr_device)
         vutils.save_image(
             pre_process(y_probs.cpu().data),
             Path(
@@ -212,20 +219,16 @@ class Experiment(pl.LightningModule):
     def predict_step(self, batch):
         # YUCK
         if len(batch) == 2:  # generative process
-            zs, conditionals = batch
+            zs, labels = batch
             return (
-                conditionals,
-                self.predict(
-                    zs, conditionals=conditionals, device=self.curr_device
-                ),
+                labels,
+                self.predict(zs, conditionals=labels, device=self.curr_device),
                 zs,
             )
         # inference process
-        (x, _), (_, _), conditionals = batch
-        preds, zs = self.infer(
-            x, conditionals=conditionals, device=self.curr_device
-        )
-        return x, preds, zs, conditionals
+        (x, _), (_, _), (labels, _) = batch
+        preds, zs = self.infer(x, conditionals=labels, device=self.curr_device)
+        return x, preds, zs, labels
 
 
 def unpack(x, y, current_device):

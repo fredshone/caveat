@@ -34,11 +34,15 @@ class DiscreteEncoder(BaseEncoder):
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
         # calc weightings
-        weights = (
+        act_freqs = (
             schedules.groupby("act", observed=True).duration.sum().to_dict()
         )
-        weights = np.array([weights[k] for k in range(len(weights))])
-        self.encoding_weights = torch.from_numpy(1 / weights).float()
+        print(act_freqs)
+        index_freqs = {self.acts_to_index[k]: v for k, v in act_freqs.items()}
+        ordered_freqs = np.array(
+            [index_freqs[k] for k in range(len(index_freqs))]
+        )
+        self.encoding_weights = torch.from_numpy(1 / ordered_freqs).float()
 
     def _encode(
         self, schedules: pd.DataFrame, labels: Optional[Tensor]
@@ -64,6 +68,7 @@ class DiscreteEncoder(BaseEncoder):
             activity_weights=self.encoding_weights,
             augment=augment,
             labels=labels,
+            label_weights=None,
         )
 
     def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
@@ -163,6 +168,7 @@ class DiscreteEncoderPadded(BaseEncoder):
             activity_weights=activity_weights,
             augment=augment,
             labels=conditionals,
+            label_weights=None,
         )
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:

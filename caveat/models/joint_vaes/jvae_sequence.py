@@ -88,10 +88,10 @@ class JVAESeqLSTM(Base):
         # schedule encode
         mu, log_var = self.encode(x, conditionals=conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_x, log_prob_ys, z = self.decode(
+        log_prob_x, log_prob_y = self.decode(
             z, conditionals=conditionals, target=target
         )
-        return [log_prob_x, log_prob_ys, mu, log_var, z]
+        return [log_prob_x, log_prob_y, mu, log_var, z]
 
     def loss_function(
         self,
@@ -230,7 +230,7 @@ class JVAESeqLSTM(Base):
         # decode labels
         log_probs_ys = self.label_decoder(z)
 
-        return log_probs_x, log_probs_ys, z
+        return log_probs_x, log_probs_ys
 
     def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
@@ -242,7 +242,7 @@ class JVAESeqLSTM(Base):
             tensor: [N, steps, acts].
         """
         z = z.to(device)
-        log_probs_x, log_probs_y, z = self.decode(z=z, **kwargs)
+        log_probs_x, log_probs_y = self.decode(z=z, **kwargs)
         probs_x = torch.exp(log_probs_x)
         probs_y = torch.exp(log_probs_y)
         return (probs_x, probs_y)

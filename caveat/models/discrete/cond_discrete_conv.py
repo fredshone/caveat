@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple, Union
 
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat.models.base import Base
 from caveat.models.utils import calc_output_padding, conv_size
@@ -66,18 +66,11 @@ class CondDiscConv(Base):
         **kwargs,
     ) -> List[Tensor]:
 
-        log_probs, probs = self.decode(
-            z=x, conditionals=conditionals, target=target
-        )
-        return [log_probs, probs]
+        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        return log_probs
 
     def loss_function(
-        self,
-        log_probs: Tensor,
-        probs: Tensor,
-        target: Tensor,
-        mask: Tensor,
-        **kwargs,
+        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss
@@ -105,15 +98,15 @@ class CondDiscConv(Base):
         # initialize hidden state as inputs
         hidden = self.fc_hidden(conditionals)
         hidden = hidden.view(self.shape_before_flattening)
-        log_probs, probs = self.decoder(hidden)
-        return log_probs, probs
+        log_probs = self.decoder(hidden)
+        return log_probs
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
         conditionals = conditionals.to(device)
-        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
+        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
 
 
 class Encoder(nn.Module):
@@ -233,10 +226,9 @@ class Decoder(nn.Module):
         )
 
         self.decoder = nn.Sequential(*modules)
-        self.prob_activation = nn.Softmax(dim=-1)
         self.logprob_activation = nn.LogSoftmax(dim=-1)
 
     def forward(self, hidden, **kwargs):
         y = self.decoder(hidden)
         y = y.squeeze(1)  # remove conv channel dim
-        return self.logprob_activation(y), self.prob_activation(y)
+        return self.logprob_activation(y)

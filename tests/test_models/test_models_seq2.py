@@ -29,10 +29,9 @@ def test_seq2seq_forward():
             "dropout": 0.1,
         },
     )
-    (log_probs, probs) = model(x_encoded, conditionals=conditionals)
+    log_probs = model(x_encoded, conditionals=conditionals)
     assert log_probs.shape == (N, L, C)
-    assert probs.shape == (N, L, C)
-    losses = model.loss_function(log_probs, probs, x_encoded, mask=weights)
+    losses = model.loss_function(log_probs, x_encoded, mask=weights)
     assert "loss" in losses
     assert "recon_loss" in losses
 
@@ -63,7 +62,7 @@ def test_seq2score_forward():
             "dropout": 0.1,
         },
     )
-    (score,) = model(x_encoded, conditionals=conditionals)
+    score = model(x_encoded, conditionals=conditionals)
     assert score.shape == (N, 1)
     losses = model.loss_function(score, target, mask=weights)
     assert "loss" in losses

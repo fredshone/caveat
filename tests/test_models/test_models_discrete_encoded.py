@@ -6,10 +6,6 @@ from caveat.models.discrete.cond_discrete_lstm import CondDiscLSTM
 from caveat.models.discrete.vae_discrete_conv import VAEDiscConv
 from caveat.models.discrete.vae_discrete_lstm import VAEDiscLSTM
 from caveat.models.discrete.vae_discrete_transformer import VAEDiscTrans
-from caveat.models.seq2score.lstm import Seq2ScoreLSTM
-from caveat.models.seq2seq.lstm import Seq2SeqLSTM
-from caveat.models.sequence.cvae_sequence_lstm import CVAESeqLSTM
-from caveat.models.sequence.vae_sequence_lstm import VAESeqLSTM
 
 
 def test_discrete_auto_lstm_forward():
@@ -28,12 +24,9 @@ def test_discrete_auto_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y = model(x_max, conditionals=conditionals)
-    assert log_prob_y.shape == torch.Size([3, 144, 5])
-    assert prob_y.shape == torch.Size([3, 144, 5])
-    losses = model.loss_function(
-        log_probs=log_prob_y, probs=prob_y, target=x_max, mask=None
-    )
+    log_prob = model(x_max, conditionals=conditionals)
+    assert log_prob.shape == torch.Size([3, 144, 5])
+    losses = model.loss_function(log_probs=log_prob, target=x_max, mask=None)
     assert "loss" in losses
 
 
@@ -48,12 +41,9 @@ def test_discrete_conditional_conv_forward():
         conditionals_size=10,
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob_y, prob_y = model(x_max, conditionals=conditionals)
+    log_prob_y = model(x_max, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
-    losses = model.loss_function(
-        log_probs=log_prob_y, probs=prob_y, target=x_max, mask=None
-    )
+    losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
     assert "loss" in losses
 
 
@@ -73,12 +63,9 @@ def test_discrete_conditional_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y = model(x_max, conditionals=conditionals)
+    log_prob_y = model(x_max, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
-    losses = model.loss_function(
-        log_probs=log_prob_y, probs=prob_y, target=x_max, mask=None
-    )
+    losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
     assert "loss" in losses
 
 
@@ -91,19 +78,13 @@ def test_discrete_vae_conv_forward():
         encoding_weights=torch.ones((5)),
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob_y, prob_y, mu, log_var, z = model(x_max)
+    log_prob_y, mu, log_var, z = model(x_max)
     assert log_prob_y.shape == torch.Size([3, 144, 5])
-    assert prob_y.shape == torch.Size([3, 144, 5])
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y,
-        probs=prob_y,
-        mu=mu,
-        log_var=log_var,
-        target=x_max,
-        mask=None,
+        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -123,19 +104,13 @@ def test_discrete_vae_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y, mu, log_var, z = model(x_max)
+    log_prob_y, mu, log_var, z = model(x_max)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y,
-        probs=prob_y,
-        mu=mu,
-        log_var=log_var,
-        target=x_max,
-        mask=None,
+        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
     )
     assert "loss" in losses
     assert "recon_loss" in losses
@@ -156,19 +131,13 @@ def test_discrete_transformer_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y, mu, log_var, z = model(x_max)
+    log_prob_y, mu, log_var, z = model(x_max)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs=log_prob_y,
-        probs=prob_y,
-        mu=mu,
-        log_var=log_var,
-        target=x_max,
-        mask=None,
+        log_probs=log_prob_y, mu=mu, log_var=log_var, target=x_max, mask=None
     )
     assert "loss" in losses
     assert "recon_loss" in losses

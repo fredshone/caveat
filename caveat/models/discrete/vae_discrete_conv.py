@@ -62,14 +62,14 @@ class VAEDiscConv(Base):
         # initialize hidden state as inputs
         hidden = self.fc_hidden(z)
         hidden = hidden.view(self.encoder.shape_before_flattening)
-        log_probs, probs = self.decoder(hidden)
-        return log_probs, probs
+        log_probs = self.decoder(hidden)
+        return log_probs
 
     def loss_function(
-        self, log_probs, probs, mu, log_var, target, mask, *args, **kwargs
+        self, log_probs, mu, log_var, target, mask, *args, **kwargs
     ) -> dict:
         return self.discretized_loss(
-            log_probs, probs, mu, log_var, target, mask, *args, **kwargs
+            log_probs, mu, log_var, target, mask, *args, **kwargs
         )
 
 
@@ -197,10 +197,9 @@ class Decoder(nn.Module):
         )
 
         self.decoder = nn.Sequential(*modules)
-        self.prob_activation = nn.Softmax(dim=-1)
         self.logprob_activation = nn.LogSoftmax(dim=-1)
 
     def forward(self, hidden, **kwargs):
         y = self.decoder(hidden)
         y = y.squeeze(1)  # remove conv channel dim
-        return self.logprob_activation(y), self.prob_activation(y)
+        return self.logprob_activation(y)

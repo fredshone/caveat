@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, nn, exp
 
 from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
@@ -53,28 +53,6 @@ class CVAESeqLSTMAdd(Base):
 
         if config.get("share_embed", False):
             self.decoder.embedding.weight = self.encoder.embedding.weight
-
-    def forward(
-        self,
-        x: Tensor,
-        conditionals: Optional[Tensor] = None,
-        target=None,
-        **kwargs,
-    ) -> List[Tensor]:
-        """Forward pass, also return latent parameterization.
-
-        Args:
-            x (tensor): Input sequences [N, L, Cin].
-
-        Returns:
-            list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
-        """
-        mu, log_var = self.encode(x, conditionals)
-        z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y, mu, log_var, z]
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -135,15 +113,15 @@ class CVAESeqLSTMAdd(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
@@ -158,7 +136,7 @@ class CVAESeqLSTMAdd(Base):
         """
         z = z.to(device)
         conditionals = conditionals.to(device)
-        prob_samples = self.decode(z=z, conditionals=conditionals, **kwargs)[1]
+        prob_samples = exp(self.decode(z=z, conditionals=conditionals, **kwargs))
         return prob_samples
 
 
@@ -283,13 +261,11 @@ class Decoder(nn.Module):
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
         )
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
         durations = self.duration_activation(durations)
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
 
-        return log_prob_outputs, prob_outputs
+        return log_prob_outputs
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]

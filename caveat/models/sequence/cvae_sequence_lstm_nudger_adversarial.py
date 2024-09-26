@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 
 import torch
 from pytorch_lightning import LightningModule
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
@@ -51,16 +51,20 @@ class CVAESeqLSTMNudgerAdversarial(LightningModule):
         return nn.functional.mse_loss(y_hat, y)
 
     def training_step(self, batch, batch_idx):
-        (x, _), (y, y_mask), conditionals = batch
+        (x, _), (y, y_mask), (labels, _) = batch
         optimizer_g, optimizer_d = self.optimizers()
 
         self.curr_device = x.device
 
         # train generator
         self.toggle_optimizer(optimizer_g)
-        results = self.generator.forward(x, conditionals=conditionals, target=y)
+        log_probs, mu, log_var, z = self.generator.forward(
+            x, conditionals=labels, target=y
+        )
         losses = self.generator.loss_function(
-            *results,
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
             target=y,
             mask=y_mask,
             kld_weight=self.kld_weight,
@@ -69,11 +73,10 @@ class CVAESeqLSTMNudgerAdversarial(LightningModule):
         )
 
         # generator loss
-        z = results[-1]
         conditionals_hat = self.discriminator(z)
 
         adversarial_loss = self.adversarial_loss(
-            conditionals_hat, conditionals
+            conditionals_hat, labels
         ).detach()
         losses["adversarial_loss"] = adversarial_loss
         losses["adversarial_weight"] = torch.Tensor([self.adv_weight]).float()
@@ -88,8 +91,8 @@ class CVAESeqLSTMNudgerAdversarial(LightningModule):
 
         # train discriminator
         self.toggle_optimizer(optimizer_d)
-        conditionals_hat = self.discriminator(results[-1].detach())
-        d_loss = self.adversarial_loss(conditionals_hat, conditionals)
+        conditionals_hat = self.discriminator(z.detach())
+        d_loss = self.adversarial_loss(conditionals_hat, labels)
         losses["discriminator_loss"] = d_loss
 
         self.manual_backward(d_loss)
@@ -113,12 +116,16 @@ class CVAESeqLSTMNudgerAdversarial(LightningModule):
         return [opt_g, opt_d], []
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, _), (y, y_mask), conditionals = batch
+        (x, _), (y, y_mask), (labels, _) = batch
         self.curr_device = x.device
 
-        results = self.generator.forward(x, conditionals=conditionals)
+        log_probs, mu, log_var, z = self.generator.forward(
+            x, conditionals=labels
+        )
         val_loss = self.generator.loss_function(
-            *results,
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
             target=y,
             mask=y_mask,
             kld_weight=self.kld_weight,
@@ -226,10 +233,8 @@ class CVAESeqLSTMNudger(Base):
         """
         mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y, mu, log_var, z]
+        log_prob_y = self.decode(z, conditionals=conditionals, target=target)
+        return [log_prob_y, mu, log_var, z]
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -282,15 +287,15 @@ class CVAESeqLSTMNudger(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
@@ -305,7 +310,9 @@ class CVAESeqLSTMNudger(Base):
         """
         z = z.to(device)
         conditionals = conditionals.to(device)
-        prob_samples = self.decode(z=z, conditionals=conditionals, **kwargs)[1]
+        prob_samples = exp(
+            self.decode(z=z, conditionals=conditionals, **kwargs)
+        )
         return prob_samples
 
 
@@ -446,13 +453,11 @@ class Decoder(nn.Module):
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
         )
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
         durations = self.duration_activation(durations)
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
 
-        return log_prob_outputs, prob_outputs
+        return log_prob_outputs
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]

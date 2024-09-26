@@ -12,10 +12,7 @@ from .seq2seq.lstm import Seq2SeqLSTM
 from .sequence.auto_sequence_lstm import AutoSeqLSTM
 from .sequence.cond_sequence_lstm import CondSeqLSTM
 from .sequence.cvae_sequence_lstm import CVAESeqLSTM
-from .sequence.cvae_sequence_lstm_2 import CVAESeqLSTM2
-from .sequence.cvae_sequence_lstm_3 import CVAESeqLSTM3
 from .sequence.cvae_sequence_lstm_add import CVAESeqLSTMAdd
-from .sequence.cvae_sequence_lstm_add2 import CVAESeqLSTMAdd2
 from .sequence.cvae_sequence_lstm_after import CVAESeqLSTMAfter
 from .sequence.cvae_sequence_lstm_all import CVAESeqLSTMAll
 from .sequence.cvae_sequence_lstm_double_nudger import CVAESeqLSTMDoubleNudger
@@ -37,10 +34,7 @@ library = {
     "VAEDiscLSTM": VAEDiscLSTM,
     "VAEDiscTrans": VAEDiscTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
-    "CVAESeqLSTM2": CVAESeqLSTM2,  # attributes at encoder and decoder
-    "CVAESeqLSTM3": CVAESeqLSTM3,  # normed decoder attributes size
     "CVAESeqLSTMAdd": CVAESeqLSTMAdd,  # adds conditionals to latent layer
-    "CVAESeqLSTMAdd2": CVAESeqLSTMAdd2,  # adds conditionals to latent layer encoder and decoder side
     "CVAESeqLSTMFeed": CVAESeqLSTMFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMAfter": CVAESeqLSTMAfter,  # conditionals concat after LSTM output
     "CVAESeqLSTMAll": CVAESeqLSTMAll,  # labels cat to latents and added to unit in/outs

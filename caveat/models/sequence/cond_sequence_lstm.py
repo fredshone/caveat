@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
@@ -45,24 +45,16 @@ class CondSeqLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
 
-        log_probs, probs = self.decode(
-            z=x, conditionals=conditionals, target=target
-        )
-        return [log_probs, probs]
+        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
-        self,
-        log_probs: Tensor,
-        probs: Tensor,
-        target: Tensor,
-        mask: Tensor,
-        **kwargs,
+        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
-        acts, _ = self.unpack_encoding(probs)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
@@ -117,18 +109,17 @@ class CondSeqLSTM(Base):
         hidden = hidden.split(
             self.hidden_layers
         )  # ([hidden, N, layers, [hidden, N, layers]])
-        batch_size = z.shape[0]
 
-        log_probs, probs = self.decoder(hidden=hidden, x=x, target=None)
+        log_probs = self.decoder(hidden=hidden, x=x, target=None)
 
-        return log_probs, probs
+        return log_probs
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
         conditionals = conditionals.to(device)
-        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
+        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
 
 
 class Decoder(nn.Module):
@@ -181,7 +172,7 @@ class Decoder(nn.Module):
         decoder_hidden = (hidden, cell)
         outputs = []
 
-        for i in range(self.max_length):
+        for _ in range(self.max_length):
             decoder_output, decoder_hidden = self.forward_step(
                 x, decoder_hidden
             )
@@ -191,13 +182,11 @@ class Decoder(nn.Module):
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
         )
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
         durations = self.duration_activation(durations)
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
 
-        return log_prob_outputs, prob_outputs
+        return log_prob_outputs
 
     def forward_step(self, x, hidden):
         output, hidden = self.lstm(x, hidden)

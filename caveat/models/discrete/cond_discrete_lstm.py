@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat import current_device
 from caveat.models import Base
@@ -56,18 +56,11 @@ class CondDiscLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
 
-        log_probs, probs = self.decode(
-            z=x, conditionals=conditionals, target=target
-        )
-        return [log_probs, probs]
+        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        return log_probs
 
     def loss_function(
-        self,
-        log_probs: Tensor,
-        probs: Tensor,
-        target: Tensor,
-        mask: Tensor,
-        **kwargs,
+        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss
@@ -103,16 +96,16 @@ class CondDiscLSTM(Base):
             self.adjusted_layers
         )  # ([hidden, N, layers, [hidden, N, layers]])
 
-        log_probs, probs = self.decoder(hidden=hidden, x=x, target=None)
+        log_probs = self.decoder(hidden=hidden, x=x, target=None)
 
-        return log_probs, probs
+        return log_probs
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
         conditionals = conditionals.to(device)
-        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
+        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
 
 
 class Decoder(nn.Module):
@@ -163,7 +156,6 @@ class Decoder(nn.Module):
             self.fc = nn.Linear(hidden_size * 2, output_size)
         else:
             self.fc = nn.Linear(hidden_size, output_size)
-        self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
 
     def forward(self, hidden, x, **kwargs):
@@ -180,10 +172,9 @@ class Decoder(nn.Module):
             outputs.append(decoder_output)
 
         acts_logits = torch.cat(outputs, dim=1)  # [N, L, C]
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
 
-        return acts_log_probs, acts_probs
+        return acts_log_probs
 
     def forward_step(self, x, hidden):
         output, hidden = self.lstm(x, hidden)

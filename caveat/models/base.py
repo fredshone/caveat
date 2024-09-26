@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 
 import torch
 from pytorch_lightning import LightningModule
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat.experiment import Experiment
 
@@ -11,9 +11,15 @@ class BaseEncoder(LightningModule):
     def __init__(self, **kwargs):
         raise NotImplementedError
 
+    def forward(self, x: Tensor, y: Optional[Tensor]) -> Tensor:
+        raise NotImplementedError
+
 
 class BaseDecoder(LightningModule):
     def __init__(self, **kwargs):
+        raise NotImplementedError
+
+    def forward(self, x: Tensor, y: Optional[Tensor]) -> Tensor:
         raise NotImplementedError
 
 
@@ -111,14 +117,14 @@ class Base(Experiment):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x)
+        mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y, mu, log_var, z]
+        log_probs_x = self.decode(z, conditionals=conditionals, target=target)
+        return [log_probs_x, mu, log_var, z]
 
-    def encode(self, input: Tensor) -> list[Tensor]:
+    def encode(
+        self, input: Tensor, conditionals: Optional[Tensor]
+    ) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
 
         Args:
@@ -136,6 +142,26 @@ class Base(Experiment):
         log_var = self.fc_var(hidden)
 
         return [mu, log_var]
+
+    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
+        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
+
+        Args:
+            mu (tensor): Mean of the latent Gaussian [N x latent_dims].
+            logvar (tensor): Standard deviation of the latent Gaussian [N x latent_dims].
+
+        Returns:
+            tensor: [N x latent_dims].
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return (eps * std) + mu
+
+    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
+        # from https://kvfrans.com/deriving-the-kl/
+        return torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+        )
 
     def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
         """Decode latent sample to batch of output sequences.
@@ -157,20 +183,19 @@ class Base(Experiment):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # attempt to use teacher forcing by passing target
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs
 
     def loss_function(
         self,
         log_probs: Tensor,
-        probs: Tensor,
         mu: Tensor,
         log_var: Tensor,
         target: Tensor,
@@ -187,7 +212,6 @@ class Base(Experiment):
 
         Args:
             log_probs (Tensor): Log probabilities of the output.
-            probs (Tensor): Probabilities of the output.
             mu (Tensor): Latent layer means.
             log_var (Tensor): Latent layer log variances.
             target (Tensor): Target sequences.
@@ -199,7 +223,6 @@ class Base(Experiment):
 
         return self.weighted_seq_loss(
             log_probs=log_probs,
-            probs=probs,
             mu=mu,
             log_var=log_var,
             target=target,
@@ -218,7 +241,7 @@ class Base(Experiment):
             tensor: [N, steps, acts].
         """
         z = z.to(device)
-        prob_samples = self.decode(z, **kwargs)[1]
+        prob_samples = exp(self.decode(z, **kwargs))
         return prob_samples
 
     def infer(self, x: Tensor, device: int, **kwargs) -> Tensor:
@@ -230,14 +253,14 @@ class Base(Experiment):
         Returns:
             (tensor: [N, steps, acts], tensor: [N, latent_dims]).
         """
-        results = self.forward(x, **kwargs)
-        _, prob_samples, _, _, zs = results
+        log_probs_x, _, _, z = self.forward(x, **kwargs)
+        prob_samples = exp(log_probs_x)
         prob_samples = prob_samples.to(device)
-        zs = zs.to(device)
-        return prob_samples, zs
+        z = z.to(device)
+        return prob_samples, z
 
     def unweighted_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
 
@@ -288,7 +311,7 @@ class Base(Experiment):
         }
 
     def weighted_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
@@ -313,9 +336,7 @@ class Base(Experiment):
         # kld loss
         norm_kld_weight = self.kld_weight
 
-        unweighted_kld = torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        unweighted_kld = self.kld(mu, log_var)
         kld_loss = norm_kld_weight * unweighted_kld
 
         return {
@@ -331,7 +352,7 @@ class Base(Experiment):
         }
 
     def end_time_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
@@ -356,10 +377,8 @@ class Base(Experiment):
 
         # kld loss
         norm_kld_weight = self.kld_weight * self.latent_dim
-
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        unweighted_kld = self.kld(mu, log_var)
+        kld_loss = norm_kld_weight * unweighted_kld
 
         return {
             "loss": recons_loss + kld_loss,
@@ -373,7 +392,7 @@ class Base(Experiment):
         }
 
     def combined_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
@@ -407,10 +426,8 @@ class Base(Experiment):
 
         # kld loss
         norm_kld_weight = self.kld_weight * self.latent_dim
-
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        unweighted_kld = self.kld(mu, log_var)
+        kld_loss = norm_kld_weight * unweighted_kld
 
         return {
             "loss": recons_loss + kld_loss,
@@ -424,7 +441,7 @@ class Base(Experiment):
         }
 
     def discretized_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss
@@ -437,9 +454,8 @@ class Base(Experiment):
 
         # kld loss
         norm_kld_weight = self.kld_weight
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        unweighted_kld = self.kld(mu, log_var)
+        kld_loss = norm_kld_weight * unweighted_kld
 
         # loss
         loss = recon_act_nlll + kld_loss
@@ -454,28 +470,14 @@ class Base(Experiment):
         }
 
     def discretized_loss_encoded(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Computes the loss function for discretized encoding [N, L, C]."""
 
         target_argmax = target.squeeze().argmax(dim=-1)
         return self.discretized_loss(
-            log_probs, probs, mu, log_var, target_argmax, mask, **kwargs
+            log_probs, mu, log_var, target_argmax, mask, **kwargs
         )
-
-    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
-        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
-
-        Args:
-            mu (tensor): Mean of the latent Gaussian [N x latent_dims].
-            logvar (tensor): Standard deviation of the latent Gaussian [N x latent_dims].
-
-        Returns:
-            tensor: [N x latent_dims].
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return (eps * std) + mu
 
     def unpack_encoding(self, input: Tensor) -> tuple[Tensor, Tensor]:
         """Split the input into activity and duration.

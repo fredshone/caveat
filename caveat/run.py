@@ -16,6 +16,7 @@ from torch import Tensor
 from torch.random import seed as seeder
 
 from caveat import attribute_encoding, cuda_available, data, encoding, models
+from caveat.attribute_encoding.base import BaseLabelEncoder
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.evaluate import evaluate
@@ -64,7 +65,7 @@ def run_command(
         name=name,
         data_loader=data_loader,
         encoded_schedules=encoded_schedules,
-        label_kwargs=attribute_encoder.label_kwargs,
+        label_encoder=attribute_encoder,
         config=config,
         test=test,
         gen=gen,
@@ -183,7 +184,7 @@ def batch_command(
             name=name,
             data_loader=data_loader,
             encoded_schedules=encoded_schedules,
-            label_kwargs=attribute_encoder.label_kwargs,
+            label_encoder=attribute_encoder,
             config=combined_config,
             test=test,
             gen=gen,
@@ -269,6 +270,7 @@ def nrun_command(
         )
     )
     log_dir = Path(logger_params.get("log_dir", "logs")) / name
+    log_dir.mkdir(exist_ok=True, parents=True)
 
     # load data
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
@@ -293,7 +295,7 @@ def nrun_command(
             name=run_name,
             data_loader=data_loader,
             encoded_schedules=encoded_schedules,
-            label_kwargs=attribute_encoder.label_kwargs,
+            label_encoder=attribute_encoder,
             config=config,
             test=test,
             gen=gen,
@@ -394,7 +396,7 @@ def ngen_command(
         name=name,
         data_loader=data_loader,
         encoded_schedules=encoded_schedules,
-        label_kwargs=attribute_encoder.label_kwargs,
+        label_encoder=attribute_encoder,
         config=config,
         test=False,
         gen=True,
@@ -520,6 +522,7 @@ def encode_input_attributes(
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule, Tensor]:
     attribute_encoder = None
     # optionally encode attributes
+    encoded_attributes = None
     if input_attributes is not None:
         conditionals_config = config.get("conditionals", None)
         if conditionals_config is None:
@@ -548,7 +551,7 @@ def train(
     logger: TensorBoardLogger,
     seed: Optional[int] = None,
     ckpt_path: Optional[Path] = None,
-    label_kwargs: dict = {},
+    label_encoder: Optional[BaseLabelEncoder] = None,
 ) -> Tuple[Trainer, encoding.BaseEncoder]:
     """
     Trains a model on the observed data. Return model trainer (which includes model) and encoder.
@@ -574,6 +577,7 @@ def train(
     if ckpt_path is not None:
         experiment = load_model(ckpt_path, config)
     else:
+        label_kwargs = label_encoder.label_kwargs if label_encoder else {}
         experiment = build_model(
             encoded_schedules, config, test, gen, label_kwargs
         )
@@ -689,6 +693,7 @@ def generate(
             seed=seed,
             ckpt_path=ckpt_path,
         )
+        synthetic_attributes = None
     elif isinstance(population, Tensor):
         print(
             f"\n======= Sampling {len(population)} new schedules from synthetic attributes ======="

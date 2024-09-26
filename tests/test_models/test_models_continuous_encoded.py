@@ -31,11 +31,10 @@ def test_auto_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y = model(x_encoded, conditionals=conditionals)
+    log_prob_y, _, _, _ = model(x_encoded, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
     losses = model.loss_function(
-        log_probs=log_prob_y, probs=prob_y, target=x_encoded, mask=weights
+        log_probs=log_prob_y, target=x_encoded, mask=weights
     )
     assert "loss" in losses
 
@@ -60,11 +59,10 @@ def test_conditional_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y = model(x_encoded, conditionals=conditionals)
+    log_prob_y, _, _, _ = model(x_encoded, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
     losses = model.loss_function(
-        log_probs=log_prob_y, probs=prob_y, target=x_encoded, mask=weights
+        log_probs=log_prob_y, target=x_encoded, mask=weights
     )
     assert "loss" in losses
 
@@ -89,17 +87,13 @@ def test_cvae_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y, mu, log_var, z = model(
-        x_encoded, conditionals=conditionals
-    )
+    log_prob_y, mu, log_var, z = model(x_encoded, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
         log_probs=log_prob_y,
-        probs=prob_y,
         mu=mu,
         log_var=log_var,
         target=x_encoded,
@@ -129,17 +123,13 @@ def test_cvae_lstm_nudger_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y, mu, log_var, z = model(
-        x_encoded, conditionals=conditionals
-    )
+    log_prob_y, mu, log_var, z = model(x_encoded, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
         log_probs=log_prob_y,
-        probs=prob_y,
         mu=mu,
         log_var=log_var,
         target=x_encoded,
@@ -162,9 +152,9 @@ def test_cvae_adv_forward():
     acts, durations = x.split([5, 1], dim=-1)
     acts_max = acts.argmax(dim=-1).unsqueeze(-1)
     durations = durations
-    conditionals = torch.randn(3, 10)  # (batch, channels)
+    labels = torch.randn(3, 10)  # (batch, channels)
     x_encoded = torch.cat([acts_max, durations], dim=-1)
-    batch = (x_encoded, weights), (x_encoded, weights), conditionals
+    batch = (x_encoded, weights), (x_encoded, weights), (labels, None)
     model = CVAESeqLSTMNudgerAdversarial(
         in_shape=x_encoded[0].shape,
         encodings=5,
@@ -202,15 +192,13 @@ def test_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y, prob_y, mu, log_var, z = model(x_encoded)
+    log_prob_y, mu, log_var, z = model(x_encoded)
     assert log_prob_y.shape == x.shape
-    assert prob_y.shape == x.shape
     assert mu.shape == (3, 2)
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
         log_probs=log_prob_y,
-        probs=prob_y,
         mu=mu,
         log_var=log_var,
         target=x_encoded,
