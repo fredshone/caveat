@@ -91,35 +91,38 @@ class JVAESeqLSTM(Base):
         log_prob_x, log_prob_y = self.decode(
             z, conditionals=conditionals, target=target
         )
-        return [log_prob_x, log_prob_y, mu, log_var, z]
+        return [(log_prob_x, log_prob_y), mu, log_var, z]
 
     def loss_function(
         self,
-        log_probs_x: Tensor,
-        log_probs_ys: List[Tensor],
+        log_probs: Tuple[Tensor, Tensor],
         mu: Tensor,
         log_var: Tensor,
-        target_x: Tensor,
-        target_y: Tensor,
-        mask_x: Tensor,
-        # mask_y: Tensor,
+        targets: Tuple[Tensor, Tensor],
+        masks: Tuple[Tensor, Tensor],
         **kwargs,
     ) -> dict:
         """Calculate the loss function for the model.
 
         Args:
-            log_probs_x (tensor): Log probabilities for the output sequence.
-            log_probs_ys (list[tensor]): Log probabilities for the output attrbutes.
+            log_probs ((tensor, tensor)): Log probabilities for the output sequence.
             mu (tensor): Mean of the latent space.
             log_var (tensor): Log variance of the latent space.
-            target_x (tensor): Target output sequence.
-            target_y (tensor): Target output attributes.
-            mask_x (tensor): Mask for the output sequence.
-            mask_y (tensor): Mask for the output attributes.
 
         Returns:
             dict: Loss dictionary.
         """
+        # unpack inputs
+        print()
+        print("===============")
+        log_probs_x, log_probs_ys = log_probs
+        target_x, target_y = targets
+        mask_x, mask_y = masks
+
+        print(log_probs_x.shape, len(log_probs_ys))
+        print(target_x.shape, target_y.shape)
+        print(mask_x.shape, mask_y)
+
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target_x)
         pred_acts, pred_durations = self.unpack_encoding(log_probs_x)
@@ -147,6 +150,7 @@ class JVAESeqLSTM(Base):
             target = target_y[:, i].long()
             attribute_loss = +self.base_NLLL(y, target)
         attribute_loss = attribute_loss / len(log_probs_ys)
+        print("attribute_loss", attribute_loss)
 
         # recon loss
         recons_loss = schedule_recons_loss + attribute_loss
@@ -246,6 +250,31 @@ class JVAESeqLSTM(Base):
         probs_x = torch.exp(log_probs_x)
         probs_y = torch.exp(log_probs_y)
         return (probs_x, probs_y)
+
+    def validation_step(self, batch, batch_idx, optimizer_idx=0):
+        (x, _), (y, y_weights), (labels, label_weights) = batch
+        self.curr_device = x.device
+
+        log_probs, mu, log_var, _ = self.forward(x, conditionals=labels)
+        val_loss = self.loss_function(
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
+            targets=(y, labels),
+            masks=(y_weights, label_weights),
+            kld_weight=self.kld_weight,
+            duration_weight=self.duration_weight,
+            optimizer_idx=optimizer_idx,
+            batch_idx=batch_idx,
+        )
+
+        self.log_dict(
+            {f"val_{key}": val.item() for key, val in val_loss.items()},
+            sync_dist=True,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
 
 
 class AttributeEncoder(nn.Module):
