@@ -25,11 +25,14 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
 
     def encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
         if self.encodings is None:
             self.setup_encoder(schedules)
-        return self._encode(schedules, conditionals)
+        return self._encode(schedules, labels, label_weights)
 
     def setup_encoder(self, schedules: pd.DataFrame) -> None:
         self.sos = 0
@@ -45,7 +48,10 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
 
     def _encode(
-        self, schedules: pd.DataFrame, labels: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
         # prepare schedules dataframe
         schedules = schedules.copy()
@@ -67,7 +73,7 @@ class SequenceEncoder(BaseEncoder):
             activity_weights=None,
             augment=augment,
             labels=labels,
-            label_weights=None,
+            label_weights=label_weights,
         )
 
     def _encode_sequences(

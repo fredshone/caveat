@@ -4,7 +4,7 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
-from torch import Tensor, optim
+from torch import Tensor, nn, optim
 
 from caveat.models.utils import ScheduledOptim
 
@@ -13,6 +13,11 @@ class Experiment(pl.LightningModule):
 
     def __init__(
         self,
+        in_shape: tuple,
+        encodings: int,
+        encoding_weights: Optional[Tensor] = None,
+        conditionals_size: Optional[tuple] = None,
+        sos: int = 0,
         gen: bool = False,
         test: bool = False,
         LR: float = 0.005,
@@ -32,6 +37,46 @@ class Experiment(pl.LightningModule):
         self.curr_device = None
         self.save_hyperparameters()
         self.test_outputs = []
+        """Base VAE.
+
+        Args:
+            in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
+            encodings (int): Number of activity encodings.
+            encoding_weights (tensor): Weights for activity encodings.
+            conditionals_size (int, optional): Size of conditionals encoding. Defaults to None.
+            sos (int, optional): Start of sequence token. Defaults to 0.
+            config: Additional arguments from config.
+        """
+
+        self.in_shape = in_shape
+        print(f"Found input shape: {self.in_shape}")
+        self.encodings = encodings
+        self.encoding_weights = encoding_weights
+        self.conditionals_size = conditionals_size
+        if self.conditionals_size is not None:
+            print(f"Found conditionals size: {self.conditionals_size}")
+        self.sos = sos
+
+        self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
+        print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
+        self.kld_weight = kwargs.get("kld_weight", 0.0001)
+        print(f"Found KLD weight: {self.kld_weight}")
+        self.duration_weight = kwargs.get("duration_weight", 1)
+        print(f"Found duration weight: {self.duration_weight}")
+        self.use_mask = kwargs.get("use_mask", True)
+        print(f"Using mask: {self.use_mask}")
+        self.use_weighted_loss = kwargs.get("weighted_loss", True)
+
+        if self.use_weighted_loss and encoding_weights is not None:
+            print("Using weighted loss function")
+            self.NLLL = nn.NLLLoss(weight=encoding_weights)
+        else:
+            self.NLLL = nn.NLLLoss()
+
+        self.base_NLLL = nn.NLLLoss(reduction="none")
+        self.MSE = nn.MSELoss()
+
+        self.build(**kwargs)
 
     def training_step(self, batch, batch_idx):
         (x, _), (y, y_mask), (labels, _) = batch

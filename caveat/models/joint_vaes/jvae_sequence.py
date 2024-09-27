@@ -1,13 +1,15 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat import current_device
-from caveat.models import Base, CustomDurationEmbedding
+from caveat.models import CustomDurationEmbedding
+from caveat.models.joint_vaes.experiment import JointExperiment
 
 
-class JVAESeqLSTM(Base):
+class JVAESeqLSTM(JointExperiment):
+
     def __init__(self, *args, **kwargs):
         """
         Joint Sequence and Label generating VAE with LSTM sequence encoder and decoder.
@@ -113,15 +115,9 @@ class JVAESeqLSTM(Base):
             dict: Loss dictionary.
         """
         # unpack inputs
-        print()
-        print("===============")
         log_probs_x, log_probs_ys = log_probs
         target_x, target_y = targets
         mask_x, mask_y = masks
-
-        print(log_probs_x.shape, len(log_probs_ys))
-        print(target_x.shape, target_y.shape)
-        print(mask_x.shape, mask_y)
 
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target_x)
@@ -148,9 +144,11 @@ class JVAESeqLSTM(Base):
         attribute_loss = 0
         for i, y in enumerate(log_probs_ys):
             target = target_y[:, i].long()
-            attribute_loss = +self.base_NLLL(y, target)
+            weight = mask_y[:, i].long()
+            nll = self.base_NLLL(y, target)
+            weighted_nll = nll * weight
+            attribute_loss += weighted_nll.sum()
         attribute_loss = attribute_loss / len(log_probs_ys)
-        print("attribute_loss", attribute_loss)
 
         # recon loss
         recons_loss = schedule_recons_loss + attribute_loss
@@ -173,6 +171,57 @@ class JVAESeqLSTM(Base):
             "recon_attr_loss": attribute_loss.detach(),
             "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
         }
+
+    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
+        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
+
+        Args:
+            mu (tensor): Mean of the latent Gaussian [N x latent_dims].
+            logvar (tensor): Standard deviation of the latent Gaussian [N x latent_dims].
+
+        Returns:
+            tensor: [N x latent_dims].
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return (eps * std) + mu
+
+    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
+        # from https://kvfrans.com/deriving-the-kl/
+        return torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+        )
+
+    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
+        """Given samples from the latent space, return the corresponding decoder space map.
+
+        Args:
+            z (tensor): [N, latent_dims].
+            current_device (int): Device to run the model.
+
+        Returns:
+            tensor: [N, steps, acts].
+        """
+        z = z.to(device)
+        log_probs_x, log_probs_y = self.decode(z=z, **kwargs)
+        prob_x = exp(log_probs_x)
+        probs_y = [exp(lpy) for lpy in log_probs_y]
+        return prob_x, probs_y
+
+    def infer(self, x: Tensor, device: int, **kwargs) -> Tensor:
+        """Given an encoder input, return reconstructed output and z samples.
+
+        Args:
+            x (tensor): [N, steps, acts].
+
+        Returns:
+            (tensor: [N, steps, acts], tensor: [N, latent_dims]).
+        """
+        (log_prob_x, log_probs_y), _, _, z = self.forward(x, **kwargs)
+        prob_x = exp(log_prob_x).to(device)
+        probs_y = [exp(lpy) for lpy in log_probs_y]
+        z = z.to(device)
+        return prob_x, probs_y, z
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -236,45 +285,32 @@ class JVAESeqLSTM(Base):
 
         return log_probs_x, log_probs_ys
 
-    def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
-        """Given samples from the latent space, return the corresponding decoder space map.
+    def unpack_encoding(self, input: Tensor) -> tuple[Tensor, Tensor]:
+        """Split the input into activity and duration.
 
         Args:
-            current_device (int): Device to run the model.
+            input (tensor): Input sequences [N, steps, acts].
 
         Returns:
-            tensor: [N, steps, acts].
+            tuple[tensor, tensor]: [activity [N, steps, acts], duration [N, steps, 1]].
         """
-        z = z.to(device)
-        log_probs_x, log_probs_y = self.decode(z=z, **kwargs)
-        probs_x = torch.exp(log_probs_x)
-        probs_y = torch.exp(log_probs_y)
-        return (probs_x, probs_y)
+        acts = input[:, :, :-1].contiguous()
+        durations = input[:, :, -1:].squeeze(-1).contiguous()
+        return acts, durations
 
-    def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, _), (y, y_weights), (labels, label_weights) = batch
-        self.curr_device = x.device
+    def pack_encoding(self, acts: Tensor, durations: Tensor) -> Tensor:
+        """Pack the activity and duration into input.
 
-        log_probs, mu, log_var, _ = self.forward(x, conditionals=labels)
-        val_loss = self.loss_function(
-            log_probs=log_probs,
-            mu=mu,
-            log_var=log_var,
-            targets=(y, labels),
-            masks=(y_weights, label_weights),
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
-            optimizer_idx=optimizer_idx,
-            batch_idx=batch_idx,
-        )
+        Args:
+            acts (tensor): Activity [N, steps, acts].
+            durations (tensor): Duration [N, steps, 1].
 
-        self.log_dict(
-            {f"val_{key}": val.item() for key, val in val_loss.items()},
-            sync_dist=True,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-        )
+        Returns:
+            tensor: Input sequences [N, steps, acts].
+        """
+        if len(durations.shape) == 2:
+            durations = durations.unsqueeze(-1)
+        return torch.cat((acts, durations), dim=-1)
 
 
 class AttributeEncoder(nn.Module):

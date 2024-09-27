@@ -3,7 +3,7 @@ import torch
 from caveat.models.joint_vaes.jvae_sequence import JVAESeqLSTM
 
 
-def test_cvae_lstm_nudger_forward():
+def test_jvae_lstm_forward():
     # schedules
     x = torch.randn(3, 10, 6)  # (batch, channels, steps, acts+1)
     weights = torch.ones((3, 10))
@@ -13,7 +13,8 @@ def test_cvae_lstm_nudger_forward():
     x_encoded = torch.cat([acts_max, durations], dim=-1)
 
     # attributes
-    conditionals = torch.Tensor([[1, 0], [1, 5], [0, 0]]).long()
+    labels = torch.Tensor([[1, 0], [1, 5], [0, 0]]).long()
+    label_weights = torch.ones((3, 2))
 
     model = JVAESeqLSTM(
         in_shape=x_encoded[0].shape,
@@ -28,8 +29,8 @@ def test_cvae_lstm_nudger_forward():
             "attribute_embed_sizes": [2, 6],
         },
     )
-    log_prob_x, log_prob_y, mu, log_var, z = model(
-        x_encoded, conditionals=conditionals
+    (log_prob_x, log_prob_y), mu, log_var, z = model(
+        x_encoded, conditionals=labels
     )
     assert log_prob_x.shape == (3, 10, 6)
     assert len(log_prob_y) == 2
@@ -39,13 +40,10 @@ def test_cvae_lstm_nudger_forward():
     assert log_var.shape == (3, 2)
     assert z.shape == (3, 2)
     losses = model.loss_function(
-        log_probs_x=log_prob_x,
-        log_probs_ys=log_prob_y,
+        log_probs=(log_prob_x, log_prob_y),
         mu=mu,
         log_var=log_var,
-        target_x=x_encoded,
-        target_y=conditionals,
-        mask_x=weights,
-        # mask_y=Tensor,
+        targets=(x_encoded, labels),
+        masks=(weights, label_weights),
     )
     assert "loss" in losses

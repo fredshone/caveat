@@ -1,14 +1,21 @@
+from typing import List, Tuple
+
 import pandas as pd
 import torch
 from torch import Tensor
 
-from caveat.attribute_encoding.base import BaseLabelEncoder, tokenize
+from caveat.attribute_encoding.base import BaseLabelEncoder, row_probs, tokenize
 
 
 class TokenAttributeEncoder(BaseLabelEncoder):
 
-    def encode(self, data: pd.DataFrame) -> Tensor:
-        encoded = []
+    def encode(self, data: pd.DataFrame) -> Tuple[Tensor, Tensor]:
+        if not self.label_kwargs:
+            # build config mappings and define label_kwargs
+            self.build_config(data)
+        return self._encode(data)
+
+    def build_config(self, data: pd.DataFrame) -> Tensor:
         self.label_kwargs["attribute_embed_sizes"] = []
 
         for i, (k, v) in enumerate(self.config.copy().items()):
@@ -24,15 +31,11 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                         raise UserWarning(
                             "Nominal encoding must be a dict of categories to index"
                         )
-                    nominal_encoded, nominal_encodings = tokenize(
-                        data[k], v["nominal"]
-                    )
-                    encoded.append(nominal_encoded)
                     self.config[k].update(
                         {"location": i, "type": data[k].dtype}
                     )
                     self.label_kwargs["attribute_embed_sizes"].append(
-                        len(nominal_encodings)
+                        data[k].nunique()
                     )
                 else:
                     raise UserWarning(
@@ -40,8 +43,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     )
 
             elif v == "nominal":  # Undefined nominal encoding
-                nominal_encoded, nominal_encodings = tokenize(data[k], None)
-                encoded.append(nominal_encoded)
+                _, nominal_encodings = tokenize(data[k], None)
                 self.config[k] = {
                     "nominal": nominal_encodings,
                     "location": i,
@@ -61,23 +63,54 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     f"Unrecognised attribute encoding in configuration: {v}"
                 )
 
+    def _encode(self, data: pd.DataFrame) -> Tensor:
+        encoded = []
+        weights = []
+        for k, v in self.config.items():
+            if k not in data.columns:
+                raise UserWarning(f"Conditional '{k}' not found in attributes")
+            nominal_encoded, _ = tokenize(data[k], v["nominal"])
+            encoded.append(nominal_encoded)
+            freq = row_probs(data[k])
+            inv_freq = 1 / freq
+            weights.append(inv_freq)
+
         if not encoded:
             raise UserWarning("No attribute encoding found.")
 
-        return torch.stack(encoded, dim=-1).long()
+        return (
+            torch.stack(encoded, dim=-1).long(),
+            torch.stack(weights, dim=-1).float(),
+        )
 
     def decode(self, data: Tensor) -> pd.DataFrame:
-        decoded = {"pid": list(range(data.shape[0]))}
+        decoded = {"pid": list(range(data[0].shape[0]))}
         for k, v in self.config.items():
             location, column_type = (v["location"], v["type"])
             if v.get("nominal") is not None:
                 encoding = {i: name for name, i in v["nominal"].items()}
-                decoded[k] = pd.Series(
-                    [
-                        encoding[i]
-                        for i in data[:, location].argmax(dim=-1).tolist()
-                    ]
-                ).astype(column_type)
+                tokens = data[:, location].tolist()
+                decoded[k] = pd.Series([encoding[i] for i in tokens]).astype(
+                    column_type
+                )
+            else:
+                raise UserWarning(
+                    f"Unrecognised attribute encoding in configuration: {k, v}"
+                )
+
+        return pd.DataFrame(decoded)
+
+    def decode_packed(self, data: List[Tensor]) -> pd.DataFrame:
+        print(data)
+        decoded = {"pid": list(range(data[0].shape[0]))}
+        for k, v in self.config.items():
+            location, column_type = (v["location"], v["type"])
+            if v.get("nominal") is not None:
+                encoding = {i: name for name, i in v["nominal"].items()}
+                probs = data[location].argmax(dim=-1).tolist()
+                decoded[k] = pd.Series([encoding[i] for i in probs]).astype(
+                    column_type
+                )
             else:
                 raise UserWarning(
                     f"Unrecognised attribute encoding in configuration: {k, v}"

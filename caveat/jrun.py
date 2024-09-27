@@ -1,17 +1,21 @@
 import datetime
 from pathlib import Path
+from typing import List, Optional, Tuple
 
+import torch
+from pandas import DataFrame
+from pytorch_lightning import Trainer
+from torch import Tensor
 from torch.random import seed as seeder
 
+from caveat import attribute_encoding, data, encoding
 from caveat.run import (
     encode_input_attributes,
     encode_schedules,
     evaluate_synthetics,
-    generate,
     initiate_logger,
     load_data,
     run_test,
-    test_inference,
     train,
 )
 
@@ -56,12 +60,12 @@ def jrun_command(
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_attributes = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
         logger.log_dir, input_attributes, config
     )
 
     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-        logger.log_dir, input_schedules, encoded_attributes, config
+        logger.log_dir, input_schedules, encoded_labels, label_weights, config
     )
 
     # train
@@ -101,14 +105,12 @@ def jrun_command(
     if gen:
         # prepare synthetic attributes
         if synthetic_attributes is not None:
-            synthetic_population = attribute_encoder.encode(
-                synthetic_attributes
-            )
+            synthetic_population = len(synthetic_attributes)
         else:
             synthetic_population = input_schedules.pid.nunique()
 
         # generate synthetic schedules
-        synthetic_schedules, _, _ = generate(
+        synthetic_schedules, synthetic_attributes, _ = generate(
             trainer=trainer,
             population=synthetic_population,
             schedule_encoder=schedule_encoder,
@@ -129,3 +131,122 @@ def jrun_command(
             stats=False,
             verbose=verbose,
         )
+
+
+def test_inference(
+    trainer: Trainer,
+    schedule_encoder: encoding.BaseEncoder,
+    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    write_dir: Path,
+    seed: int,
+    ckpt_path: Optional[str] = None,
+):
+    torch.manual_seed(seed)
+    if ckpt_path is None:
+        ckpt_path = "best"
+
+    print("\n======= Testing Inference =======")
+    inference = trainer.predict(
+        ckpt_path=ckpt_path, dataloaders=trainer.datamodule.test_dataloader()
+    )
+    input_schedules, inferred_schedules, input_labels, inferred_labels, zs = (
+        zip(*inference)
+    )
+
+    input_schedules = torch.concat(input_schedules)
+    inferred_schedules = torch.concat(inferred_schedules)
+    input_labels = torch.concat(input_labels)
+    inferred_labels = repack_labels(inferred_labels)
+    zs = torch.concat(zs)
+
+    input_schedules = schedule_encoder.decode(input_schedules, argmax=False)
+    data.validate_schedules(input_schedules)
+    input_schedules.to_csv(write_dir / "input_schedules.csv")
+
+    inferred_schedules = schedule_encoder.decode(inferred_schedules)
+    data.validate_schedules(inferred_schedules)
+    inferred_schedules.to_csv(write_dir / "inferred_schedules.csv")
+
+    if attribute_encoder is not None:
+        attributes = attribute_encoder.decode(input_labels)
+        attributes.to_csv(write_dir / "input_labels.csv")
+        inferred_labels = attribute_encoder.decode_packed(inferred_labels)
+        inferred_labels.to_csv(write_dir / "inferred_labels.csv")
+
+    DataFrame(zs.cpu().numpy()).to_csv(
+        Path(write_dir, "zs.csv"), index=False, header=False
+    )
+
+
+def generate(
+    trainer: Trainer,
+    population: int,
+    schedule_encoder: encoding.BaseEncoder,
+    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    config: dict,
+    write_dir: Path,
+    seed: int,
+    ckpt_path: Optional[str] = None,
+) -> DataFrame:
+    torch.manual_seed(seed)
+    if ckpt_path is None:
+        ckpt_path = "best"
+    latent_dims = config.get("model_params", {}).get("latent_dim")
+    if latent_dims is None:
+        latent_dims = config.get("experiment_params", {}).get("latent_dims", 2)
+        # default of 2
+    batch_size = config.get("generator_params", {}).get("batch_size", 256)
+
+    if isinstance(population, int):
+        print(f"\n======= Sampling {population} new schedules =======")
+        synthetic_schedules, synthetic_labels, zs = generate_n(
+            trainer,
+            n=population,
+            batch_size=batch_size,
+            latent_dims=latent_dims,
+            seed=seed,
+            ckpt_path=ckpt_path,
+        )
+        synthetic_attributes = None
+
+    synthetic_schedules = schedule_encoder.decode(schedules=synthetic_schedules)
+    data.validate_schedules(synthetic_schedules)
+    synthetic_schedules.to_csv(write_dir / "synthetic_schedules.csv")
+
+    synthetic_attributes = attribute_encoder.decode_packed(synthetic_labels)
+    synthetic_attributes.to_csv(write_dir / "synthetic_labels.csv")
+
+    DataFrame(zs.cpu().numpy()).to_csv(
+        Path(write_dir, "synthetic_zs.csv"), index=False, header=False
+    )
+    return synthetic_schedules, synthetic_attributes, zs
+
+
+def generate_n(
+    trainer: Trainer,
+    n: int,
+    batch_size: int,
+    latent_dims: int,
+    seed: int,
+    ckpt_path: str,
+) -> torch.Tensor:
+    torch.manual_seed(seed)
+    dataloaders = data.build_latent_dataloader(n, latent_dims, batch_size)
+    synth = trainer.predict(ckpt_path=ckpt_path, dataloaders=dataloaders)
+    synthetic_schedules, synthetic_labels, zs = zip(*synth)
+    synthetic_schedules = torch.concat(synthetic_schedules)
+    synthetic_labels = repack_labels(synthetic_labels)
+    zs = torch.concat(zs)
+    return synthetic_schedules, synthetic_labels, zs
+
+
+def repack_labels(batched_labels: Tuple[List[Tensor]]) -> List[Tensor]:
+    batched_labels = list(batched_labels)
+    if len(batched_labels) == 1:
+        return batched_labels[0]
+    else:
+        unpacked_labels = batched_labels.pop(0)
+        for batch in batched_labels:
+            for i, labels in enumerate(batch):
+                unpacked_labels[i].append(labels)
+        return [torch.concat(labels) for labels in unpacked_labels]

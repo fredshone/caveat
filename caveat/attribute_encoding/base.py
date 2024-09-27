@@ -8,7 +8,7 @@ from torch import Tensor
 class BaseLabelEncoder:
     def __init__(self, config: dict) -> None:
         """Base Attribute Encoder class."""
-        self.config = config
+        self.config = config.copy()
         self.label_kwargs = {}
 
     def encode(self, data: pd.DataFrame) -> Tensor:
@@ -42,6 +42,12 @@ def tokenize(data: pd.Series, encodings: Optional[dict] = None) -> Tensor:
         encodings = {e: i for i, e in enumerate(nominals.categories)}
     nominals = torch.tensor(nominals.codes).int()
     return nominals, encodings
+
+
+def row_probs(data: pd.Series) -> Tensor:
+    freq = data.value_counts(normalize=True).to_dict()
+    weights = torch.tensor(data.map(freq).values)
+    return weights.float()
 
 
 def onehot_encode(data: pd.Series, encodings: Optional[dict] = None) -> Tensor:

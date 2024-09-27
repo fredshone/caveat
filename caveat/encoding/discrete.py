@@ -21,11 +21,14 @@ class DiscreteEncoder(BaseEncoder):
         )
 
     def encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
         if self.acts_to_index is None:
             self.setup_encoder(schedules)
-        return self._encode(schedules, conditionals)
+        return self._encode(schedules, labels, label_weights)
 
     def setup_encoder(self, schedules: pd.DataFrame) -> None:
         self.index_to_acts = {
@@ -45,7 +48,10 @@ class DiscreteEncoder(BaseEncoder):
         self.encoding_weights = torch.from_numpy(1 / ordered_freqs).float()
 
     def _encode(
-        self, schedules: pd.DataFrame, labels: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
 
         schedules = schedules.copy()
@@ -68,7 +74,7 @@ class DiscreteEncoder(BaseEncoder):
             activity_weights=self.encoding_weights,
             augment=augment,
             labels=labels,
-            label_weights=None,
+            label_weights=label_weights,
         )
 
     def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:

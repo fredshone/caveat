@@ -15,7 +15,10 @@ class BaseEncoder(ABC):
         raise NotImplementedError
 
     def encode(
-        self, schedules: DataFrame, conditionals: Optional[Tensor]
+        self,
+        schedules: DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> Dataset:
         raise NotImplementedError
 

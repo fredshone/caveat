@@ -23,9 +23,10 @@ def test_encoder_nominal():
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
     encoder = TokenAttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoded, weights = encoder.encode(data)
     expected = Tensor([[1], [0], [0]]).long()
     assert_close(encoded, expected)
+    assert_close(weights, Tensor([[3], [3 / 2], [3 / 2]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
@@ -43,8 +44,9 @@ def test_re_encoder_nominal():
     new = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "M", "F"]}
     )
-    new_encoded = encoder.encode(new)
+    new_encoded, weights = encoder.encode(new)
     assert_close(new_encoded, Tensor([[1], [1], [0]]).long())
+    assert_close(weights, Tensor([[3 / 2], [3 / 2], [3]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
@@ -97,9 +99,12 @@ def test_encoder_multi():
         }
     )
     encoder = TokenAttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoded, weights = encoder.encode(data)
     expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
+    assert_close(
+        weights, Tensor([[3, 3 / 2], [3 / 2, 3 / 2], [3 / 2, 3]]).float()
+    )
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
         "location": 0,
@@ -131,7 +136,7 @@ def test_re_encoder_mixed():
             "gender": ["M", "M", "F"],
         }
     )
-    new_encoded = encoder.encode(new_data)
+    new_encoded, _ = encoder.encode(new_data)
     expected = Tensor([[1, 1], [1, 0], [0, 1]]).long()
     assert_close(new_encoded, expected)
     assert encoder.config["gender"] == {
@@ -157,7 +162,7 @@ def test_decode_attributes():
         }
     )
     encoder = TokenAttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoded, _ = encoder.encode(data)
     expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
 

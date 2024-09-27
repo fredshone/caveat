@@ -24,56 +24,6 @@ class BaseDecoder(LightningModule):
 
 
 class Base(Experiment):
-    def __init__(
-        self,
-        in_shape: tuple,
-        encodings: int,
-        encoding_weights: Optional[Tensor] = None,
-        conditionals_size: Optional[tuple] = None,
-        sos: int = 0,
-        **kwargs,
-    ) -> None:
-        """Base VAE.
-
-        Args:
-            in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
-            encodings (int): Number of activity encodings.
-            encoding_weights (tensor): Weights for activity encodings.
-            conditionals_size (int, optional): Size of conditionals encoding. Defaults to None.
-            sos (int, optional): Start of sequence token. Defaults to 0.
-            config: Additional arguments from config.
-        """
-        super(Base, self).__init__(**kwargs)
-
-        self.in_shape = in_shape
-        print(f"Found input shape: {self.in_shape}")
-        self.encodings = encodings
-        self.encoding_weights = encoding_weights
-        self.conditionals_size = conditionals_size
-        if self.conditionals_size is not None:
-            print(f"Found conditionals size: {self.conditionals_size}")
-        self.sos = sos
-
-        self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
-        print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
-        self.kld_weight = kwargs.get("kld_weight", 0.0001)
-        print(f"Found KLD weight: {self.kld_weight}")
-        self.duration_weight = kwargs.get("duration_weight", 1)
-        print(f"Found duration weight: {self.duration_weight}")
-        self.use_mask = kwargs.get("use_mask", True)
-        print(f"Using mask: {self.use_mask}")
-        self.use_weighted_loss = kwargs.get("weighted_loss", True)
-
-        if self.use_weighted_loss and encoding_weights is not None:
-            print("Using weighted loss function")
-            self.NLLL = nn.NLLLoss(weight=encoding_weights)
-        else:
-            self.NLLL = nn.NLLLoss()
-
-        self.base_NLLL = nn.NLLLoss(reduction="none")
-        self.MSE = nn.MSELoss()
-
-        self.build(**kwargs)
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
@@ -122,77 +72,6 @@ class Base(Experiment):
         log_probs_x = self.decode(z, conditionals=conditionals, target=target)
         return [log_probs_x, mu, log_var, z]
 
-    def encode(
-        self, input: Tensor, conditionals: Optional[Tensor]
-    ) -> list[Tensor]:
-        """Encodes the input by passing through the encoder network.
-
-        Args:
-            input (tensor): Input sequence batch [N, steps, acts].
-
-        Returns:
-            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
-        """
-        # [N, L, C]
-        hidden = self.encoder(input)
-        # [N, flatsize]
-
-        # Split the result into mu and var components
-        mu = self.fc_mu(hidden)
-        log_var = self.fc_var(hidden)
-
-        return [mu, log_var]
-
-    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
-        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
-
-        Args:
-            mu (tensor): Mean of the latent Gaussian [N x latent_dims].
-            logvar (tensor): Standard deviation of the latent Gaussian [N x latent_dims].
-
-        Returns:
-            tensor: [N x latent_dims].
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return (eps * std) + mu
-
-    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
-        # from https://kvfrans.com/deriving-the-kl/
-        return torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
-
-    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
-        """Decode latent sample to batch of output sequences.
-
-        Args:
-            z (tensor): Latent space batch [N, latent_dims].
-
-        Returns:
-            tensor: Output batch as tuple of log probs and probs ([N, L, C]).
-        """
-        hidden = self.fc_hidden(z)
-        hidden = hidden.unflatten(1, self.unflattened_shape).permute(
-            1, 0, 2
-        )  # ([2xhidden, N, layers])
-        hidden = hidden.split(
-            self.hidden_layers
-        )  # ([hidden, N, layers, [hidden, N, layers]])
-        batch_size = z.shape[0]
-
-        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
-            # attempt to use teacher forcing by passing target
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=target
-            )
-        else:
-            log_probs = self.decoder(
-                batch_size=batch_size, hidden=hidden, target=None
-            )
-
-        return log_probs
-
     def loss_function(
         self,
         log_probs: Tensor,
@@ -229,6 +108,77 @@ class Base(Experiment):
             mask=mask,
             **kwargs,
         )
+
+    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
+        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
+
+        Args:
+            mu (tensor): Mean of the latent Gaussian [N x latent_dims].
+            logvar (tensor): Standard deviation of the latent Gaussian [N x latent_dims].
+
+        Returns:
+            tensor: [N x latent_dims].
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return (eps * std) + mu
+
+    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
+        # from https://kvfrans.com/deriving-the-kl/
+        return torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+        )
+
+    def encode(
+        self, input: Tensor, conditionals: Optional[Tensor]
+    ) -> list[Tensor]:
+        """Encodes the input by passing through the encoder network.
+
+        Args:
+            input (tensor): Input sequence batch [N, steps, acts].
+
+        Returns:
+            list[tensor]: Latent layer input (means and variances) [N, latent_dims].
+        """
+        # [N, L, C]
+        hidden = self.encoder(input)
+        # [N, flatsize]
+
+        # Split the result into mu and var components
+        mu = self.fc_mu(hidden)
+        log_var = self.fc_var(hidden)
+
+        return [mu, log_var]
+
+    def decode(self, z: Tensor, target=None, **kwargs) -> Tuple[Tensor, Tensor]:
+        """Decode latent sample to batch of output sequences.
+
+        Args:
+            z (tensor): Latent space batch [N, latent_dims].
+
+        Returns:
+            tensor: Output batch as tuple of log probs and probs ([N, L, C]).
+        """
+        hidden = self.fc_hidden(z)
+        hidden = hidden.unflatten(1, self.unflattened_shape).permute(
+            1, 0, 2
+        )  # ([2xhidden, N, layers])
+        hidden = hidden.split(
+            self.hidden_layers
+        )  # ([hidden, N, layers, [hidden, N, layers]])
+        batch_size = z.shape[0]
+
+        if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
+            # attempt to use teacher forcing by passing target
+            log_probs = self.decoder(
+                batch_size=batch_size, hidden=hidden, target=target
+            )
+        else:
+            log_probs = self.decoder(
+                batch_size=batch_size, hidden=hidden, target=None
+            )
+
+        return log_probs
 
     def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.

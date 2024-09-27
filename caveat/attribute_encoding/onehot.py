@@ -85,7 +85,9 @@ class OneHotAttributeEncoder(BaseLabelEncoder):
         if not encoded:
             raise UserWarning("No attribute encodeding found.")
 
-        return torch.cat(encoded, dim=-1)
+        combined_encoded = torch.cat(encoded, dim=-1)
+
+        return combined_encoded, torch.ones_like(combined_encoded)
 
     def validate_previous(self, k, v, i, expected_length, data) -> None:
         prev_location, prev_length, prev_type = (

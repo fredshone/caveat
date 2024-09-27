@@ -70,7 +70,7 @@ def test_encoded_weights():
     expected_weights = torch.tensor([1 / 7, 1 / 5])
     expected_mask = torch.tensor([1.0, 1.0, 1.0])
     encoder = discrete.DiscreteEncoder(length, step)
-    encoded = encoder.encode(traces, None)
+    encoded = encoder.encode(traces, None, None)
     assert torch.equal(encoded.encoding_weights, expected_weights)
     assert torch.equal(encoded[0][0][1], expected_mask)
 
@@ -90,7 +90,7 @@ def test_encoded_with_jitter():
     length = 6
     step = 2
     encoder = discrete.DiscreteEncoder(length, step, jitter=0.2)
-    encoded = encoder.encode(traces, None)
+    encoded = encoder.encode(traces, None, None)
     for _ in range(10):
         for i in range(len(encoded)):
             (left, _), (right, _), _ = encoded[i]

@@ -52,12 +52,12 @@ def run_command(
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_attributes = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
         logger.log_dir, input_attributes, config
     )
 
     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-        logger.log_dir, input_schedules, encoded_attributes, config
+        logger.log_dir, input_schedules, encoded_labels, label_weights, config
     )
 
     # train
@@ -97,7 +97,7 @@ def run_command(
     if gen:
         # prepare synthetic attributes
         if synthetic_attributes is not None:
-            synthetic_population = attribute_encoder.encode(
+            synthetic_population, _ = attribute_encoder.encode(
                 synthetic_attributes
             )
         else:
@@ -171,12 +171,18 @@ def batch_command(
         )
 
         # encode data
-        attribute_encoder, encoded_attributes = encode_input_attributes(
-            logger.log_dir, input_attributes, combined_config
+        attribute_encoder, encoded_labels, label_weights = (
+            encode_input_attributes(
+                logger.log_dir, input_attributes, combined_config
+            )
         )
 
         schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-            logger.log_dir, input_schedules, encoded_attributes, combined_config
+            logger.log_dir,
+            input_schedules,
+            encoded_labels,
+            label_weights,
+            combined_config,
         )
 
         # train
@@ -213,7 +219,7 @@ def batch_command(
         if gen:
             # prepare synthetic attributes
             if synthetic_attributes is not None:
-                synthetic_population = attribute_encoder.encode(
+                synthetic_population, _ = attribute_encoder.encode(
                     synthetic_attributes
                 )
             else:
@@ -276,12 +282,12 @@ def nrun_command(
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_attributes = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
         log_dir, input_attributes, config
     )
 
     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-        log_dir, input_schedules, encoded_attributes, config
+        log_dir, input_schedules, encoded_labels, label_weights, config
     )
 
     synthetic_schedules = {}
@@ -323,7 +329,7 @@ def nrun_command(
         if gen:
             # prepare synthetic attributes
             if synthetic_attributes is not None:
-                synthetic_population = attribute_encoder.encode(
+                synthetic_population, _ = attribute_encoder.encode(
                     synthetic_attributes
                 )
             else:
@@ -381,12 +387,12 @@ def ngen_command(
     input_schedules, input_attributes, synthetic_attributes = load_data(config)
 
     # encode data
-    attribute_encoder, encoded_attributes = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
         log_dir, input_attributes, config
     )
 
     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-        log_dir, input_schedules, encoded_attributes, config
+        log_dir, input_schedules, encoded_labels, label_weights, config
     )
 
     seed = config.pop("seed", seeder())
@@ -502,13 +508,14 @@ def encode_schedules(
     log_dir: Path,
     schedules: DataFrame,
     attributes: Optional[Tensor],
+    label_weights: Optional[Tensor],
     config: dict,
 ) -> Tuple[BaseEncoder, BaseDataset, DataModule]:
 
     # encode schedules
     schedule_encoder = build_encoder(config)
     encoded_schedules = schedule_encoder.encode(
-        schedules=schedules, conditionals=attributes
+        schedules=schedules, labels=attributes, label_weights=label_weights
     )
     data_loader = build_dataloader(config, encoded_schedules)
 
@@ -523,6 +530,7 @@ def encode_input_attributes(
     attribute_encoder = None
     # optionally encode attributes
     encoded_attributes = None
+    weights = None
     if input_attributes is not None:
         conditionals_config = config.get("conditionals", None)
         if conditionals_config is None:
@@ -532,13 +540,13 @@ def encode_input_attributes(
         attribute_encoder = attribute_encoding.library[encoder_name](
             conditionals_config
         )
-        encoded_attributes = attribute_encoder.encode(input_attributes)
+        encoded_attributes, weights = attribute_encoder.encode(input_attributes)
 
     pickle.dump(
         attribute_encoder, open(f"{log_dir}/attribute_encoder.pkl", "wb")
     )
 
-    return (attribute_encoder, encoded_attributes)
+    return (attribute_encoder, encoded_attributes, weights)
 
 
 def train(

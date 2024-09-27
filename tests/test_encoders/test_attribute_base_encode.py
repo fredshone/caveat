@@ -5,6 +5,7 @@ from torch.testing import assert_close
 from caveat.attribute_encoding.base import (
     onehot_encode,
     ordinal_encode,
+    row_probs,
     tokenize,
 )
 
@@ -45,3 +46,9 @@ def test_encode_nominal_with_encodings():
     encoded, encodings = onehot_encode(data, encodings)
     assert_close(encoded, Tensor([[1, 0], [0, 1], [0, 1]]).float())
     assert encodings == {"M": 0, "F": 1}
+
+
+def test_row_probs():
+    data = pd.Series(["M", "F", "F", "F"])
+    weights = row_probs(data)
+    assert_close(weights, Tensor([0.25, 0.75, 0.75, 0.75]).float())
