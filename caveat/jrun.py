@@ -170,7 +170,7 @@ def test_inference(
     if attribute_encoder is not None:
         attributes = attribute_encoder.decode(input_labels)
         attributes.to_csv(write_dir / "input_labels.csv")
-        inferred_labels = attribute_encoder.decode_packed(inferred_labels)
+        inferred_labels = attribute_encoder.argmax_decode(inferred_labels)
         inferred_labels.to_csv(write_dir / "inferred_labels.csv")
 
     DataFrame(zs.cpu().numpy()).to_csv(
@@ -213,7 +213,7 @@ def generate(
     data.validate_schedules(synthetic_schedules)
     synthetic_schedules.to_csv(write_dir / "synthetic_schedules.csv")
 
-    synthetic_attributes = attribute_encoder.decode_packed(synthetic_labels)
+    synthetic_attributes = attribute_encoder.argmax_decode(synthetic_labels)
     synthetic_attributes.to_csv(write_dir / "synthetic_labels.csv")
 
     DataFrame(zs.cpu().numpy()).to_csv(

@@ -83,8 +83,8 @@ class TokenAttributeEncoder(BaseLabelEncoder):
             torch.stack(weights, dim=-1).float(),
         )
 
-    def decode(self, data: Tensor) -> pd.DataFrame:
-        decoded = {"pid": list(range(data[0].shape[0]))}
+    def decode(self, data: List[Tensor]) -> pd.DataFrame:
+        decoded = {"pid": list(range(data.shape[0]))}
         for k, v in self.config.items():
             location, column_type = (v["location"], v["type"])
             if v.get("nominal") is not None:
@@ -100,7 +100,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
 
         return pd.DataFrame(decoded)
 
-    def decode_packed(self, data: List[Tensor]) -> pd.DataFrame:
+    def argmax_decode(self, data: List[Tensor]) -> pd.DataFrame:
         print(data)
         decoded = {"pid": list(range(data[0].shape[0]))}
         for k, v in self.config.items():

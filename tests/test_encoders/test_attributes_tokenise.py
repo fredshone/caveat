@@ -166,12 +166,14 @@ def test_decode_attributes():
     expected = Tensor([[1, 0], [0, 0], [0, 1]]).long()
     assert_close(encoded, expected)
 
-    preds = Tensor(
-        [
-            [[0.1, 0.5], [0.9, 0.3]],
-            [[0.9, 0.5], [0.9, 0.3]],
-            [[0.5, 0.2], [0.2, 0.5]],
-        ]
-    )
-    decoded_data = encoder.decode(preds)[data.columns]
+    preds = Tensor([[1, 0], [0, 0], [0, 1]])
+    decoded_data = encoder.decode(preds)
+    decoded_data = decoded_data[data.columns]
+    assert_frame_equal(data, decoded_data, check_dtype=True, check_exact=True)
+
+    preds = [
+        Tensor([[0.1, 0.5], [0.9, 0.5], [0.5, 0.2]]),
+        Tensor([[0.9, 0.3], [0.9, 0.3], [0.2, 0.5]]),
+    ]
+    decoded_data = encoder.argmax_decode(preds)[data.columns]
     assert_frame_equal(data, decoded_data, check_dtype=True, check_exact=True)
