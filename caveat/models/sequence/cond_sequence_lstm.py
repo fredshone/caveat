@@ -63,7 +63,7 @@ class CondSeqLSTM(Base):
         recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
+        recon_dur_mse = self.duration_loss_weight * self.MSE(
             pred_durations, target_durations
         )
         recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()

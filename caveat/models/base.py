@@ -224,40 +224,49 @@ class Base(Experiment):
             flat_mask = torch.ones_like(target_acts).view(-1).bool()
 
         # activity loss
-        recon_act_nlll = self.NLLL(
+        act_recon = self.NLLL(
             pred_acts.view(-1, self.encodings)[flat_mask],
             target_acts.view(-1).long()[flat_mask],
         )
+        act_scheduled_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = act_scheduled_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
+        dur_recon = self.duration_loss_weight * self.MSE(
             pred_durations.view(-1)[flat_mask],
             target_durations.view(-1)[flat_mask],
         )
+        dur_scheduled_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = dur_scheduled_weight * dur_recon
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_dur_mse
+        w_recons_loss = act_recon + dur_recon
 
         # # hamming distance
         # recon_argmax = torch.argmax(pred_acts, dim=-1)
         # recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
 
         # kld loss
-        norm_kld_weight = self.kld_weight * self.latent_dim
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
 
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_dur_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_scheduled_weight]).float(),
+            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
         }
 
     def weighted_seq_loss(
@@ -272,33 +281,40 @@ class Base(Experiment):
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_scheduled_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = act_scheduled_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
-            pred_durations, target_durations
-        )
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
         recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+        dur_scheduled_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = dur_scheduled_weight * recon_dur_mse
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_dur_mse
+        w_recons_loss = w_act_recon + w_dur_recon
 
         # kld loss
-        norm_kld_weight = self.kld_weight
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
 
-        unweighted_kld = self.kld(mu, log_var)
-        kld_loss = norm_kld_weight * unweighted_kld
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": unweighted_kld.detach(),
-            "betaKLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_dur_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_scheduled_weight]).float(),
+            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
         }
 
     def end_time_seq_loss(
@@ -313,32 +329,43 @@ class Base(Experiment):
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_scheduled_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = act_scheduled_weight * act_recon
 
         # ends loss
         target_ends = torch.cumsum(target_durations, dim=-1)
         pred_ends = torch.cumsum(pred_durations, dim=-1)
 
-        recon_end_mse = self.duration_weight * self.MSE(pred_ends, target_ends)
+        recon_end_mse = self.MSE(pred_ends, target_ends)
         recon_end_mse = (recon_end_mse * mask).sum() / mask.sum()
+        dur_scheduled_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = dur_scheduled_weight * recon_end_mse
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_end_mse
+        w_recons_loss = w_act_recon + w_dur_recon
 
         # kld loss
-        norm_kld_weight = self.kld_weight * self.latent_dim
-        unweighted_kld = self.kld(mu, log_var)
-        kld_loss = norm_kld_weight * unweighted_kld
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
+
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_end_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_end_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_scheduled_weight]).float(),
+            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
         }
 
     def combined_seq_loss(
@@ -353,41 +380,48 @@ class Base(Experiment):
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_scheduled_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = act_scheduled_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
-            pred_durations, target_durations
-        )
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
         recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
 
         # ends loss
         target_ends = torch.cumsum(target_durations, dim=-1)
         pred_ends = torch.cumsum(pred_durations, dim=-1)
 
-        recon_end_mse = self.duration_weight * self.MSE(pred_ends, target_ends)
+        recon_end_mse = self.MSE(pred_ends, target_ends)
         recon_end_mse = (recon_end_mse * mask).sum() / mask.sum()
 
-        # combined time loss
-        recon_time_mse = (0.5 * recon_dur_mse) + (0.5 * recon_end_mse)
+        dur_scheduled_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = dur_scheduled_weight * (recon_end_mse + recon_dur_mse)
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_time_mse
+        w_recons_loss = w_act_recon + w_dur_recon
 
         # kld loss
-        norm_kld_weight = self.kld_weight * self.latent_dim
-        unweighted_kld = self.kld(mu, log_var)
-        kld_loss = norm_kld_weight * unweighted_kld
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
+
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_time_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_time_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_scheduled_weight]).float(),
+            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
         }
 
     def discretized_loss(
@@ -398,25 +432,28 @@ class Base(Experiment):
         recon_act_nlll = self.NLLL(
             log_probs.squeeze().permute(0, 2, 1), target.long()
         )
+        scheduled_act_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_recons_loss = scheduled_act_weight * recon_act_nlll
 
         # recon_argmax = probs.squeeze().argmax(dim=-1)
         # recon_act_ham = self.hamming(recon_argmax, input.long())
 
         # kld loss
-        norm_kld_weight = self.kld_weight
         unweighted_kld = self.kld(mu, log_var)
-        kld_loss = norm_kld_weight * unweighted_kld
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * unweighted_kld
 
         # loss
-        loss = recon_act_nlll + kld_loss
+        loss = recon_act_nlll + w_kld_loss
 
         return {
             "loss": loss,
-            "recon_loss": recon_act_nlll,
-            "recon_act_nlll_loss": recon_act_nlll,
-            "KLD": kld_loss,
-            "norm_kld_weight": torch.tensor([norm_kld_weight]),
-            "recon_kld_ratio": recon_act_nlll / kld_loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([scheduled_act_weight]).float(),
         }
 
     def discretized_loss_encoded(

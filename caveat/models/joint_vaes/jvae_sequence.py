@@ -130,17 +130,23 @@ class JVAESeqLSTM(JointExperiment):
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
         recon_act_nlll = (recon_act_nlll * mask_x.view(-1)).sum() / mask_x.sum()
+        scheduled_act_weight = (
+            self.scheduled_act_weight * self.activity_loss_weight
+        )
+        w_act_recon = scheduled_act_weight * recon_act_nlll
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
-            pred_durations, target_durations
-        )
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
         recon_dur_mse = (recon_dur_mse * mask_x).sum() / mask_x.sum()
+        scheduled_dur_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = scheduled_dur_weight * recon_dur_mse
 
         # TODO: could combine above to only apply mask once
 
         # schedule reconstruction loss
-        schedule_recons_loss = recon_act_nlll + recon_dur_mse
+        w_schedule_recons_loss = w_act_recon + w_dur_recon
 
         # attributes loss
         attribute_loss = 0
@@ -151,29 +157,33 @@ class JVAESeqLSTM(JointExperiment):
             weighted_nll = nll * weight
             attribute_loss += weighted_nll.sum()
         attribute_loss = attribute_loss / len(log_probs_ys)
+        scheduled_label_weight = (
+            self.scheduled_att_weight * self.attribute_weight
+        )
+        w_label_loss = scheduled_label_weight * attribute_loss
 
         # recon loss
-        recons_loss = schedule_recons_loss + (
-            self.attribute_weight * attribute_loss
-        )
+        w_recons_loss = w_schedule_recons_loss + w_label_loss
 
         # kld loss
-        norm_kld_weight = self.kld_weight
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
 
-        unweighted_kld = torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
-        kld_loss = norm_kld_weight * unweighted_kld
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": unweighted_kld.detach(),
-            "betaKLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_dur_mse.detach(),
-            "recon_attr_loss": attribute_loss.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "lael_recon": w_label_loss.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([scheduled_act_weight]).float(),
+            "dur_weight": torch.tensor([scheduled_dur_weight]).float(),
+            "label_weight": torch.tensor([scheduled_label_weight]).float(),
         }
 
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:

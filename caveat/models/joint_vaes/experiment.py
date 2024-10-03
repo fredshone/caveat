@@ -24,8 +24,8 @@ class JointExperiment(Experiment):
             log_var=log_var,
             targets=(y, labels),
             masks=(y_mask, label_mask),
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
+            kld_weight=self.kld_loss_weight,
+            duration_weight=self.duration_loss_weight,
             batch_idx=batch_idx,
         )
         self.log_dict(
@@ -45,8 +45,8 @@ class JointExperiment(Experiment):
             log_var=log_var,
             targets=(y, labels),
             masks=(y_weights, label_weights),
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
+            kld_weight=self.kld_loss_weight,
+            duration_weight=self.duration_loss_weight,
             optimizer_idx=optimizer_idx,
             batch_idx=batch_idx,
         )
@@ -76,8 +76,8 @@ class JointExperiment(Experiment):
                 log_var=log_var,
                 targets=(y, labels),
                 masks=(y_weights, label_weights),
-                kld_weight=self.kld_weight,
-                duration_weight=self.duration_weight,
+                kld_weight=self.kld_loss_weight,
+                duration_weight=self.duration_loss_weight,
                 batch_idx=batch_idx,
             )
 

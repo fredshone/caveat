@@ -17,6 +17,7 @@ from torch.random import seed as seeder
 
 from caveat import attribute_encoding, cuda_available, data, encoding, models
 from caveat.attribute_encoding.base import BaseLabelEncoder
+from caveat.callbacks import LinearLossScheduler
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
 from caveat.evaluate import evaluate
@@ -902,6 +903,7 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
         save_top_k=2,
         save_weights_only=False,
     )
+    custom_loss_scheduler = LinearLossScheduler(config)
     return Trainer(
         logger=logger,
         callbacks=[
@@ -910,6 +912,7 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
             ),
             LearningRateMonitor(),
             checkpoint_callback,
+            custom_loss_scheduler,
         ],
         **trainer_config,
     )

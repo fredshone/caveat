@@ -22,8 +22,6 @@ class Experiment(pl.LightningModule):
         test: bool = False,
         LR: float = 0.005,
         weight_decay: float = 0.0,
-        kld_weight: float = 0.00025,
-        duration_weight: float = 1.0,
         **kwargs,
     ) -> None:
         super(Experiment, self).__init__()
@@ -32,11 +30,9 @@ class Experiment(pl.LightningModule):
         self.LR = LR
         self.weight_decay = weight_decay
         self.kwargs = kwargs
-        self.kld_weight = kld_weight
-        self.duration_weight = duration_weight
         self.curr_device = None
         self.save_hyperparameters()
-        self.test_outputs = []
+        # self.test_outputs = []
         """Base VAE.
 
         Args:
@@ -47,7 +43,7 @@ class Experiment(pl.LightningModule):
             sos (int, optional): Start of sequence token. Defaults to 0.
             config: Additional arguments from config.
         """
-
+        # encoding params
         self.in_shape = in_shape
         print(f"Found input shape: {self.in_shape}")
         self.encodings = encodings
@@ -56,26 +52,48 @@ class Experiment(pl.LightningModule):
         if self.conditionals_size is not None:
             print(f"Found conditionals size: {self.conditionals_size}")
         self.sos = sos
-
         self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
         print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
-        print(f"Found KLD weight: {self.kld_weight}")
-        self.duration_weight = kwargs.get("duration_weight", 1)
-        print(f"Found duration weight: {self.duration_weight}")
+
+        # loss function params
+        self.kld_loss_weight = kwargs.get("kld_weight", 0.001)
+        print(f"Found KLD weight: {self.kld_loss_weight}")
+
+        self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
+        print(f"Found activity loss weight: {self.activity_loss_weight}")
+
+        self.duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
+        print(f"Found duration loss weight: {self.duration_loss_weight}")
+
+        self.attribute_loss_weight = kwargs.get("attribute_loss_weight", 0.0001)
+        print(f"Found attribute loss weight: {self.attribute_loss_weight}")
+
         self.use_mask = kwargs.get("use_mask", True)
         print(f"Using mask: {self.use_mask}")
-        self.use_weighted_loss = kwargs.get("weighted_loss", True)
 
-        if self.use_weighted_loss and encoding_weights is not None:
+        self.use_weighted_loss = kwargs.get("weighted_loss", True)
+        print(f"Using weighted loss: {self.use_weighted_loss}")
+
+        # set up weighted loss
+        if self.use_weighted_loss and self.encoding_weights is not None:
             print("Using weighted loss function")
-            self.NLLL = nn.NLLLoss(weight=encoding_weights)
+            self.NLLL = nn.NLLLoss(weight=self.encoding_weights)
         else:
             self.NLLL = nn.NLLLoss()
 
         self.base_NLLL = nn.NLLLoss(reduction="none")
         self.MSE = nn.MSELoss()
 
+        # set up scheduled loss function weights
+        self.scheduled_kld_weight = 1.0
+        self.scheduled_act_weight = 1.0
+        self.scheduled_dur_weight = 1.0
+        self.scheduled_att_weight = 1.0
+
         self.build(**kwargs)
+
+    def on_validation_epoch_end(self) -> None:
+        return super().on_validation_epoch_end()
 
     def training_step(self, batch, batch_idx):
         (x, _), (y, y_mask), (labels, _) = batch
@@ -91,8 +109,8 @@ class Experiment(pl.LightningModule):
             log_var=log_var,
             target=y,
             mask=y_mask,
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
+            kld_weight=self.kld_loss_weight,
+            duration_weight=self.duration_loss_weight,
             batch_idx=batch_idx,
         )
         self.log_dict(
@@ -123,8 +141,8 @@ class Experiment(pl.LightningModule):
             log_var=log_var,
             target=y,
             mask=y_weights,
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
+            kld_weight=self.kld_loss_weight,
+            duration_weight=self.duration_loss_weight,
             optimizer_idx=optimizer_idx,
             batch_idx=batch_idx,
         )
@@ -156,8 +174,8 @@ class Experiment(pl.LightningModule):
                 log_var=log_var,
                 target=y,
                 mask=y_weights,
-                kld_weight=self.kld_weight,
-                duration_weight=self.duration_weight,
+                kld_weight=self.kld_loss_weight,
+                duration_weight=self.duration_loss_weight,
                 batch_idx=batch_idx,
             )
 
