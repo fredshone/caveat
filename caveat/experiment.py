@@ -47,16 +47,19 @@ class Experiment(pl.LightningModule):
         self.in_shape = in_shape
         print(f"Found input shape: {self.in_shape}")
         self.encodings = encodings
+        print(f"Found encodings: {self.encodings}")
         self.encoding_weights = encoding_weights
+        print(f"Found encoding weights: {self.encoding_weights}")
         self.conditionals_size = conditionals_size
         if self.conditionals_size is not None:
             print(f"Found conditionals size: {self.conditionals_size}")
         self.sos = sos
+        print(f"Found start of sequence token: {self.sos}")
         self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
         print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
 
         # loss function params
-        self.kld_loss_weight = kwargs.get("kld_weight", 0.001)
+        self.kld_loss_weight = kwargs.get("kld_loss_weight", 0.001)
         print(f"Found KLD weight: {self.kld_loss_weight}")
 
         self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
