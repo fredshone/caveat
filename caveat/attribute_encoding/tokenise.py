@@ -101,7 +101,6 @@ class TokenAttributeEncoder(BaseLabelEncoder):
         return pd.DataFrame(decoded)
 
     def argmax_decode(self, data: List[Tensor]) -> pd.DataFrame:
-        print(data)
         decoded = {"pid": list(range(data[0].shape[0]))}
         for k, v in self.config.items():
             location, column_type = (v["location"], v["type"])

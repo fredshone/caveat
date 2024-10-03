@@ -21,6 +21,8 @@ class JVAESeqLSTM(JointExperiment):
             raise UserWarning(
                 "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
             )
+        self.attribute_weight = kwargs.get("attribute_weight", 1.0)
+        print(f"Attribute weight: {self.attribute_weight}")
         super().__init__(*args, **kwargs)
 
     def build(self, **config):
@@ -151,7 +153,9 @@ class JVAESeqLSTM(JointExperiment):
         attribute_loss = attribute_loss / len(log_probs_ys)
 
         # recon loss
-        recons_loss = schedule_recons_loss + attribute_loss
+        recons_loss = schedule_recons_loss + (
+            self.attribute_weight * attribute_loss
+        )
 
         # kld loss
         norm_kld_weight = self.kld_weight

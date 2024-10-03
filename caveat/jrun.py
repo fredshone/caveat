@@ -133,6 +133,143 @@ def jrun_command(
         )
 
 
+def jbatch_command(
+    batch_config: dict,
+    stats: bool = False,
+    verbose: bool = False,
+    gen: bool = True,
+    test: bool = False,
+    infer=True,
+) -> None:
+    """
+    Batch runs the training for joint-model variation.
+
+    Args:
+        config (dict): A dictionary containing the configuration parameters.
+
+    Returns:
+        None
+    """
+
+    global_config = batch_config.pop("global")
+    logger_params = global_config.get("logging_params", {})
+    name = str(
+        logger_params.get(
+            "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        )
+    )
+    log_dir = Path(logger_params.get("log_dir", "logs"), name)
+
+    synthetic_schedules_all = {}
+    synthetic_attributes_all = {}
+
+    for name, config in batch_config.items():
+        name = str(name)
+        logger = initiate_logger(log_dir, name)
+
+        # build config for this run
+        combined_config = global_config.copy()
+        combined_config.update(config)
+        seed = combined_config.pop("seed", seeder())
+
+        attribute_encoder = combined_config.get("attribute_encoder", None)
+        if attribute_encoder is None or attribute_encoder != "tokens":
+            raise ValueError(
+                "Joint model requires attribute_encoder to be configured as 'tokens'."
+            )
+
+        conditionals = combined_config.get("conditionals", None)
+        if conditionals is None:
+            raise ValueError("No conditionals provided in the config.")
+
+        # load data
+        input_schedules, input_attributes, synthetic_attributes = load_data(
+            combined_config
+        )
+
+        # encode data
+        attribute_encoder, encoded_labels, label_weights = (
+            encode_input_attributes(
+                logger.log_dir, input_attributes, combined_config
+            )
+        )
+
+        schedule_encoder, encoded_schedules, data_loader = encode_schedules(
+            logger.log_dir,
+            input_schedules,
+            encoded_labels,
+            label_weights,
+            combined_config,
+        )
+
+        # train
+        trainer = train(
+            name=name,
+            data_loader=data_loader,
+            encoded_schedules=encoded_schedules,
+            label_encoder=attribute_encoder,
+            config=combined_config,
+            test=test,
+            gen=gen,
+            logger=logger,
+            seed=seed,
+        )
+
+        if test:
+            # test the model
+            run_test(
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
+
+        if infer:
+            test_infer_path = Path(f"{logger.log_dir}/test_inference")
+            test_infer_path.mkdir(exist_ok=True, parents=True)
+
+            test_inference(
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                write_dir=test_infer_path,
+                seed=seed,
+            )
+
+        if gen:
+            # prepare synthetic attributes
+            if synthetic_attributes is not None:
+                synthetic_population = len(synthetic_attributes)
+            else:
+                synthetic_population = input_schedules.pid.nunique()
+
+            # generate synthetic schedules
+            synthetic_schedules, synthetic_attributes, _ = generate(
+                trainer=trainer,
+                population=synthetic_population,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                config=combined_config,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
+            synthetic_schedules_all[name] = synthetic_schedules
+            synthetic_attributes_all[name] = synthetic_attributes
+
+    if gen:
+        # evaluate synthetic schedules
+        evaluate_synthetics(
+            synthetic_schedules=synthetic_schedules_all,
+            synthetic_attributes=synthetic_attributes_all,
+            default_eval_schedules=input_schedules,
+            default_eval_attributes=input_attributes,
+            write_path=Path(logger.log_dir),
+            eval_params=global_config.get("evaluation_params", {}),
+            stats=stats,
+            verbose=verbose,
+        )
+
+
 def test_inference(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
@@ -248,5 +385,5 @@ def repack_labels(batched_labels: Tuple[List[Tensor]]) -> List[Tensor]:
         unpacked_labels = batched_labels.pop(0)
         for batch in batched_labels:
             for i, labels in enumerate(batch):
-                unpacked_labels[i].append(labels)
-        return [torch.concat(labels) for labels in unpacked_labels]
+                unpacked_labels[i] = torch.concat((unpacked_labels[i], labels))
+        return unpacked_labels

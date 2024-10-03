@@ -27,6 +27,8 @@ def diversity(population: DataFrame, hashed: set[str]) -> float:
         float: Diversity of the population.
     """
     n = population.pid.nunique()
+    if n == 0:
+        return 0
     unique = len(hashed)
     return unique / n
 
