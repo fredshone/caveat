@@ -32,7 +32,6 @@ class Experiment(pl.LightningModule):
         self.kwargs = kwargs
         self.curr_device = None
         self.save_hyperparameters()
-        # self.test_outputs = []
         """Base VAE.
 
         Args:
@@ -65,8 +64,8 @@ class Experiment(pl.LightningModule):
         self.duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
         print(f"Found duration loss weight: {self.duration_loss_weight}")
 
-        self.attribute_loss_weight = kwargs.get("attribute_loss_weight", 0.0001)
-        print(f"Found attribute loss weight: {self.attribute_loss_weight}")
+        self.label_loss_weight = kwargs.get("label_loss_weight", 0.0001)
+        print(f"Found labels loss weight: {self.label_loss_weight}")
 
         self.use_mask = kwargs.get("use_mask", True)
         print(f"Using mask: {self.use_mask}")
@@ -88,7 +87,7 @@ class Experiment(pl.LightningModule):
         self.scheduled_kld_weight = 1.0
         self.scheduled_act_weight = 1.0
         self.scheduled_dur_weight = 1.0
-        self.scheduled_att_weight = 1.0
+        self.scheduled_label_weight = 1.0
 
         self.build(**kwargs)
 

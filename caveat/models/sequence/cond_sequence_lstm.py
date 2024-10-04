@@ -55,6 +55,7 @@ class CondSeqLSTM(Base):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.log(pred_durations)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
@@ -163,7 +164,7 @@ class Decoder(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Sigmoid()
+        self.duration_activation = nn.Sequential(nn.Sigmoid(), nn.LogSoftmax(dim=-2))
 
     def forward(self, hidden, x, **kwargs):
         hidden, cell = hidden
@@ -183,7 +184,7 @@ class Decoder(nn.Module):
             outputs, [self.output_size - 1, 1], dim=-1
         )
         acts_log_probs = self.activity_logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
+        durations = torch.log(self.duration_activation(durations))
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
 
         return log_prob_outputs

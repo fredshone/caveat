@@ -250,9 +250,7 @@ class Decoder(nn.Module):
             bidirectional=False,
         )
         self.fc = nn.Linear(hidden_size, output_size)
-        self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Softmax(dim=-2)
 
     def forward(self, hidden, x, **kwargs):
         hidden, cell = hidden
@@ -275,7 +273,7 @@ class Decoder(nn.Module):
             outputs, [self.output_size - 1, 1], dim=-1
         )
         acts_log_probs = self.activity_logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
+        durations = torch.log(self.duration_activation(durations))
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
 
         return log_prob_outputs
@@ -287,24 +285,4 @@ class Decoder(nn.Module):
         prediction = self.fc(output)
         # [N, 1, encodings+1]
         return prediction, hidden
-
-    # def pack(self, x):
-    #     # [N, 1, encodings+1]
-    #     acts, duration = torch.split(x, [self.output_size - 1, 1], dim=-1)
-    #     act = self.sample(acts)
-    #     duration = self.duration_activation(duration)
-    #     outputs = torch.cat((act, duration), dim=-1)
-    #     # [N, 1, 2]
-    #     return outputs
-
-    # def multinomial(self, x):
-    #     # [N, 1, encodings]
-    #     acts = torch.multinomial(self.activity_prob_activation(x.squeeze()), 1)
-    #     # DETACH?
-    #     return acts
-
-    # def topk(self, x):
-    #     _, topi = x.topk(1)
-    #     act = topi.detach()  # detach from history as input
-    #     # DETACH?
-    #     return act
+    

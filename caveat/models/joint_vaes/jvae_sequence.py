@@ -21,8 +21,6 @@ class JVAESeqLSTM(JointExperiment):
             raise UserWarning(
                 "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
             )
-        self.attribute_weight = kwargs.get("attribute_weight", 1.0)
-        print(f"Attribute weight: {self.attribute_weight}")
         super().__init__(*args, **kwargs)
 
     def build(self, **config):
@@ -116,6 +114,20 @@ class JVAESeqLSTM(JointExperiment):
         Returns:
             dict: Loss dictionary.
         """
+        # print()
+        # print(
+        #     self.activity_loss_weight,
+        #     self.duration_loss_weight,
+        #     self.label_loss_weight,
+        #     self.kld_loss_weight,
+        # )
+        # print(
+        #     self.scheduled_act_weight,
+        #     self.scheduled_dur_weight,
+        #     self.scheduled_label_weight,
+        #     self.scheduled_kld_weight,
+        # )
+        # print()
         # unpack inputs
         log_probs_x, log_probs_ys = log_probs
         target_x, target_y = targets
@@ -124,6 +136,7 @@ class JVAESeqLSTM(JointExperiment):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target_x)
         pred_acts, pred_durations = self.unpack_encoding(log_probs_x)
+        pred_durations = exp(pred_durations)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
@@ -158,7 +171,7 @@ class JVAESeqLSTM(JointExperiment):
             attribute_loss += weighted_nll.sum()
         attribute_loss = attribute_loss / len(log_probs_ys)
         scheduled_label_weight = (
-            self.scheduled_att_weight * self.attribute_weight
+            self.scheduled_label_weight * self.label_loss_weight
         )
         w_label_loss = scheduled_label_weight * attribute_loss
 
@@ -170,6 +183,15 @@ class JVAESeqLSTM(JointExperiment):
         scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
 
+        # print()
+        # print(
+        #     scheduled_kld_weight,
+        #     scheduled_act_weight,
+        #     scheduled_dur_weight,
+        #     scheduled_label_weight,
+        # )
+        # print()
+
         # final loss
         loss = w_recons_loss + w_kld_loss
 
@@ -179,7 +201,7 @@ class JVAESeqLSTM(JointExperiment):
             "recon_loss": w_recons_loss.detach(),
             "act_recon": w_act_recon.detach(),
             "dur_recon": w_dur_recon.detach(),
-            "lael_recon": w_label_loss.detach(),
+            "label_recon": w_label_loss.detach(),
             "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
             "act_weight": torch.tensor([scheduled_act_weight]).float(),
             "dur_weight": torch.tensor([scheduled_dur_weight]).float(),
@@ -457,7 +479,8 @@ class ScheduleDecoder(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Softmax(dim=-2)
+        self.duration_activation = nn.Sigmoid()
+
         if top_sampler:
             print("Decoder using topk sampling")
             self.sample = self.topk
@@ -493,7 +516,8 @@ class ScheduleDecoder(nn.Module):
             outputs, [self.output_size - 1, 1], dim=-1
         )
         acts_log_probs = self.activity_logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
+        durations = torch.log(self.duration_activation(durations))
+
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
 
         return log_prob_outputs

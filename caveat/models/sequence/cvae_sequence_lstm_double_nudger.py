@@ -265,7 +265,7 @@ class Decoder(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Softmax(dim=-2)
+        self.duration_activation = nn.Sigmoid()
         if top_sampler:
             print("Decoder using topk sampling")
             self.sample = self.topk
@@ -301,7 +301,7 @@ class Decoder(nn.Module):
             outputs, [self.output_size - 1, 1], dim=-1
         )
         acts_log_probs = self.activity_logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
+        durations = torch.log(self.duration_activation(durations))
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
 
         return log_prob_outputs

@@ -903,7 +903,8 @@ def build_trainer(logger: TensorBoardLogger, config: dict) -> Trainer:
         save_top_k=2,
         save_weights_only=False,
     )
-    custom_loss_scheduler = LinearLossScheduler(config)
+    loss_scheduling = trainer_config.pop("loss_scheduling", {})
+    custom_loss_scheduler = LinearLossScheduler(loss_scheduling)
     return Trainer(
         logger=logger,
         callbacks=[

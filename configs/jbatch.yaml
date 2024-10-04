@@ -1,7 +1,7 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "joint_model_Z24"
+    name: "jm_z24_scheduling"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes.csv"
@@ -15,7 +15,7 @@ global:
     car_access: nominal
     work_status: nominal
     # area: nominal
-    income: nominal
+    # income: nominal
     # hh_size: ordinal
     # hh_composition: nominal
     # hh_children: ordinal
@@ -41,10 +41,6 @@ global:
     latent_dim: 24
     dropout: 0.1
     teacher_forcing_ratio: 0.5
-    activity_loss_weight: 1.0
-    duration_loss_weight: 1.0
-    attribute_loss_zero_epoch: 10
-    attribute_loss_full_epoch: 30
 
   loader_params:
     train_batch_size: 1024
@@ -55,39 +51,45 @@ global:
     min_epochs: 30
     patience: 30
     max_epochs: 100
-    att_loss_schedule: [10, 30]
 
   seed: 1234
 
-atts0kld+:
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
     scheduler_gamma: 0.95
-    kld_loss_weight: 0.001
-    attribute_loss_weight: 0.0
+    kld_weight: 0.0001
+    label_loss_weight: 0.00001
 
+kld:
+  trainer_params:
+    min_epochs: 50
+    patience: 10
+    max_epochs: 100
+    loss_scheduling:
+      kld_loss_schedule: [10, 30]
 
-atts0_0001kld+:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.001
-    attribute_weight: 0.0001
+label:
+  trainer_params:
+    min_epochs: 50
+    patience: 10
+    max_epochs: 100
+    loss_scheduling:
+      label_loss_schedule: [10, 30]
 
-atts0_01kld+:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.001
-    attribute_weight: 0.01
+kld+batch:
+  trainer_params:
+    min_epochs: 50
+    patience: 10
+    max_epochs: 100
+    loss_scheduling:
+      kld_loss_schedule: [10, 30]
+      label_loss_schedule: [10, 30]
 
-atts1_0kld+:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.001
-    attribute_weight: 1.0
+vanilla:
+  trainer_params:
+    min_epochs: 50
+    patience: 10
+    max_epochs: 100
+
+    

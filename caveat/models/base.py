@@ -217,6 +217,7 @@ class Base(Experiment):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
 
         if self.use_mask:  # default is to use masking
             flat_mask = mask.view(-1).bool()
@@ -276,6 +277,7 @@ class Base(Experiment):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
@@ -324,6 +326,7 @@ class Base(Experiment):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
@@ -375,6 +378,7 @@ class Base(Experiment):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(

@@ -46,11 +46,11 @@ class LinearLossScheduler(Callback):
         if self.label_schedule is not None:
             s, e = self.label_schedule
             if current_epoch < s:
-                pl_module.scheduled_att_weight = 0.0
+                pl_module.scheduled_label_weight = 0.0
             elif current_epoch >= e:
-                pl_module.scheduled_att_weight = 1.0
+                pl_module.scheduled_label_weight = 1.0
             else:
-                pl_module.scheduled_att_weight = (current_epoch - s) / (e - s)
+                pl_module.scheduled_label_weight = (current_epoch - s) / (e - s)
 
     def validate_weights_schedule(self, name, schedule):
         if schedule is None:
