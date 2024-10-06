@@ -114,20 +114,6 @@ class JVAESeqLSTM(JointExperiment):
         Returns:
             dict: Loss dictionary.
         """
-        # print()
-        # print(
-        #     self.activity_loss_weight,
-        #     self.duration_loss_weight,
-        #     self.label_loss_weight,
-        #     self.kld_loss_weight,
-        # )
-        # print(
-        #     self.scheduled_act_weight,
-        #     self.scheduled_dur_weight,
-        #     self.scheduled_label_weight,
-        #     self.scheduled_kld_weight,
-        # )
-        # print()
         # unpack inputs
         log_probs_x, log_probs_ys = log_probs
         target_x, target_y = targets
@@ -182,15 +168,6 @@ class JVAESeqLSTM(JointExperiment):
         kld_loss = self.kld(mu, log_var)
         scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
         w_kld_loss = scheduled_kld_weight * kld_loss
-
-        # print()
-        # print(
-        #     scheduled_kld_weight,
-        #     scheduled_act_weight,
-        #     scheduled_dur_weight,
-        #     scheduled_label_weight,
-        # )
-        # print()
 
         # final loss
         loss = w_recons_loss + w_kld_loss

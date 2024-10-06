@@ -98,7 +98,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     f"Unrecognised attribute encoding in configuration: {k, v}"
                 )
 
-        return pd.DataFrame(decoded)
+        return pd.DataFrame(decoded).set_index("pid")
 
     def argmax_decode(self, data: List[Tensor]) -> pd.DataFrame:
         decoded = {"pid": list(range(data[0].shape[0]))}

@@ -61,14 +61,6 @@ global:
     kld_weight: 0.0001
     label_loss_weight: 0.00001
 
-kld:
-  trainer_params:
-    min_epochs: 50
-    patience: 10
-    max_epochs: 100
-    loss_scheduling:
-      kld_loss_schedule: [10, 30]
-
 label:
   trainer_params:
     min_epochs: 50
@@ -76,6 +68,14 @@ label:
     max_epochs: 100
     loss_scheduling:
       label_loss_schedule: [10, 30]
+
+kld:
+  trainer_params:
+    min_epochs: 50
+    patience: 10
+    max_epochs: 100
+    loss_scheduling:
+      kld_loss_schedule: [10, 30]
 
 kld+batch:
   trainer_params:

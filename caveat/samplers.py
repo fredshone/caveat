@@ -10,6 +10,7 @@ class TargetLabelSampler:
         self.sampled_labels = []
 
     def sample(self, labels, schedules):
+        print(labels.dtypes)
         for j, (_, target_label) in enumerate(
             self.target_labels.copy().iterrows()
         ):
