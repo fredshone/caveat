@@ -8,7 +8,7 @@ from pytorch_lightning import Trainer
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import attribute_encoding, data, encoding
+from caveat import attribute_encoding, data, encoding, samplers
 from caveat.run import (
     encode_input_attributes,
     encode_schedules,
@@ -103,11 +103,7 @@ def jrun_command(
         )
 
     if gen:
-        # sampler = TargetLabelSampler(
-        #     attribute_encoder=attribute_encoder,
-        #     conditionals=conditionals,
-        #     seed=seed,
-        # )
+
         # prepare synthetic attributes
         if synthetic_attributes is not None:
             synthetic_population = len(synthetic_attributes)
@@ -144,6 +140,7 @@ def jsample_command(
     gen: bool = True,
     test: bool = False,
     infer=True,
+    patience: int = 10,
 ) -> None:
     """
     Runs the training for joint-model and attempts to sample target labels.
@@ -175,7 +172,7 @@ def jsample_command(
     seed = config.pop("seed", seeder())
 
     # load data
-    input_schedules, input_attributes, synthetic_attributes = load_data(config)
+    input_schedules, input_attributes, synthetic_labels = load_data(config)
 
     # encode data
     attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
@@ -222,26 +219,39 @@ def jsample_command(
 
     if gen:
         # prepare synthetic attributes
-        if synthetic_attributes is not None:
-            synthetic_population = len(synthetic_attributes)
+        if synthetic_labels is not None:
+            synthetic_population = len(synthetic_labels)
         else:
             synthetic_population = input_schedules.pid.nunique()
 
-        # generate synthetic schedules
-        synthetic_schedules, synthetic_attributes, _ = generate(
-            trainer=trainer,
-            population=synthetic_population,
-            schedule_encoder=schedule_encoder,
-            attribute_encoder=attribute_encoder,
-            config=config,
-            write_dir=Path(logger.log_dir),
-            seed=seed,
+        sampler = samplers.TargetLabelSampler(
+            target_labels=synthetic_labels,
+            target_columns=list(conditionals.keys()),
         )
+
+        for i in range(patience):
+
+            # generate synthetic schedules
+            synthetic_schedules, synthetic_labels, _ = generate(
+                trainer=trainer,
+                population=synthetic_population,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                config=config,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
+            sampler.sample(synthetic_labels, synthetic_schedules)
+            sampler.print(verbose=verbose)
+            if sampler.is_done():
+                break
+        sampler.print(verbose=verbose)
+        synthetic_labels, synthetic_schedules = sampler.finish()
 
         # evaluate synthetic schedules
         evaluate_synthetics(
             synthetic_schedules={name: synthetic_schedules},
-            synthetic_attributes={name: synthetic_attributes},
+            synthetic_attributes={name: synthetic_labels},
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
             write_path=Path(logger.log_dir),

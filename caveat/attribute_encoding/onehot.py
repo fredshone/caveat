@@ -136,4 +136,4 @@ class OneHotAttributeEncoder(BaseLabelEncoder):
                     f"Unrecognised attribute encoding in configuration: {k, v}"
                 )
 
-        return pd.DataFrame(decoded).set_index("pid")
+        return pd.DataFrame(decoded)

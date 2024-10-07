@@ -23,7 +23,7 @@ conditionals:
   # hh_motorcycles: ordinal
 
 evaluation_params:
-  split_on: [gender, age, car_access, work_status]
+  split_on: [gender, car_access, work_status]
 
 attribute_encoder: "tokens"
 
@@ -54,8 +54,8 @@ experiment_params:
   label_loss_weight: 0.00001
 
 trainer_params:
-  min_epochs: 30
-  patience: 30
+  min_epochs: 20
+  patience: 20
   max_epochs: 100
 
 seed: 1234
