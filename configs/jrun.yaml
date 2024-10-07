@@ -14,7 +14,7 @@ conditionals:
   car_access: nominal
   work_status: nominal
   # area: nominal
-  # income: nominal
+  income: nominal
   # hh_size: ordinal
   # hh_composition: nominal
   # hh_children: ordinal
@@ -23,7 +23,7 @@ conditionals:
   # hh_motorcycles: ordinal
 
 evaluation_params:
-  split_on: [gender, car_access, work_status]
+  split_on: [gender, age, car_access, work_status, income]
 
 attribute_encoder: "tokens"
 
