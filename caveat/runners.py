@@ -787,7 +787,7 @@ def evaluate_synthetics(
         )
     else:
         eval_schedules = default_eval_schedules
-        print("Evaluating synthetic schedules against input schedules")
+        print("Evaluating synthetic schedules against target schedules")
 
     split_on = eval_params.get("split_on", [])
     if split_on:
@@ -817,6 +817,7 @@ def evaluate_synthetics(
             head=head,
             verbose=verbose,
             suffix="_subs",
+            ranking=len(synthetic_schedules) > 1,
         )
 
     else:
@@ -824,6 +825,7 @@ def evaluate_synthetics(
             target_schedules=eval_schedules,
             synthetic_schedules=synthetic_schedules,
             report_stats=stats,
+            ranking=len(synthetic_schedules) > 1,
         )
         evaluate.report(reports, log_dir=write_path, head=head, verbose=verbose)
 

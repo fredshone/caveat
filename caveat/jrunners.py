@@ -9,7 +9,7 @@ from torch import Tensor
 from torch.random import seed as seeder
 
 from caveat import attribute_encoding, data, encoding, samplers
-from caveat.run import (
+from caveat.runners import (
     encode_input_attributes,
     encode_schedules,
     evaluate_synthetics,
@@ -26,6 +26,8 @@ def jrun_command(
     gen: bool = True,
     test: bool = False,
     infer=True,
+    sample: bool = False,
+    patience: int = 8,
 ) -> None:
     """
     Runs the training for joint-model variation.
@@ -57,7 +59,7 @@ def jrun_command(
     seed = config.pop("seed", seeder())
 
     # load data
-    input_schedules, input_attributes, synthetic_attributes = load_data(config)
+    input_schedules, input_attributes, synthetic_labels = load_data(config)
 
     # encode data
     attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
@@ -103,28 +105,42 @@ def jrun_command(
         )
 
     if gen:
-
-        # prepare synthetic attributes
-        if synthetic_attributes is not None:
-            synthetic_population = len(synthetic_attributes)
+        # prepare target sample size
+        if synthetic_labels is not None:
+            synthetic_population = len(synthetic_labels)
         else:
             synthetic_population = input_schedules.pid.nunique()
 
-        # generate synthetic schedules
-        synthetic_schedules, synthetic_attributes, _ = generate(
-            trainer=trainer,
-            population=synthetic_population,
-            schedule_encoder=schedule_encoder,
-            attribute_encoder=attribute_encoder,
-            config=config,
-            write_dir=Path(logger.log_dir),
-            seed=seed,
-        )
+        if sample:
+            synthetic_labels, synthetic_schedules = target_sample(
+                conditionals=list(conditionals.keys()),
+                patience=patience,
+                synthetic_population=synthetic_population,
+                trainer=trainer,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                config=config,
+                log_dir=Path(logger.log_dir),
+                seed=seed,
+                synthetic_labels=synthetic_labels,
+                verbose=verbose,
+            )
+        else:
+            # generate synthetic schedules
+            synthetic_schedules, synthetic_labels, _ = generate(
+                trainer=trainer,
+                population=synthetic_population,
+                schedule_encoder=schedule_encoder,
+                attribute_encoder=attribute_encoder,
+                config=config,
+                write_dir=Path(logger.log_dir),
+                seed=seed,
+            )
 
         # evaluate synthetic schedules
         evaluate_synthetics(
             synthetic_schedules={name: synthetic_schedules},
-            synthetic_attributes={name: synthetic_attributes},
+            synthetic_attributes={name: synthetic_labels},
             default_eval_schedules=input_schedules,
             default_eval_attributes=input_attributes,
             write_path=Path(logger.log_dir),
@@ -132,6 +148,69 @@ def jrun_command(
             stats=False,
             verbose=verbose,
         )
+
+
+def target_sample(
+    conditionals: list,
+    patience: int,
+    synthetic_population: int,
+    trainer: Trainer,
+    schedule_encoder: encoding.BaseEncoder,
+    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    config: dict,
+    log_dir: Path,
+    seed: int,
+    synthetic_labels: Optional[DataFrame] = None,
+    verbose: bool = False,
+) -> Tuple[DataFrame, DataFrame]:
+    """
+    Sample synthetic schedules and labels for target labels.
+    Repeatedly calls the model generate function until the target labels are sampled.
+    Or runs out of patience.
+
+    Args:
+        conditionals (list): _description_
+        patience (int): _description_
+        synthetic_population (int): _description_
+        trainer (Trainer): _description_
+        schedule_encoder (encoding.BaseEncoder): _description_
+        attribute_encoder (attribute_encoding.BaseLabelEncoder): _description_
+        config (dict): _description_
+        log_dir (Path): _description_
+        seed (int): _description_
+        synthetic_labels (Optional[DataFrame], optional): _description_. Defaults to None.
+        verbose (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        Tuple[DataFrame, DataFrame]: _description_
+    """
+
+    print(
+        f"\n======= Sampling {synthetic_population} new schedules for target labels ======="
+    )
+
+    sampler = samplers.TargetLabelSampler(
+        target_labels=synthetic_labels, target_columns=conditionals
+    )
+
+    for _ in range(patience):
+
+        # generate synthetic schedules
+        synthetic_schedules, synthetic_labels, _ = generate(
+            trainer=trainer,
+            population=synthetic_population,
+            schedule_encoder=schedule_encoder,
+            attribute_encoder=attribute_encoder,
+            config=config,
+            write_dir=log_dir,
+            seed=seed,
+        )
+        sampler.sample(synthetic_labels, synthetic_schedules)
+        sampler.print(verbose=verbose)
+        if sampler.is_done():
+            break
+    sampler.print(verbose=verbose)
+    return sampler.finish()
 
 
 def jsample_command(
@@ -268,6 +347,8 @@ def jbatch_command(
     gen: bool = True,
     test: bool = False,
     infer=True,
+    sample: bool = False,
+    patience: int = 8,
 ) -> None:
     """
     Batch runs the training for joint-model variation.
@@ -311,14 +392,14 @@ def jbatch_command(
             raise ValueError("No conditionals provided in the config.")
 
         # load data
-        input_schedules, input_attributes, synthetic_attributes = load_data(
+        input_schedules, input_labels, synthetic_labels = load_data(
             combined_config
         )
 
         # encode data
         attribute_encoder, encoded_labels, label_weights = (
             encode_input_attributes(
-                logger.log_dir, input_attributes, combined_config
+                logger.log_dir, input_labels, combined_config
             )
         )
 
@@ -365,24 +446,39 @@ def jbatch_command(
             )
 
         if gen:
-            # prepare synthetic attributes
-            if synthetic_attributes is not None:
-                synthetic_population = len(synthetic_attributes)
+            # prepare synthetic sample size
+            if synthetic_labels is not None:
+                synthetic_population = len(synthetic_labels)
             else:
                 synthetic_population = input_schedules.pid.nunique()
 
-            # generate synthetic schedules
-            synthetic_schedules, synthetic_attributes, _ = generate(
-                trainer=trainer,
-                population=synthetic_population,
-                schedule_encoder=schedule_encoder,
-                attribute_encoder=attribute_encoder,
-                config=combined_config,
-                write_dir=Path(logger.log_dir),
-                seed=seed,
-            )
+            if sample:
+                synthetic_labels, synthetic_schedules = target_sample(
+                    conditionals=list(conditionals.keys()),
+                    patience=patience,
+                    synthetic_population=synthetic_population,
+                    trainer=trainer,
+                    schedule_encoder=schedule_encoder,
+                    attribute_encoder=attribute_encoder,
+                    config=combined_config,
+                    log_dir=Path(logger.log_dir),
+                    seed=seed,
+                    synthetic_labels=synthetic_labels,
+                    verbose=verbose,
+                )
+            else:
+                # generate synthetic schedules
+                synthetic_schedules, synthetic_labels, _ = generate(
+                    trainer=trainer,
+                    population=synthetic_population,
+                    schedule_encoder=schedule_encoder,
+                    attribute_encoder=attribute_encoder,
+                    config=combined_config,
+                    write_dir=Path(logger.log_dir),
+                    seed=seed,
+                )
             synthetic_schedules_all[name] = synthetic_schedules
-            synthetic_attributes_all[name] = synthetic_attributes
+            synthetic_attributes_all[name] = synthetic_labels
 
     if gen:
         # evaluate synthetic schedules
@@ -390,7 +486,7 @@ def jbatch_command(
             synthetic_schedules=synthetic_schedules_all,
             synthetic_attributes=synthetic_attributes_all,
             default_eval_schedules=input_schedules,
-            default_eval_attributes=input_attributes,
+            default_eval_attributes=input_labels,
             write_path=Path(logger.log_dir),
             eval_params=global_config.get("evaluation_params", {}),
             stats=stats,

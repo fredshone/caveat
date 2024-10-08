@@ -7,11 +7,10 @@ from pandas import DataFrame, MultiIndex, Series, concat
 from caveat.evaluate.describe.features import (
     average,
     average2d,
-    average_weight,
-    feature_length,
+    average_density,
     feature_weight,
 )
-from caveat.evaluate.distance import emd, mape
+from caveat.evaluate.distance import emd
 from caveat.evaluate.features import (
     creativity,
     frequency,
@@ -21,13 +20,12 @@ from caveat.evaluate.features import (
     transitions,
 )
 
-structure_jobs = [
+sample_quality_jobs = [
     (
         ("duration", structural.duration_consistency),
         (feature_weight),
         ("duration", average),
         ("EMD", emd),
-        # ("MAE", abs_av_diff),
     ),
     (
         ("home based", structural.start_and_end_acts),
@@ -35,62 +33,45 @@ structure_jobs = [
         ("prob.", average),
         ("EMD", emd),
     ),
+]
+aggregate_jobs = [
+    (
+        ("agg. frequency", frequency.activity_frequencies),
+        (feature_weight),
+        ("average freq.", average_density),
+        ("EMD", emd),
+    )
+]
+# participation_prob_jobs = [
+
+#     (
+#         ("participation", participation.participation_prob_by_act),
+#         (feature_weight),
+#         ("prob.", average),
+#         ("MAPE", mape),
+#     ),
+#     (
+#         ("joint participation", participation.joint_participation_prob),
+#         (feature_weight),
+#         ("prob.", average),
+#         ("MAPE", mape),
+#     ),
+# ]
+participation_rate_jobs = [
     (
         ("lengths", structural.sequence_lengths),
         (feature_weight),
         ("prob.", average),
         ("EMD", emd),
     ),
-]
-frequency_jobs = [
     (
-        ("agg. participation", frequency.activity_frequencies),
-        (feature_length),
-        ("average freq.", average_weight),
-        ("MAPE", mape),
-    )
-]
-participation_prob_jobs = [
-    (
-        ("participation", participation.participation_prob_by_act),
-        (feature_weight),
-        ("prob.", average),
-        ("MAPE", mape),
-    ),
-    (
-        ("joint participation", participation.joint_participation_prob),
-        (feature_weight),
-        ("prob.", average),
-        ("MAPE", mape),
-    ),
-]
-participation_rate_jobs = [
-    # (
-    #     ("participation rate", participation.participation_rates),
-    #     (feature_weight),
-    #     ("av. rate", average),
-    #     ("EMD", emd),
-    # ),
-    # (
-    #     (
-    #         "activity participation rates",
-    #         participation.participation_rates_by_act,
-    #     ),
-    #     (feature_weight),
-    #     ("av. rate", average),
-    #     ("EMD", emd),
-    # ),
-    (
-        (
-            "enumerated participation rates",
-            participation.participation_rates_by_act_enum,
-        ),
+        ("participation rate", participation.participation_rates_by_act_enum),
         (feature_weight),
         ("av. rate", average),
         ("EMD", emd),
     ),
     (
-        ("joint participation rate", participation.joint_participation_rate),
+        ("pair participation rate", participation.joint_participation_rate),
         (feature_weight),
         ("av rate.", average),
         ("EMD", emd),
@@ -216,22 +197,24 @@ def process(
     )
 
     for domain, jobs in [
-        ("structure", structure_jobs),
-        ("frequency", frequency_jobs),
-        ("participation_probs", participation_prob_jobs),
-        ("participation_rates", participation_rate_jobs),
+        ("sample quality", sample_quality_jobs),
+        ("aggregate", aggregate_jobs),
+        # ("participation_probs", participation_prob_jobs),
+        ("participations", participation_rate_jobs),
         ("transitions", transition_jobs),
         ("timing", time_jobs),
     ]:
         for feature, size, description_job, distance_job in jobs:
-            feature_descriptions, feature_distances = eval_models_correctness(
-                synthetic_schedules,
-                target_schedules,
-                domain,
-                feature,
-                size,
-                description_job,
-                distance_job,
+            feature_descriptions, feature_distances = (
+                eval_models_density_estimation(
+                    synthetic_schedules,
+                    target_schedules,
+                    domain,
+                    feature,
+                    size,
+                    description_job,
+                    distance_job,
+                )
             )
             descriptions = concat([descriptions, feature_descriptions], axis=0)
             distances = concat([distances, feature_distances], axis=0)
@@ -396,7 +379,7 @@ def eval_models_creativity(
     return descriptions, distances
 
 
-def eval_models_correctness(
+def eval_models_density_estimation(
     synthetic_schedules: dict[str, DataFrame],
     target_schedules: DataFrame,
     domain: str,
@@ -488,6 +471,7 @@ def report(
     head: Optional[int] = None,
     verbose: bool = True,
     suffix: str = "",
+    ranking: bool = False,
 ):
     if head is not None:
         frames["descriptions_short"] = (
@@ -515,15 +499,17 @@ def report(
     print_markdown(frames["feature_descriptions"])
     print("\nFeature Evaluations (Distance):")
     print_markdown(frames["feature_distances"])
-    print("\nFeature Evaluations (Ranked):")
-    print_markdown(rank(frames["feature_distances"]))
+    if ranking:
+        print("\nFeature Evaluations (Ranked):")
+        print_markdown(rank(frames["feature_distances"]))
 
     print("\nDomain Descriptions:")
     print_markdown(frames["domain_descriptions"])
     print("\nDomain Evaluations (Distance):")
     print_markdown(frames["domain_distances"])
-    print("\nDomain Evaluations (Ranked):")
-    print_markdown(rank(frames["domain_distances"]))
+    if ranking:
+        print("\nDomain Evaluations (Ranked):")
+        print_markdown(rank(frames["domain_distances"]))
 
 
 def report_splits(
@@ -532,6 +518,7 @@ def report_splits(
     head: Optional[int] = None,
     verbose: bool = True,
     suffix: str = "",
+    ranking: bool = False,
 ):
     if head is not None:
         frames["descriptions_short"] = (
@@ -563,15 +550,17 @@ def report_splits(
     print_markdown(frames["feature_descriptions"])
     print("\nFeature Evaluations (Distance):")
     print_markdown(frames["feature_distances"])
-    print("\nFeature Evaluations (Ranked):")
-    print_markdown(rank(frames["feature_distances"]))
+    if ranking:
+        print("\nFeature Evaluations (Ranked):")
+        print_markdown(rank(frames["feature_distances"]))
 
     print("\nDomain Descriptions:")
     print_markdown(frames["domain_descriptions"])
     print("\nDomain Evaluations (Distance):")
     print_markdown(frames["domain_distances"])
-    print("\nDomain Evaluations (Ranked):")
-    print_markdown(rank(frames["domain_distances"]))
+    if ranking:
+        print("\nDomain Evaluations (Ranked):")
+        print_markdown(rank(frames["domain_distances"]))
 
 
 def add_stats(data: DataFrame, columns: dict[str, DataFrame]):

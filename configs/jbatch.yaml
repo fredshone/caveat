@@ -1,7 +1,7 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "jm_z24_scheduling"
+    name: "jm_z24_batch"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes.csv"
@@ -15,7 +15,7 @@ global:
     car_access: nominal
     work_status: nominal
     # area: nominal
-    # income: nominal
+    income: nominal
     # hh_size: ordinal
     # hh_composition: nominal
     # hh_children: ordinal
@@ -24,7 +24,7 @@ global:
     # hh_motorcycles: ordinal
 
   evaluation_params:
-    split_on: [gender, age, car_access, work_status]
+    split_on: [gender, age, car_access, work_status, income]
 
   attribute_encoder: "tokens"
 
@@ -52,8 +52,6 @@ global:
     patience: 30
     max_epochs: 100
 
-  seed: 1234
-
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
@@ -61,35 +59,56 @@ global:
     kld_weight: 0.0001
     label_loss_weight: 0.00001
 
-label:
   trainer_params:
     min_epochs: 50
-    patience: 10
+    patience: 20
     max_epochs: 100
-    loss_scheduling:
-      label_loss_schedule: [10, 30]
 
-kld:
-  trainer_params:
-    min_epochs: 50
-    patience: 10
-    max_epochs: 100
-    loss_scheduling:
-      kld_loss_schedule: [10, 30]
+A:
+  seed: 11111
 
-kld+batch:
-  trainer_params:
-    min_epochs: 50
-    patience: 10
-    max_epochs: 100
-    loss_scheduling:
-      kld_loss_schedule: [10, 30]
-      label_loss_schedule: [10, 30]
+B:
+  seed: 22222
 
-vanilla:
-  trainer_params:
-    min_epochs: 50
-    patience: 10
-    max_epochs: 100
+C:
+  seed: 33333
+
+D:
+  seed: 44444
+
+E:
+  seed: 55555
+
+
+# label:
+#   trainer_params:
+#     min_epochs: 50
+#     patience: 10
+#     max_epochs: 100
+#     loss_scheduling:
+#       label_loss_schedule: [10, 30]
+
+# kld:
+#   trainer_params:
+#     min_epochs: 50
+#     patience: 10
+#     max_epochs: 100
+#     loss_scheduling:
+#       kld_loss_schedule: [10, 30]
+
+# kld+batch:
+#   trainer_params:
+#     min_epochs: 50
+#     patience: 10
+#     max_epochs: 100
+#     loss_scheduling:
+#       kld_loss_schedule: [10, 30]
+#       label_loss_schedule: [10, 30]
+
+# vanilla:
+#   trainer_params:
+#     min_epochs: 50
+#     patience: 10
+#     max_epochs: 100
 
     

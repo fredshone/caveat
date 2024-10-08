@@ -5,7 +5,7 @@ import pandas as pd
 from torch import concat as torch_concat
 from torch.random import seed as seeder
 
-from caveat.run import (
+from caveat.runners import (
     build_dataloader,
     encode_input_attributes,
     encode_schedules,

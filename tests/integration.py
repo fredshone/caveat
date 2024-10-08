@@ -1,5 +1,10 @@
 from caveat.jrun import jrun_command
-from caveat.run import batch_command, ngen_command, nrun_command, run_command
+from caveat.runners import (
+    batch_command,
+    ngen_command,
+    nrun_command,
+    run_command,
+)
 
 
 def test_run_conv(config_discrete_conv):

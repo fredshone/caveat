@@ -2,7 +2,7 @@ from numpy import array, array_equal
 from pandas import DataFrame
 
 from caveat.evaluate.features.frequency import (
-    activity_frequencies,
+    activity_densities,
     binned_activity_count,
     binned_activity_density,
 )
@@ -55,7 +55,7 @@ def test_activity_frequencies():
             {"pid": 1, "act": "work", "start": 1, "end": 3, "duration": 2},
         ]
     )
-    binned = activity_frequencies(population, 3, 1)
+    binned = activity_densities(population, 3, 1)
     expected = {
         "home": (array([0, 1, 2]), array([1, 0, 0.5])),
         "work": (array([0, 1, 2]), array([0, 1, 0.5])),
@@ -70,6 +70,6 @@ def test_activity_frequencies_single_act():
             {"pid": 1, "act": "home", "start": 0, "end": 3, "duration": 3},
         ]
     )
-    binned = activity_frequencies(population, 3, 1)
+    binned = activity_densities(population, 3, 1)
     expected = {"home": (array([0, 1, 2]), array([1, 1, 1]))}
     assert equals(binned, expected)
