@@ -67,7 +67,7 @@ class CondDiscConv(Base):
     ) -> List[Tensor]:
 
         log_probs = self.decode(z=x, conditionals=conditionals, target=target)
-        return log_probs
+        return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
         self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs

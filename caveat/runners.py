@@ -461,7 +461,7 @@ def ngen_command(
 def report_command(
     observed_path: Path,
     log_dir: Path,
-    name: str = "synthetic.csv",
+    name: str = "synthetic_schedules.csv",
     verbose: bool = False,
     head: int = 10,
     batch: bool = False,
@@ -825,9 +825,14 @@ def evaluate_synthetics(
             target_schedules=eval_schedules,
             synthetic_schedules=synthetic_schedules,
             report_stats=stats,
+        )
+        evaluate.report(
+            reports,
+            log_dir=write_path,
+            head=head,
+            verbose=verbose,
             ranking=len(synthetic_schedules) > 1,
         )
-        evaluate.report(reports, log_dir=write_path, head=head, verbose=verbose)
 
 
 def conditional_sample(

@@ -40,7 +40,6 @@ class DiscreteEncoder(BaseEncoder):
         act_freqs = (
             schedules.groupby("act", observed=True).duration.sum().to_dict()
         )
-        print(act_freqs)
         index_freqs = {self.acts_to_index[k]: v for k, v in act_freqs.items()}
         ordered_freqs = np.array(
             [index_freqs[k] for k in range(len(index_freqs))]

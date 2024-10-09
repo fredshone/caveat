@@ -232,7 +232,7 @@ def ngen(
 @cli.command()
 @click.argument("observed_path", type=click.Path(exists=True))
 @click.argument("logs_dir", type=click.Path(exists=True))
-@click.option("--name", type=str, default="synthetic.csv")
+@click.option("--name", type=str, default="synthetic_schedules.csv")
 @click.option("--verbose", is_flag=True)
 @click.option("--head", type=int, default=10)
 @click.option("--batch", "-b", is_flag=True)
