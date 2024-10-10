@@ -441,9 +441,6 @@ class Base(Experiment):
         )
         w_recons_loss = scheduled_act_weight * recon_act_nlll
 
-        # recon_argmax = probs.squeeze().argmax(dim=-1)
-        # recon_act_ham = self.hamming(recon_argmax, input.long())
-
         # kld loss
         unweighted_kld = self.kld(mu, log_var)
         scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
