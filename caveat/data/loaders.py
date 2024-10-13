@@ -54,7 +54,7 @@ def validate_schedules(data: pd.DataFrame):
 
 
 def load_and_validate_attributes(
-    config: dict, schedules: pd.DataFrame
+    config: dict, schedules: pd.DataFrame, verbose: bool = True
 ) -> pd.DataFrame:
     """
     Load and validate attributes data from a CSV file.
@@ -77,9 +77,10 @@ def load_and_validate_attributes(
             raise UserWarning(f"No attributes found in {data_path}.")
         validate_attributes(attributes, config)
         validate_attributes_index(attributes, schedules)
-        print(
-            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
-        )
+        if verbose:
+            print(
+                f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
+            )
     else:
         attributes = None
 
@@ -93,12 +94,14 @@ def load_and_validate_attributes(
                     f"No synthetic attributes found in {data_path}."
                 )
             validate_attributes(synthetic_attributes, config, synthetic=True)
-            print(
-                f"Loaded {len(synthetic_attributes)} synthetic attributes from {config['synthetic_attributes_path']}"
-            )
+            if verbose:
+                print(
+                    f"Loaded {len(synthetic_attributes)} synthetic attributes from {config['synthetic_attributes_path']}"
+                )
         else:
             synthetic_attributes = attributes
-            print("Using input attributes as synthetic attributes")
+            if verbose:
+                print("Using input attributes as synthetic attributes")
 
     else:
         synthetic_attributes = None

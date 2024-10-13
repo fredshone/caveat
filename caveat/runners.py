@@ -3,6 +3,7 @@ import pickle
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
+import pandas as pd
 import torch
 from pandas import DataFrame
 from pytorch_lightning import LightningModule, Trainer
@@ -458,6 +459,152 @@ def ngen_command(
     )
 
 
+def eval_command(
+    config: dict,
+    schedules_name: str = "synthetic_schedules.csv",
+    labels_name: Optional[str] = None,
+    stats: bool = True,
+    verbose: bool = False,
+) -> None:
+    """
+    Runs the evaluation process using the provided configuration.
+
+    Args:
+        config (dict): A dictionary containing the configuration parameters.
+
+    Returns:
+        None
+    """
+    logger_params = config.get("logging_params")
+    log_dir = Path(logger_params.get("log_dir"))
+    schedules_name = str(logger_params.get("name"))
+
+    # load data
+    input_schedules, input_attributes, synthetic_labels = load_data(
+        config, verbose=False
+    )
+
+    # get most recent version
+    version = sorted([d for d in log_dir.iterdir() if d.is_dir()])[-1]
+    outputs_dir = log_dir / version.name
+    schedules_path = outputs_dir / schedules_name
+    synthetic_schedules = {
+        log_dir.name: data.load_and_validate_schedules(schedules_path)
+    }
+    print(
+        f"> Loaded {synthetic_schedules[log_dir.name].pid.nunique()} synthetic schedules from {schedules_path}"
+    )
+
+    if labels_name is not None:
+        synthetic_labels_path = outputs_dir / labels_name
+        synthetic_labels = load_labels(synthetic_labels_path)
+
+    elif "synthetic_labels" in outputs_dir.iterdir():
+        synthetic_labels_path = outputs_dir / "synthetic_labels.csv"
+        synthetic_labels = load_labels(synthetic_labels_path)
+
+    elif "synthetic_attributes" in outputs_dir.iterdir():
+        synthetic_labels_path = outputs_dir / "synthetic_attributes.csv"
+        synthetic_labels = load_labels(synthetic_labels_path)
+
+    synthetic_labels = {log_dir.name: synthetic_labels}
+
+    # evaluate synthetic schedules
+    evaluate_synthetics(
+        synthetic_schedules=synthetic_schedules,
+        synthetic_attributes=synthetic_labels,
+        default_eval_schedules=input_schedules,
+        default_eval_attributes=input_attributes,
+        write_path=log_dir,
+        eval_params=config.get("evaluation_params", {}),
+        stats=stats,
+        verbose=verbose,
+    )
+
+
+def load_labels(path):
+    synthetic_attributes = pd.read_csv(path)
+    print(f"> Loaded {len(synthetic_attributes)} synthetic labels from {path}")
+    if synthetic_attributes.empty:
+        raise UserWarning(f"No labels found in {path}.")
+    return synthetic_attributes
+
+
+def batch_eval_command(
+    batch_config: dict,
+    schedules_name: str = "synthetic_schedules.csv",
+    labels_name: Optional[str] = None,
+    stats: bool = True,
+    verbose: bool = False,
+) -> None:
+    """
+    Runs a batch of evaluation based on the provided configuration.
+
+    Args:
+        batch_config (dict[dict]): A dictionary containing the configuration for each training job.
+
+    Returns:
+        None
+    """
+    global_config = batch_config.pop("global")
+    logger_params = global_config.get("logging_params")
+    name = str(logger_params.get("name"))
+    batch_dir = Path(logger_params.get("log_dir"), name)
+
+    synthetic_schedules_all = {}
+    synthetic_labels_all = {}
+
+    for name, config in batch_config.items():
+        name = str(name)
+        log_dir = batch_dir / name
+
+        # build config for this run
+        combined_config = global_config.copy()
+        combined_config.update(config)
+
+        # load data
+        input_schedules, input_attributes, synthetic_labels = load_data(
+            combined_config, verbose=False
+        )
+
+        # get most recent version
+        version = sorted([d for d in log_dir.iterdir() if d.is_dir()])[-1]
+        outputs_dir = log_dir / version.name
+        schedules_path = outputs_dir / schedules_name
+        synthetic_schedules_all[log_dir.name] = (
+            data.load_and_validate_schedules(schedules_path)
+        )
+        print(
+            f"> Loaded {synthetic_schedules_all[log_dir.name].pid.nunique()} synthetic schedules from {schedules_path}"
+        )
+
+        synthetic_labels_path = outputs_dir / "synthetic_labels.csv"
+        synthetic_attributes_path = outputs_dir / "synthetic_attributes.csv"
+        if labels_name is not None:
+            synthetic_labels_path = outputs_dir / labels_name
+            synthetic_labels = load_labels(synthetic_labels_path)
+
+        elif synthetic_labels_path.exists():
+            synthetic_labels = load_labels(synthetic_labels_path)
+
+        elif synthetic_attributes_path.exists():
+            synthetic_labels = load_labels(synthetic_attributes_path)
+
+        synthetic_labels_all[log_dir.name] = synthetic_labels
+
+    # evaluate synthetic schedules
+    evaluate_synthetics(
+        synthetic_schedules=synthetic_schedules_all,
+        synthetic_attributes=synthetic_labels_all,
+        default_eval_schedules=input_schedules,
+        default_eval_attributes=input_attributes,
+        write_path=log_dir,
+        eval_params=global_config.get("evaluation_params", {}),
+        stats=stats,
+        verbose=verbose,
+    )
+
+
 def report_command(
     observed_path: Path,
     log_dir: Path,
@@ -492,15 +639,20 @@ def report_command(
     evaluate.report(reports, log_dir=log_dir, head=head, verbose=verbose)
 
 
-def load_data(config: dict) -> Tuple[DataFrame, DataFrame, DataFrame]:
+def load_data(
+    config: dict, verbose: bool = True
+) -> Tuple[DataFrame, DataFrame, DataFrame]:
     # load schedules data
     schedules_path = Path(config["schedules_path"])
     schedules = data.load_and_validate_schedules(schedules_path)
-    print(f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}")
+    if verbose:
+        print(
+            f"Loaded {schedules.pid.nunique()} schedules from {schedules_path}"
+        )
 
     # load attributes data (conditional case)
     attributes, synthetic_attributes = data.load_and_validate_attributes(
-        config, schedules
+        config, schedules, verbose=verbose
     )
     return schedules, attributes, synthetic_attributes
 

@@ -1,5 +1,7 @@
 """Console script for caveat."""
 
+from typing import Optional
+
 import click
 import yaml
 
@@ -7,6 +9,8 @@ from caveat.jrunners import jbatch_command, jrun_command, jsample_command
 from caveat.mmrunners import mmrun_command
 from caveat.runners import (
     batch_command,
+    batch_eval_command,
+    eval_command,
     ngen_command,
     nrun_command,
     report_command,
@@ -246,3 +250,39 @@ def report(
 ):
     """Report on the given observed population and logs directory."""
     report_command(observed_path, logs_dir, name, verbose, head, batch)
+
+
+@cli.command()
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--schedules", type=str, default="synthetic_schedules.csv")
+@click.option("--labels", type=str)
+@click.option("--verbose", "-v", is_flag=True)
+@click.option("--stats", is_flag=True)
+@click.option("--batch", "-b", is_flag=True)
+def eval(
+    config_path: click.Path,
+    batch: bool,
+    verbose: bool,
+    stats: bool,
+    schedules: str = "synthetic_schedules.csv",
+    labels: Optional[str] = None,
+):
+    """Evaluate on the given observed population and logs directory."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        if batch:
+            batch_eval_command(
+                batch_config=config,
+                schedules_name=schedules,
+                labels_name=labels,
+                verbose=verbose,
+                stats=stats,
+            )
+        else:
+            eval_command(
+                config,
+                schedules_name=schedules,
+                labels_name=labels,
+                verbose=verbose,
+                stats=stats,
+            )
