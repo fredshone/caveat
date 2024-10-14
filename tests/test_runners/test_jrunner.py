@@ -1,6 +1,6 @@
 import torch
 
-from caveat.jrun import repack_labels
+from caveat.jrunners import repack_labels
 
 
 def test_repack_single_batch_labels():

@@ -24,7 +24,7 @@ def test_discrete_auto_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob = model(x_max, conditionals=conditionals)
+    log_prob, _, _, _ = model(x_max, conditionals=conditionals)
     assert log_prob.shape == torch.Size([3, 144, 5])
     losses = model.loss_function(log_probs=log_prob, target=x_max, mask=None)
     assert "loss" in losses
@@ -41,7 +41,7 @@ def test_discrete_conditional_conv_forward():
         conditionals_size=10,
         **{"hidden_layers": [1], "latent_dim": 2, "dropout": 0.1},
     )
-    log_prob_y = model(x_max, conditionals=conditionals)
+    log_prob_y, _, _, _ = model(x_max, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
     losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
     assert "loss" in losses
@@ -63,7 +63,7 @@ def test_discrete_conditional_lstm_forward():
             "dropout": 0.1,
         },
     )
-    log_prob_y = model(x_max, conditionals=conditionals)
+    log_prob_y, _, _, _ = model(x_max, conditionals=conditionals)
     assert log_prob_y.shape == x.shape
     losses = model.loss_function(log_probs=log_prob_y, target=x_max, mask=None)
     assert "loss" in losses

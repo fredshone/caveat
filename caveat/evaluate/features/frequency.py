@@ -1,4 +1,4 @@
-from numpy import arange, array, ndarray
+from numpy import arange, ndarray
 from pandas import DataFrame
 
 from caveat.encoding.one_hot import descretise_population
@@ -37,7 +37,8 @@ def activity_frequencies(
         population=population, class_map=class_map, duration=duration, step=step
     )
     support = arange(0, 1, step / duration)
-    return {act: (support, bins[:, i]) for act, i in class_map.items()}
+    freqs = {act: (support, bins[:, i]) for act, i in class_map.items()}
+    return freqs
 
 
 def activity_densities(
