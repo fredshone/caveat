@@ -1,7 +1,7 @@
 
 logging_params:
   log_dir: "logs"
-  name: "paper_d_cnn_nrun"
+  name: "paper_d_cnn_vae"
 
 schedules_path: "tmp/nts_home_schedules.csv"
 # attributes_path: "tmp/nts_home_attributes_groups.csv"
