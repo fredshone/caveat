@@ -77,6 +77,3 @@ def sequence_prob_plot(
     axs[-1].legend(handles=elements, loc="center left", frameon=False)
 
     return fig
-
-
-#

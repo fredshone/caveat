@@ -4,7 +4,7 @@ from typing import Optional
 from matplotlib import pyplot as plt
 from pandas import DataFrame
 
-from caveat.features.frequency import binned_activity_density
+from caveat.evaluate.features.frequency import binned_activity_density
 
 
 def frequency_plots(

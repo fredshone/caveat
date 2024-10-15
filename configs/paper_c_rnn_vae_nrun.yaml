@@ -1,13 +1,13 @@
 
 logging_params:
   log_dir: "logs"
-  name: "paper_d_cnn_vae_2"
+  name: "paper_d_rnn_nrun"
 
 schedules_path: "tmp/nts_home_schedules.csv"
 # attributes_path: "tmp/nts_home_attributes_groups.csv"
 loader_params:
-  train_batch_size: 512
-  val_batch_size:  512
+  train_batch_size: 1024
+  val_batch_size:  1024
   num_workers: 8
 
 trainer_params:
@@ -45,14 +45,14 @@ experiment_params:
 seed: 1234
 
 encoder_params:
-  name: "discrete"
-  step_size: 10
+  name: "sequence"
   duration: 1440
-  jitter: 0.1
+  jitter: 0.2
 
 model_params:
-  name: "VAEDiscConv"
+  name: "VAESeqLSTM"
   latent_dim: 6
-  hidden_layers: [128,128,128,128,128]
-  dropout: 0.2
+  hidden_layers: 4
+  hidden_size: 128
+  dropout: 0.1
 

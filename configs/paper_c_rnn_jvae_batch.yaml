@@ -1,14 +1,14 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "paper_c_rnn_Jvae"
+    name: "paper_c_rnn_jvae_search"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
 
   conditionals:
     gender: nominal
-    age_group: nominal
+    age: nominal
     # ethnicity: nominal
     # education: nominal
     # license: nominal
@@ -24,7 +24,7 @@ global:
     # hh_motorcycles: ordinal
 
   # evaluation_params:
-  #   split_on: [gender, age_group, car_access, work_status, income]
+  #   split_on: [gender, age, car_access, work_status, income]
 
   attribute_encoder: "tokens"
 
@@ -47,6 +47,38 @@ global:
     val_batch_size:  1024
     num_workers: 8
 
+  trainer_params:
+    min_epochs: 30
+    patience: 30
+    max_epochs: 100
+
+  # experiment_params:
+  #   LR: 0.01
+  #   weight_decay: 0.0
+  #   scheduler_gamma: 0.95
+  #   kld_weight: 0.0001
+  #   label_loss_weight: 0.00001
+
+ll_000001:
+  seed: 11111
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+    label_loss_weight: 0.000001
+
+ll_000005:
+  seed: 22222
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+    label_loss_weight: 0.000005
+
+ll_00001:
+  seed: 33333
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
@@ -54,18 +86,20 @@ global:
     kld_weight: 0.0001
     label_loss_weight: 0.00001
 
-  trainer_params:
-    min_epochs: 40
-    patience: 20
-    max_epochs: 100
-
-1:
-  seed: 11111
-2:
-  seed: 22222
-3:
-  seed: 33333
-4:  
+ll_00005:
   seed: 44444
-5:
-  seed: 55555        
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+    label_loss_weight: 0.00005
+
+ll_0001:
+  seed: 55555
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.0001
+    label_loss_weight: 0.0001
