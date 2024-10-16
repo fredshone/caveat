@@ -126,17 +126,6 @@ class Experiment(pl.LightningModule):
         self.curr_device = x.device
 
         log_probs, mu, log_var, z = self.forward(x, conditionals=labels)
-        # z = results[-1]
-        # DataFrame(z.cpu().numpy()).to_csv(
-        #     Path(
-        #         self.logger.log_dir,
-        #         "val_z",
-        #         f"z_epoch_{self.current_epoch}.csv",
-        #     ),
-        #     index=False,
-        #     header=False,
-        #     mode="a",
-        # )
         val_loss = self.loss_function(
             log_probs=log_probs,
             mu=mu,
@@ -247,6 +236,7 @@ class Experiment(pl.LightningModule):
 
     def get_scheduler(self, optimizer):
         if self.kwargs.get("scheduler_gamma") is not None:
+            print("Using ExponentialLR scheduler")
             scheduler = optim.lr_scheduler.ExponentialLR(
                 optimizer, gamma=self.kwargs["scheduler_gamma"]
             )
@@ -255,6 +245,7 @@ class Experiment(pl.LightningModule):
             lr_mul = self.kwargs.get("lr_mul", 2)
             d_model = self.kwargs.get("d_model", 512)
             n_warmup_steps = self.kwargs.get("warmup")
+            print("Using ScheduledOptim scheduler")
             scheduler = {
                 "scheduler": ScheduledOptim(
                     optimizer,
