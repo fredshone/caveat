@@ -26,6 +26,14 @@ def emd2d(a: tuple[np.array, np.array], b: tuple[np.array, np.array]) -> float:
 def emd1d(a: tuple[np.array, np.array], b: tuple[np.array, np.array]) -> float:
     ak, aw = a
     bk, bw = b
+    if (
+        aw.sum() == 0
+    ):  # avoid division by zero but also has to assume distribution of just [0]
+        ak = np.array([0.0])
+        aw = np.array([1.0])
+    if bw.sum() == 0:
+        bk = np.array([0.0])
+        bw = np.array([1.0])
     aw = aw / aw.sum()
     bw = bw / bw.sum()
     return emd2_1d(ak, bk, aw, bw, metric="cityblock")

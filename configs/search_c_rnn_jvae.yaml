@@ -1,0 +1,150 @@
+global:
+  logging_params:
+    log_dir: "logs"
+    name: "search_c_rnn_Jvae_2"
+
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes_groups.csv"
+
+  conditionals:
+    gender: nominal
+    age_group: nominal
+    # ethnicity: nominal
+    # education: nominal
+    # license: nominal
+    car_access: nominal
+    work_status: nominal
+    # area: nominal
+    income: nominal
+    # hh_size: ordinal
+    # hh_composition: nominal
+    # hh_children: ordinal
+    # hh_cars: ordinal
+    # hh_bikes: ordinal
+    # hh_motorcycles: ordinal
+
+  evaluation_params:
+    split_on: [gender, age_group, car_access, work_status, income]
+
+  attribute_encoder: "tokens"
+
+  encoder_params:
+    name: "sequence"
+    max_length: 12
+    norm_duration: 1440
+    jitter: 0.1
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 40
+    patience: 10
+    max_epochs: 100
+
+Z4:
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001
+
+Z6:
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001
+
+Z8:
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 8
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001
+
+Z10:
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 10
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001
+
+Z12:
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 12
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001
+
+Z14:
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 14
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001
+
+Z16:
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 16
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001

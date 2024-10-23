@@ -598,7 +598,7 @@ def batch_eval_command(
         synthetic_attributes=synthetic_labels_all,
         default_eval_schedules=input_schedules,
         default_eval_attributes=input_attributes,
-        write_path=log_dir,
+        write_path=batch_dir,
         eval_params=global_config.get("evaluation_params", {}),
         stats=stats,
         verbose=verbose,

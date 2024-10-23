@@ -32,40 +32,44 @@ global:
     name: "sequence"
     max_length: 12
     norm_duration: 1440
-    jitter: 0.2
-
-  model_params:
-    name: "JVAESeqLSTM"
-    hidden_layers: 4
-    hidden_size: 128
-    latent_dim: 24
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
+    jitter: 0.1
 
   loader_params:
     train_batch_size: 1024
     val_batch_size:  1024
     num_workers: 8
 
+  trainer_params:
+    min_epochs: 40
+    patience: 10
+    max_epochs: 100
+
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 4
+    hidden_size: 128
+    latent_dim: 20
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
     scheduler_gamma: 0.95
-    kld_weight: 0.0001
+    kld_weight: 0.001
     label_loss_weight: 0.00001
 
-  trainer_params:
-    min_epochs: 40
-    patience: 20
-    max_epochs: 100
-
-1:
+A:
   seed: 11111
-2:
+
+B:
   seed: 22222
-3:
+
+C:
   seed: 33333
-4:  
+
+D:
   seed: 44444
-5:
-  seed: 55555        
+
+E:
+  seed: 55555
+
