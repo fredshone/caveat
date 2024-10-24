@@ -25,12 +25,13 @@ def average_density(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
 
 
 def average(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
-    return Series(
-        {
-            k: np.average(v, axis=0, weights=w).sum()
-            for k, (v, w) in features.items()
-        }
-    )
+    weighted_average = {}
+    for k, (v, w) in features.items():
+        if w.sum() > 0:
+            weighted_average[k] = np.average(v, axis=0, weights=w).sum()
+        else:
+            weighted_average[k] = 0
+    return Series(weighted_average)
 
 
 def average2d(features: dict[str, tuple[ndarray, ndarray]]) -> Series:

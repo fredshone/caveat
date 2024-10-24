@@ -61,7 +61,7 @@ participation_rate_jobs = [
     (
         ("lengths", structural.sequence_lengths),
         (feature_weight),
-        ("prob.", average),
+        ("length.", average),
         ("EMD", emd),
     ),
     (
