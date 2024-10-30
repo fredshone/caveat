@@ -556,6 +556,7 @@ def batch_eval_command(
 
     for name, config in batch_config.items():
         name = str(name)
+        print(f"\n======= Loading {name} =======")
         log_dir = batch_dir / name
 
         # build config for this run
@@ -564,7 +565,13 @@ def batch_eval_command(
 
         # load data
         input_schedules, input_attributes, synthetic_labels = load_data(
-            combined_config, verbose=False
+            combined_config, verbose=verbose
+        )
+        print(
+            f"> Loaded {input_schedules.pid.nunique()} target schedules for evaluation"
+        )
+        print(
+            f"> Loaded {input_attributes.pid.nunique()} target attributes for evaluation"
         )
 
         # get most recent version
@@ -578,7 +585,9 @@ def batch_eval_command(
             f"> Loaded {synthetic_schedules_all[log_dir.name].pid.nunique()} synthetic schedules from {schedules_path}"
         )
 
-        synthetic_labels_path = outputs_dir / "synthetic_labels.csv"
+        synthetic_labels_path = (
+            outputs_dir / "synthetic_labels.csv"
+        )  # todo: make this consistent across all models
         synthetic_attributes_path = outputs_dir / "synthetic_attributes.csv"
         if labels_name is not None:
             synthetic_labels_path = outputs_dir / labels_name
@@ -640,7 +649,7 @@ def report_command(
 
 
 def load_data(
-    config: dict, verbose: bool = True
+    config: dict, verbose: bool = False
 ) -> Tuple[DataFrame, DataFrame, DataFrame]:
     # load schedules data
     schedules_path = Path(config["schedules_path"])
@@ -935,7 +944,7 @@ def evaluate_synthetics(
     if eval_schedules_path:
         eval_schedules = data.load_and_validate_schedules(eval_schedules_path)
         print(
-            f"Loaded {len(eval_schedules)} schedules for evaluation from {eval_schedules_path}"
+            f"<!> Loaded {len(eval_schedules)} schedules for evaluation from {eval_schedules_path}"
         )
     else:
         eval_schedules = default_eval_schedules
@@ -950,7 +959,7 @@ def evaluate_synthetics(
                 eval_params, eval_schedules
             )
             print(
-                f"Loaded {len(eval_attributes)} attributes for evaluation from {eval_attributes_path}"
+                f"<!> Loaded {len(eval_attributes)} attributes for evaluation from {eval_attributes_path}"
             )
         else:
             eval_attributes = default_eval_attributes

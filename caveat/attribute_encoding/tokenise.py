@@ -106,8 +106,29 @@ class TokenAttributeEncoder(BaseLabelEncoder):
             location, column_type = (v["location"], v["type"])
             if v.get("nominal") is not None:
                 encoding = {i: name for name, i in v["nominal"].items()}
-                probs = data[location].argmax(dim=-1).tolist()
-                decoded[k] = pd.Series([encoding[i] for i in probs]).astype(
+                tokens = data[location].argmax(dim=-1).tolist()
+                decoded[k] = pd.Series([encoding[i] for i in tokens]).astype(
+                    column_type
+                )
+            else:
+                raise UserWarning(
+                    f"Unrecognised attribute encoding in configuration: {k, v}"
+                )
+
+        return pd.DataFrame(decoded)
+
+    def sample_decode(self, data: List[Tensor]) -> pd.DataFrame:
+        decoded = {"pid": list(range(data[0].shape[0]))}
+        for k, v in self.config.items():
+            location, column_type = (v["location"], v["type"])
+            if v.get("nominal") is not None:
+                encoding = {i: name for name, i in v["nominal"].items()}
+                tokens = (
+                    torch.multinomial(data[location], num_samples=1)
+                    .flatten()
+                    .tolist()
+                )
+                decoded[k] = pd.Series([encoding[i] for i in tokens]).astype(
                     column_type
                 )
             else:

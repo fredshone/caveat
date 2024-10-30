@@ -26,7 +26,7 @@ def jrun_command(
     gen: bool = True,
     test: bool = False,
     infer=True,
-    sample: bool = False,
+    sample: bool = True,
     patience: int = 8,
 ) -> None:
     """
@@ -213,131 +213,131 @@ def target_sample(
     return sampler.finish()
 
 
-def jsample_command(
-    config: dict,
-    verbose: bool = False,
-    gen: bool = True,
-    test: bool = False,
-    infer=True,
-    patience: int = 10,
-) -> None:
-    """
-    Runs the training for joint-model and attempts to sample target labels.
+# def jsample_command(
+#     config: dict,
+#     verbose: bool = False,
+#     gen: bool = True,
+#     test: bool = False,
+#     infer=True,
+#     patience: int = 10,
+# ) -> None:
+#     """
+#     Runs the training for joint-model and attempts to sample target labels.
 
-    Args:
-        config (dict): A dictionary containing the configuration parameters.
+#     Args:
+#         config (dict): A dictionary containing the configuration parameters.
 
-    Returns:
-        None
-    """
-    attribute_encoder = config.get("attribute_encoder", None)
-    if attribute_encoder is None or attribute_encoder != "tokens":
-        raise ValueError(
-            "Joint model requires attribute_encoder to be configured as 'tokens'."
-        )
+#     Returns:
+#         None
+#     """
+#     attribute_encoder = config.get("attribute_encoder", None)
+#     if attribute_encoder is None or attribute_encoder != "tokens":
+#         raise ValueError(
+#             "Joint model requires attribute_encoder to be configured as 'tokens'."
+#         )
 
-    conditionals = config.get("conditionals", None)
-    if conditionals is None:
-        raise ValueError("No conditionals provided in the config.")
+#     conditionals = config.get("conditionals", None)
+#     if conditionals is None:
+#         raise ValueError("No conditionals provided in the config.")
 
-    logger_params = config.get("logging_params", {})
-    log_dir = Path(logger_params.get("log_dir", "logs"))
-    name = str(
-        logger_params.get(
-            "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        )
-    )
-    logger = initiate_logger(log_dir, name)
-    seed = config.pop("seed", seeder())
+#     logger_params = config.get("logging_params", {})
+#     log_dir = Path(logger_params.get("log_dir", "logs"))
+#     name = str(
+#         logger_params.get(
+#             "name", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+#         )
+#     )
+#     logger = initiate_logger(log_dir, name)
+#     seed = config.pop("seed", seeder())
 
-    # load data
-    input_schedules, input_attributes, synthetic_labels = load_data(config)
+#     # load data
+#     input_schedules, input_attributes, synthetic_labels = load_data(config)
 
-    # encode data
-    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
-        logger.log_dir, input_attributes, config
-    )
+#     # encode data
+#     attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
+#         logger.log_dir, input_attributes, config
+#     )
 
-    schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-        logger.log_dir, input_schedules, encoded_labels, label_weights, config
-    )
+#     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
+#         logger.log_dir, input_schedules, encoded_labels, label_weights, config
+#     )
 
-    # train
-    trainer = train(
-        name=name,
-        data_loader=data_loader,
-        encoded_schedules=encoded_schedules,
-        label_encoder=attribute_encoder,
-        config=config,
-        test=test,
-        gen=gen,
-        logger=logger,
-        seed=seed,
-    )
+#     # train
+#     trainer = train(
+#         name=name,
+#         data_loader=data_loader,
+#         encoded_schedules=encoded_schedules,
+#         label_encoder=attribute_encoder,
+#         config=config,
+#         test=test,
+#         gen=gen,
+#         logger=logger,
+#         seed=seed,
+#     )
 
-    if test:
-        # test the model
-        run_test(
-            trainer=trainer,
-            schedule_encoder=schedule_encoder,
-            write_dir=Path(logger.log_dir),
-            seed=seed,
-        )
+#     if test:
+#         # test the model
+#         run_test(
+#             trainer=trainer,
+#             schedule_encoder=schedule_encoder,
+#             write_dir=Path(logger.log_dir),
+#             seed=seed,
+#         )
 
-    if infer:
-        test_infer_path = Path(f"{logger.log_dir}/test_inference")
-        test_infer_path.mkdir(exist_ok=True, parents=True)
+#     if infer:
+#         test_infer_path = Path(f"{logger.log_dir}/test_inference")
+#         test_infer_path.mkdir(exist_ok=True, parents=True)
 
-        test_inference(
-            trainer=trainer,
-            schedule_encoder=schedule_encoder,
-            attribute_encoder=attribute_encoder,
-            write_dir=test_infer_path,
-            seed=seed,
-        )
+#         test_inference(
+#             trainer=trainer,
+#             schedule_encoder=schedule_encoder,
+#             attribute_encoder=attribute_encoder,
+#             write_dir=test_infer_path,
+#             seed=seed,
+#         )
 
-    if gen:
-        # prepare synthetic attributes
-        if synthetic_labels is not None:
-            synthetic_population = len(synthetic_labels)
-        else:
-            synthetic_population = input_schedules.pid.nunique()
+#     if gen:
+#         # prepare synthetic attributes
+#         if synthetic_labels is not None:
+#             synthetic_population = len(synthetic_labels)
+#         else:
+#             synthetic_population = input_schedules.pid.nunique()
 
-        sampler = samplers.TargetLabelSampler(
-            target_labels=synthetic_labels,
-            target_columns=list(conditionals.keys()),
-        )
+#         sampler = samplers.TargetLabelSampler(
+#             target_labels=synthetic_labels,
+#             target_columns=list(conditionals.keys()),
+#         )
 
-        for i in range(patience):
+#         for i in range(patience):
 
-            # generate synthetic schedules
-            synthetic_schedules, synthetic_labels, _ = generate(
-                trainer=trainer,
-                population=synthetic_population,
-                schedule_encoder=schedule_encoder,
-                attribute_encoder=attribute_encoder,
-                config=config,
-                write_dir=Path(logger.log_dir),
-                seed=seed,
-            )
-            sampler.sample(synthetic_labels, synthetic_schedules)
-            sampler.print(verbose=verbose)
-            if sampler.is_done():
-                break
-        sampler.print(verbose=verbose)
-        synthetic_labels, synthetic_schedules = sampler.finish()
+#             # generate synthetic schedules
+#             synthetic_schedules, synthetic_labels, _ = generate(
+#                 trainer=trainer,
+#                 population=synthetic_population,
+#                 schedule_encoder=schedule_encoder,
+#                 attribute_encoder=attribute_encoder,
+#                 config=config,
+#                 write_dir=Path(logger.log_dir),
+#                 seed=seed,
+#             )
+#             sampler.sample(synthetic_labels, synthetic_schedules)
+#             sampler.print(verbose=verbose)
+#             if sampler.is_done():
+#                 break
+#         sampler.print(verbose=verbose)
+#         synthetic_labels, synthetic_schedules = sampler.finish()
 
-        # evaluate synthetic schedules
-        evaluate_synthetics(
-            synthetic_schedules={name: synthetic_schedules},
-            synthetic_attributes={name: synthetic_labels},
-            default_eval_schedules=input_schedules,
-            default_eval_attributes=input_attributes,
-            write_path=Path(logger.log_dir),
-            eval_params=config.get("evaluation_params", {}),
-            stats=False,
-            verbose=verbose,
-        )
+#         # evaluate synthetic schedules
+#         evaluate_synthetics(
+#             synthetic_schedules={name: synthetic_schedules},
+#             synthetic_attributes={name: synthetic_labels},
+#             default_eval_schedules=input_schedules,
+#             default_eval_attributes=input_attributes,
+#             write_path=Path(logger.log_dir),
+#             eval_params=config.get("evaluation_params", {}),
+#             stats=False,
+#             verbose=verbose,
+#         )
 
 
 def jbatch_command(
@@ -347,7 +347,7 @@ def jbatch_command(
     gen: bool = True,
     test: bool = False,
     infer=True,
-    sample: bool = False,
+    sample: bool = True,
     patience: int = 8,
 ) -> None:
     """
@@ -531,7 +531,7 @@ def test_inference(
     if attribute_encoder is not None:
         attributes = attribute_encoder.decode(input_labels)
         attributes.to_csv(write_dir / "input_labels.csv")
-        inferred_labels = attribute_encoder.argmax_decode(inferred_labels)
+        inferred_labels = attribute_encoder.sample_decode(inferred_labels)
         inferred_labels.to_csv(write_dir / "inferred_labels.csv")
 
     DataFrame(zs.cpu().numpy()).to_csv(
@@ -574,7 +574,7 @@ def generate(
     data.validate_schedules(synthetic_schedules)
     synthetic_schedules.to_csv(write_dir / "synthetic_schedules.csv")
 
-    synthetic_attributes = attribute_encoder.argmax_decode(synthetic_labels)
+    synthetic_attributes = attribute_encoder.sample_decode(synthetic_labels)
     synthetic_attributes.to_csv(write_dir / "synthetic_labels.csv")
 
     DataFrame(zs.cpu().numpy()).to_csv(

@@ -152,6 +152,6 @@ def joint_participation_rate(
         counts = calc_pair_rate(act_counts, pair)
         keys = array(list(counts.keys()))
         values = array(list(counts.values()))
-        metric["+".join(pair)] = (keys, values / values.sum())
+        metric["+".join(pair)] = (keys, values)
 
     return metric

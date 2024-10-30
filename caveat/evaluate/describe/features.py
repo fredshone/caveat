@@ -7,6 +7,10 @@ def actual(features: dict[str, float]) -> Series:
     return Series(features)
 
 
+def feature_value(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
+    return Series({k: v[0] for k, (v, w) in features.items()})
+
+
 def feature_length(features: dict[str, tuple[ndarray, ndarray]]) -> Series:
     return Series({k: len(v) for k, (v, w) in features.items()})
 

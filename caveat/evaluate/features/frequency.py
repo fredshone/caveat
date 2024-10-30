@@ -1,7 +1,13 @@
+import numpy as np
 from numpy import arange, ndarray
 from pandas import DataFrame
 
 from caveat.encoding.one_hot import descretise_population
+
+
+def count_schedules(population: DataFrame) -> int:
+    count = population.pid.nunique()
+    return {"all": (np.array([count]), np.array([1]))}
 
 
 def binned_activity_count(
