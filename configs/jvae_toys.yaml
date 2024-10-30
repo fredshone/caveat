@@ -1,0 +1,52 @@
+global:
+  seed: 12345
+  logging_params:
+    log_dir: "logs"
+    name: "jvae_toys"
+
+  conditionals:
+    work_status: nominal
+
+  evaluation_params:
+    split_on: [work_status]
+
+  attribute_encoder: "tokens"
+
+  encoder_params:
+    name: "sequence"
+    max_length: 12
+    norm_duration: 1440
+    jitter: 0.1
+
+  model_params:
+    name: "JVAESeqLSTM"
+    hidden_layers: 2
+    hidden_size: 128
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+
+  loader_params:
+    train_batch_size: 128
+    val_batch_size:  128
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 10
+    patience: 10
+    max_epochs: 100
+  
+  experiment_params:
+    LR: 0.001
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    label_loss_weight: 0.00001
+
+noisy80:
+  schedules_path: "tmp/toy_80noisy_schedules.csv"
+  attributes_path: "tmp/toy_80noisy_attributes.csv"
+
+noisy50:
+  schedules_path: "tmp/toy_50noisy_schedules.csv"
+  attributes_path: "tmp/toy_50noisy_attributes.csv"
