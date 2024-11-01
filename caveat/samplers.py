@@ -86,14 +86,11 @@ class TargetLabelSampler:
             f"Sampled {perc:.2%} of target labels in {self.sample_n} sampling iterations.)"
         )
         if verbose:
-            print("Sampled_labels:")
+            print("Unsampled_labels:")
             for i, n in self.target_sizes.items():
                 found = self.found_sizes[i]
-                if found == 0:
-                    character = ">>>"
-                else:
-                    character = " > "
-                print(f"{character}{i}: {found/n:.2%} of {n} found.")
+                if found < n:
+                    print(f"<!>{i}: {found/n:.2%} of {n} found.")
 
     def finish(self):
 

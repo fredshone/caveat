@@ -75,6 +75,13 @@ def load_and_validate_attributes(
         attributes = pd.read_csv(data_path)
         if attributes.empty:
             raise UserWarning(f"No attributes found in {data_path}.")
+        if not set(schedules.pid) == set(attributes.pid):
+            print(
+                "<!> Schedules and attributes pids do not match! Attempting to fix."
+            )
+            attributes = attributes.loc[
+                attributes.pid.isin(schedules.pid)
+            ]  # todo: hacked
         validate_attributes(attributes, config)
         validate_attributes_index(attributes, schedules)
         if verbose:
@@ -157,9 +164,11 @@ def validate_attributes_index(
     """
     seq_index = schedules.pid
     attr_index = attributes.pid
-    if not set(seq_index).issubset(set(attr_index)):
-        raise UserWarning("Missing attributes.")
     if not seq_index.dtype == attr_index.dtype:
         raise UserWarning(
             "Schedules and attributes pid datatypes do not match, this may result in 'misalignment' of schedules and attributes."
         )
+    if not set(seq_index).issubset(set(attr_index)):
+        raise UserWarning("Schedule pids missing from attributes.")
+    if not set(attr_index).issubset(set(seq_index)):
+        raise UserWarning("Attribute pids missing from schedules.")

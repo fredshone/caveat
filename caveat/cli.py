@@ -6,6 +6,7 @@ import click
 import yaml
 
 from caveat.jrunners import jbatch_command, jrun_command
+from caveat.label_runners import label_run_command
 from caveat.mmrunners import mmrun_command
 from caveat.runners import (
     batch_command,
@@ -286,3 +287,13 @@ def eval(
                 verbose=verbose,
                 stats=stats,
             )
+
+
+@cli.command()
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--verbose", "-v", is_flag=True)
+def lrun(config_path: click.Path, verbose: bool):
+    """Train and test label predicting model."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        label_run_command(config, verbose=verbose)

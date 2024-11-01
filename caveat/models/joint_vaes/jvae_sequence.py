@@ -14,13 +14,13 @@ class JVAESeqLSTM(JointExperiment):
         """
         Joint Sequence and Label generating VAE with LSTM sequence encoder and decoder.
         """
-        self.attribute_embed_sizes = kwargs.get("attribute_embed_sizes", None)
-        if self.attribute_embed_sizes is None:
-            raise UserWarning("ConditionalLSTM requires attribute_embed_sizes")
-        if not isinstance(self.attribute_embed_sizes, list):
-            raise UserWarning(
-                "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
-            )
+        # self.attribute_embed_sizes = kwargs.get("attribute_embed_sizes", None)
+        # if self.attribute_embed_sizes is None:
+        #     raise UserWarning("ConditionalLSTM requires attribute_embed_sizes")
+        # if not isinstance(self.attribute_embed_sizes, list):
+        #     raise UserWarning(
+        #         "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
+        #     )
         super().__init__(*args, **kwargs)
 
     def build(self, **config):

@@ -10,6 +10,16 @@ from caveat.experiment import Experiment, pre_process, unpack
 
 class JointExperiment(Experiment):
 
+    def __init__(self, *args, **kwargs):
+        self.attribute_embed_sizes = kwargs.get("attribute_embed_sizes", None)
+        if self.attribute_embed_sizes is None:
+            raise UserWarning("ConditionalLSTM requires attribute_embed_sizes")
+        if not isinstance(self.attribute_embed_sizes, list):
+            raise UserWarning(
+                "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
+            )
+        super().__init__(*args, **kwargs)
+
     def training_step(self, batch, batch_idx):
         (x, _), (y, y_mask), (labels, label_mask) = batch
 

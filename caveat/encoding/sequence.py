@@ -30,6 +30,7 @@ class SequenceEncoder(BaseEncoder):
         labels: Optional[Tensor],
         label_weights: Optional[Tensor],
     ) -> BaseDataset:
+        assert schedules.pid.nunique() == labels.shape[0]
         if self.encodings is None:
             self.setup_encoder(schedules)
         return self._encode(schedules, labels, label_weights)
@@ -153,6 +154,9 @@ class SequenceEncoder(BaseEncoder):
                 if int(act_idx) == self.sos:
                     continue
                 if int(act_idx) == self.eos:
+                    if act_start == 0:
+                        print(f"Failed to decode pid: {pid}")
+                        decoded.append([pid, "home", 0, 0])  # todo: hack
                     break
                 duration = int(duration * self.norm_duration)
                 decoded.append(

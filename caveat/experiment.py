@@ -84,6 +84,8 @@ class Experiment(pl.LightningModule):
             self.NLLL = nn.NLLLoss()
 
         self.base_NLLL = nn.NLLLoss(reduction="none")
+
+        self.loss = nn.NLLLoss(reduction="none")
         self.MSE = nn.MSELoss()
 
         # set up scheduled loss function weights

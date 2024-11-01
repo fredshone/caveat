@@ -1,21 +1,21 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "search_c_rnn_JvaeR"
+    name: "search_c_rnn_JvaeR_detached"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
 
   conditionals:
-    gender: nominal
-    age_group: nominal
+    # gender: nominal
+    # age_group: nominal
     # ethnicity: nominal
     # education: nominal
     # license: nominal
-    car_access: nominal
+    # car_access: nominal
     work_status: nominal
     # area: nominal
-    income: nominal
+    # income: nominal
     # hh_size: ordinal
     # hh_composition: nominal
     # hh_children: ordinal
@@ -24,7 +24,8 @@ global:
     # hh_motorcycles: ordinal
 
   evaluation_params:
-    split_on: [gender, age_group, car_access, work_status, income]
+    # split_on: [gender, age_group, car_access, work_status, income]
+    split_on: [work_status]
 
   attribute_encoder: "tokens"
 
@@ -44,80 +45,35 @@ global:
     patience: 10
     max_epochs: 100
 
-
-Z12K002LL01:
+Z6K002LH64:
   model_params:
-    name: "JVAESeqLSTMRerouted"
+    name: "JVAESeqLSTM"
     hidden_layers: 4
     hidden_size: 128
-    latent_dim: 12
-    dropout: 0.1
+    labels_hidden_size: 64
+    latent_dim: 6
+    dropout: 0.0
     teacher_forcing_ratio: 0.5
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
     scheduler_gamma: 0.95
-    kld_weight: 0.002
-    label_loss_weight: 0.01
-
-Z12K002LL001:
-  model_params:
-    name: "JVAESeqLSTMRerouted"
-    hidden_layers: 4
-    hidden_size: 128
-    latent_dim: 12
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.002
-    label_loss_weight: 0.001
-
-
-Z12K002LL0001:
-  model_params:
-    name: "JVAESeqLSTMRerouted"
-    hidden_layers: 4
-    hidden_size: 128
-    latent_dim: 12
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.002
+    kld_weight: 0.001
     label_loss_weight: 0.0001
 
 
-Z12K002LL00001:
+Z6K002LH128:
   model_params:
-    name: "JVAESeqLSTMRerouted"
+    name: "JVAESeqLSTM"
     hidden_layers: 4
     hidden_size: 128
-    latent_dim: 12
-    dropout: 0.1
+    labels_hidden_size: 128
+    latent_dim: 6
+    dropout: 0.0
     teacher_forcing_ratio: 0.5
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
     scheduler_gamma: 0.95
-    kld_weight: 0.002
-    label_loss_weight: 0.00001
-
-Z12K002LL000001:
-  model_params:
-    name: "JVAESeqLSTMRerouted"
-    hidden_layers: 4
-    hidden_size: 128
-    latent_dim: 12
-    dropout: 0.1
-    teacher_forcing_ratio: 0.5
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.95
-    kld_weight: 0.002
-    label_loss_weight: 0.000001
+    kld_weight: 0.001
+    label_loss_weight: 0.0001

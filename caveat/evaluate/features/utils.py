@@ -49,12 +49,17 @@ def compress_feature(
         tuple: A tuple containing two arrays and the total weight. The first array contains the unique
             values, and the second  array contains the counts of each value.
     """
-    s = array(feature)
-    if bin_size is not None:
-        s = bin_values(s, bin_size)
-    ks, ws = unique(s, axis=0, return_counts=True)
-    ks = ks / factor
-    return ks, ws
+    try:  # todo remove try-catch
+        s = array(feature)
+        if bin_size is not None:
+            s = bin_values(s, bin_size)
+        ks, ws = unique(s, axis=0, return_counts=True)
+        ks = ks / factor
+        return ks, ws
+    except Exception as e:
+        print(f"Error: {e}")
+        print(f"Feature: {feature}")
+        raise e
 
 
 def weighted_features(

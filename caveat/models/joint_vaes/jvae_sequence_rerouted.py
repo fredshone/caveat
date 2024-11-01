@@ -14,13 +14,7 @@ class JVAESeqLSTMRerouted(JointExperiment):
         """
         Joint Sequence and Label generating VAE with LSTM sequence encoder and decoder.
         """
-        self.attribute_embed_sizes = kwargs.get("attribute_embed_sizes", None)
-        if self.attribute_embed_sizes is None:
-            raise UserWarning("ConditionalLSTM requires attribute_embed_sizes")
-        if not isinstance(self.attribute_embed_sizes, list):
-            raise UserWarning(
-                "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
-            )
+
         super().__init__(*args, **kwargs)
 
     def build(self, **config):
@@ -300,7 +294,7 @@ class JVAESeqLSTMRerouted(JointExperiment):
         z_x = self.fc_attributes(hidden_x)
 
         # decode labels
-        log_probs_ys = self.label_decoder(z_x)
+        log_probs_ys = self.label_decoder(z_x.detach())
 
         return log_probs_x, log_probs_ys
 
@@ -364,7 +358,13 @@ class AttributeDecoder(nn.Module):
         self.activation = nn.ReLU()
         self.attribute_nets = nn.ModuleList(
             [
-                nn.Sequential(nn.Linear(hidden_size, s), nn.LogSoftmax(dim=-1))
+                nn.Sequential(
+                    # nn.Linear(hidden_size, hidden_size),
+                    # nn.ReLU(),
+                    # nn.Dropout(0.1),
+                    nn.Linear(hidden_size, s),
+                    nn.LogSoftmax(dim=-1),
+                )
                 for s in attribute_embed_sizes
             ]
         )
