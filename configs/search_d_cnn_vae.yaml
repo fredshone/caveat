@@ -11,9 +11,9 @@ global:
     num_workers: 8
 
   trainer_params:
-    min_epochs: 40
+    min_epochs: 20
     max_epochs: 200
-    patience: 20
+    patience: 10
 
   seed: 1234
 
@@ -23,135 +23,26 @@ global:
     duration: 1440
     jitter: 0.1
 
-
-3x64:
+6x128Z001:
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
     scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [64,64,64]
-    dropout: 0.1
-
-4x64:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [64,64,64,64]
-    dropout: 0.1
-
-5x64:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [64,64,64,64,64]
-    dropout: 0.1
-
-6x64:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [64,64,64,64,64,64]
-    dropout: 0.1
-
-3x128:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [128,128,128]
-    dropout: 0.1
-
-4x128:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [128,128,128,128]
-    dropout: 0.1
-
-6x128:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
+    kld_weight: 0.001
   model_params:
     name: "VAEDiscConv"
     latent_dim: 6
     hidden_layers: [128,128,128,128,128,128]
     dropout: 0.1
 
-3x256:
+6x128Z0005:
   experiment_params:
     LR: 0.01
     weight_decay: 0.0
     scheduler_gamma: 0.9
-    kld_weight: 0.01
+    kld_weight: 0.0005
   model_params:
     name: "VAEDiscConv"
     latent_dim: 6
-    hidden_layers: [256,256,256]
-    dropout: 0.1
-
-4x256:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [256,256,256,256]
-    dropout: 0.1
-
-5x256:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [256,256,256,256,256]
-    dropout: 0.1
-
-6x256:
-  experiment_params:
-    LR: 0.01
-    weight_decay: 0.0
-    scheduler_gamma: 0.9
-    kld_weight: 0.01
-  model_params:
-    name: "VAEDiscConv"
-    latent_dim: 6
-    hidden_layers: [256,256,256,256,256,256]
+    hidden_layers: [128,128,128,128,128,128]
     dropout: 0.1

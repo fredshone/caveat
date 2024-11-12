@@ -279,11 +279,20 @@ class Base(Experiment):
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
         pred_durations = torch.exp(pred_durations)
 
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
+        duration_mask = mask.clone()
+        duration_mask[:, 0] = 0.0
+        duration_mask[
+            torch.arange(duration_mask.shape[0]),
+            (mask != 0).cumsum(-1).argmax(1),
+        ] = 0.0
+
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        act_recon = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
         act_scheduled_weight = (
             self.activity_loss_weight * self.scheduled_act_weight
         )
@@ -291,7 +300,7 @@ class Base(Experiment):
 
         # duration loss
         recon_dur_mse = self.MSE(pred_durations, target_durations)
-        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+        recon_dur_mse = (recon_dur_mse * duration_mask).mean()
         dur_scheduled_weight = (
             self.duration_loss_weight * self.scheduled_dur_weight
         )
@@ -328,11 +337,14 @@ class Base(Experiment):
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
         pred_durations = torch.exp(pred_durations)
 
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
+
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        act_recon = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
         act_scheduled_weight = (
             self.activity_loss_weight * self.scheduled_act_weight
         )
@@ -343,7 +355,7 @@ class Base(Experiment):
         pred_ends = torch.cumsum(pred_durations, dim=-1)
 
         recon_end_mse = self.MSE(pred_ends, target_ends)
-        recon_end_mse = (recon_end_mse * mask).sum() / mask.sum()
+        recon_end_mse = (recon_end_mse * mask).mean()
         dur_scheduled_weight = (
             self.duration_loss_weight * self.scheduled_dur_weight
         )
@@ -380,11 +392,14 @@ class Base(Experiment):
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
         pred_durations = torch.exp(pred_durations)
 
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
+
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        act_recon = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
         act_scheduled_weight = (
             self.activity_loss_weight * self.scheduled_act_weight
         )
@@ -392,14 +407,14 @@ class Base(Experiment):
 
         # duration loss
         recon_dur_mse = self.MSE(pred_durations, target_durations)
-        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+        recon_dur_mse = (recon_dur_mse * mask).mean()
 
         # ends loss
         target_ends = torch.cumsum(target_durations, dim=-1)
         pred_ends = torch.cumsum(pred_durations, dim=-1)
 
         recon_end_mse = self.MSE(pred_ends, target_ends)
-        recon_end_mse = (recon_end_mse * mask).sum() / mask.sum()
+        recon_end_mse = (recon_end_mse * mask).mean()
 
         dur_scheduled_weight = (
             self.duration_loss_weight * self.scheduled_dur_weight

@@ -122,13 +122,45 @@ class JVAESeqLSTM(JointExperiment):
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target_x)
         pred_acts, pred_durations = self.unpack_encoding(log_probs_x)
+        _, L, A = pred_acts.shape
         pred_durations = exp(pred_durations)
+
+        # combined weights
+        label_weights_combined = mask_y.prod(dim=1)
+        label_weights_combined = (
+            label_weights_combined / label_weights_combined.mean()
+        )  # average weight 1
+
+        # label loss
+        logs = {}
+        attribute_loss = 0
+        for i, y in enumerate(log_probs_ys):
+            target = target_y[:, i].long()
+
+            weight = mask_y[:, i]
+            weight = weight / weight.mean()  # average weight to 1
+            nll = self.base_NLLL(y, target)
+
+            weighted_nll = nll * weight
+            logs[f"nll_{i}"] = nll.mean()
+
+            attribute_loss += weighted_nll.mean()
+        attribute_loss = attribute_loss / len(log_probs_ys)
+        scheduled_label_weight = (
+            self.scheduled_label_weight * self.label_loss_weight
+        )
+        w_label_loss = scheduled_label_weight * attribute_loss
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask_x.view(-1)).sum() / mask_x.sum()
+        # recon_act_weights = label_weights_combined.repeat_interleave(L) / L
+        mask_x = mask_x / mask_x.mean()
+        recon_act_nlll = recon_act_nlll * mask_x.view(-1)
+        # recon_act_nlll = recon_act_nlll * recon_act_weights
+        recon_act_nlll = recon_act_nlll.mean()
+
         scheduled_act_weight = (
             self.scheduled_act_weight * self.activity_loss_weight
         )
@@ -136,30 +168,17 @@ class JVAESeqLSTM(JointExperiment):
 
         # duration loss
         recon_dur_mse = self.MSE(pred_durations, target_durations)
-        recon_dur_mse = (recon_dur_mse * mask_x).sum() / mask_x.sum()
+        recon_dur_mse = recon_dur_mse * mask_x
+        # recon_dur_mse = recon_dur_mse * label_weights_combined[:, None]
         scheduled_dur_weight = (
             self.duration_loss_weight * self.scheduled_dur_weight
         )
-        w_dur_recon = scheduled_dur_weight * recon_dur_mse
+        w_dur_recon = scheduled_dur_weight * recon_dur_mse.mean()
 
         # TODO: could combine above to only apply mask once
 
         # schedule reconstruction loss
         w_schedule_recons_loss = w_act_recon + w_dur_recon
-
-        # attributes loss
-        attribute_loss = 0
-        for i, y in enumerate(log_probs_ys):
-            target = target_y[:, i].long()
-            weight = mask_y[:, i].long()
-            nll = self.base_NLLL(y, target)
-            weighted_nll = nll * weight
-            attribute_loss += weighted_nll.sum()
-        attribute_loss = attribute_loss / len(log_probs_ys)
-        scheduled_label_weight = (
-            self.scheduled_label_weight * self.label_loss_weight
-        )
-        w_label_loss = scheduled_label_weight * attribute_loss
 
         # recon loss
         w_recons_loss = w_schedule_recons_loss + w_label_loss
@@ -172,18 +191,21 @@ class JVAESeqLSTM(JointExperiment):
         # final loss
         loss = w_recons_loss + w_kld_loss
 
-        return {
-            "loss": loss,
-            "KLD": w_kld_loss.detach(),
-            "recon_loss": w_recons_loss.detach(),
-            "act_recon": w_act_recon.detach(),
-            "dur_recon": w_dur_recon.detach(),
-            "label_recon": w_label_loss.detach(),
-            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
-            "act_weight": torch.tensor([scheduled_act_weight]).float(),
-            "dur_weight": torch.tensor([scheduled_dur_weight]).float(),
-            "label_weight": torch.tensor([scheduled_label_weight]).float(),
-        }
+        logs.update(
+            {
+                "loss": loss,
+                "KLD": w_kld_loss.detach(),
+                "recon_loss": w_recons_loss.detach(),
+                "act_recon": w_act_recon.detach(),
+                "dur_recon": w_dur_recon.detach(),
+                "label_recon": w_label_loss.detach(),
+                "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+                "act_weight": torch.tensor([scheduled_act_weight]).float(),
+                "dur_weight": torch.tensor([scheduled_dur_weight]).float(),
+                "label_weight": torch.tensor([scheduled_label_weight]).float(),
+            }
+        )
+        return logs
 
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
         """Re-parameterization trick to sample from N(mu, var) from N(0,1).

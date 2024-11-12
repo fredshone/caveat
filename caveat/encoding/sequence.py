@@ -30,7 +30,8 @@ class SequenceEncoder(BaseEncoder):
         labels: Optional[Tensor],
         label_weights: Optional[Tensor],
     ) -> BaseDataset:
-        assert schedules.pid.nunique() == labels.shape[0]
+        if labels is not None:
+            assert schedules.pid.nunique() == labels.shape[0]
         if self.encodings is None:
             self.setup_encoder(schedules)
         return self._encode(schedules, labels, label_weights)
@@ -109,9 +110,8 @@ class SequenceEncoder(BaseEncoder):
         return (torch.from_numpy(encoded), torch.from_numpy(weights))
 
     def _calc_act_weights(self, data: pd.DataFrame) -> Dict[str, float]:
-        act_weights = (
-            data.groupby("act", observed=True).duration.sum().to_dict()
-        )
+
+        act_weights = data.act.value_counts().to_dict()
         n = data.pid.nunique()
         act_weights.update({self.sos: n, self.eos: n})
         for act in self.index_to_acts.keys():

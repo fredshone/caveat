@@ -44,7 +44,14 @@ class DiscreteEncoder(BaseEncoder):
         ordered_freqs = np.array(
             [index_freqs[k] for k in range(len(index_freqs))]
         )
-        self.encoding_weights = torch.from_numpy(1 / ordered_freqs).float()
+        weights = 1 / np.log(ordered_freqs)
+        weights = (
+            weights / weights.mean()
+        )  # normalise to average 1 for each activity
+        weights = (
+            weights / self.steps
+        )  # normalise to average 1 for each activity schedule
+        self.encoding_weights = torch.from_numpy(weights).float()
 
     def _encode(
         self,

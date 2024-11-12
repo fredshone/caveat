@@ -1,4 +1,5 @@
 import datetime
+import random
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -194,6 +195,8 @@ def target_sample(
     )
 
     for _ in range(patience):
+        random.seed(seed)
+        seed = random_seed()
 
         # generate synthetic schedules
         synthetic_schedules, synthetic_labels, _ = generate(
@@ -211,6 +214,10 @@ def target_sample(
             break
     sampler.print(verbose=verbose)
     return sampler.finish()
+
+
+def random_seed():
+    return random.randint(1000, 1000000000)
 
 
 def jbatch_command(

@@ -75,13 +75,27 @@ def load_and_validate_attributes(
         attributes = pd.read_csv(data_path)
         if attributes.empty:
             raise UserWarning(f"No attributes found in {data_path}.")
-        if not set(schedules.pid) == set(attributes.pid):
+        schedule_pids = set(schedules.pid)
+        attribute_pids = set(attributes.pid)
+        if not schedule_pids == attribute_pids:
             print(
                 "<!> Schedules and attributes pids do not match! Attempting to fix."
             )
-            attributes = attributes.loc[
-                attributes.pid.isin(schedules.pid)
-            ]  # todo: hacked
+            intersection = schedule_pids & attribute_pids
+            if not intersection:
+                raise UserWarning(
+                    "No common pids found between schedules and attributes/labels."
+                )
+            if schedule_pids > intersection:
+                print(
+                    f"Removing {len(schedule_pids - intersection)} pids from schedules."
+                )
+                schedules = schedules.loc[schedules.pid.isin(intersection)]
+            if attribute_pids > intersection:
+                print(
+                    f"Removing {len(attribute_pids - intersection)} pids from attributes."
+                )
+                attributes = attributes.loc[attributes.pid.isin(intersection)]
         validate_attributes(attributes, config)
         validate_attributes_index(attributes, schedules)
         if verbose:

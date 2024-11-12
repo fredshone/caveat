@@ -12,7 +12,7 @@ global:
   trainer_params:
     min_epochs: 40
     max_epochs: 200
-    patience: 20
+    patience: 10
 
   seed: 1234
 
@@ -21,68 +21,31 @@ global:
     duration: 1440
     jitter: 0.1
 
-# base:
-#   experiment_params:
-#     LR: 0.01
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
-#     kld_weight: 0.001
-    # model_params:
-    #   name: "VAESeqLSTM"
-    #   latent_dim: 6
-    #   hidden_layers: 4
-    #   hidden_size: 128
-    #   dropout: 0.1
-
-# 5x128:
-#   experiment_params:
-#     LR: 0.01
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
-#     kld_weight: 0.001
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 5
-#     hidden_size: 128
-#     dropout: 0.1
-
-# 6x128:
-#   experiment_params:
-#     LR: 0.01
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
-#     kld_weight: 0.001
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 6
-#     hidden_size: 128
-#     dropout: 0.1
-
-# 5x256:
-#   experiment_params:
-#     LR: 0.01
-#     weight_decay: 0.0
-#     scheduler_gamma: 0.95
-#     kld_weight: 0.001
-#   model_params:
-#     name: "VAESeqLSTM"
-#     latent_dim: 6
-#     hidden_layers: 5
-#     hidden_size: 256
-#     dropout: 0.1
-
-6x512:
+5x128xKLD002_ntf:
   experiment_params:
-    LR: 0.001
+    LR: 0.01
     weight_decay: 0.0
     scheduler_gamma: 0.95
-    kld_weight: 0.001
+    kld_weight: 0.002
+    teacher_forcing_ratio: 0.0
   model_params:
     name: "VAESeqLSTM"
     latent_dim: 6
-    hidden_layers: 6
-    hidden_size: 512
+    hidden_layers: 5
+    hidden_size: 128
     dropout: 0.1
+    
 
+5x128xKLD001_ntf:
+  experiment_params:
+    LR: 0.01
+    weight_decay: 0.0
+    scheduler_gamma: 0.95
+    kld_weight: 0.001
+    teacher_forcing_ratio: 0.0
+  model_params:
+    name: "VAESeqLSTM"
+    latent_dim: 6
+    hidden_layers: 5
+    hidden_size: 128
+    dropout: 0.1
