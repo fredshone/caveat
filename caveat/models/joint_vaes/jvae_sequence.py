@@ -14,18 +14,15 @@ class JVAESeqLSTM(JointExperiment):
         """
         Joint Sequence and Label generating VAE with LSTM sequence encoder and decoder.
         """
-        # self.attribute_embed_sizes = kwargs.get("attribute_embed_sizes", None)
-        # if self.attribute_embed_sizes is None:
-        #     raise UserWarning("ConditionalLSTM requires attribute_embed_sizes")
-        # if not isinstance(self.attribute_embed_sizes, list):
-        #     raise UserWarning(
-        #         "ConditionalLSTM requires attribute_embed_sizes to be a list of attribute embedding sizes"
-        #     )
         super().__init__(*args, **kwargs)
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
         self.hidden_size = config["hidden_size"]
+        self.labels_hidden_size = config.get(
+            "labels_hidden_size", self.hidden_size
+        )
+        print(f"Found label encoder hidden size = {self.labels_hidden_size}")
         self.hidden_layers = config["hidden_layers"]
         self.dropout = config["dropout"]
         length, _ = self.in_shape
@@ -46,15 +43,15 @@ class JVAESeqLSTM(JointExperiment):
             sos=self.sos,
         )
 
-        self.label_encoder = AttributeEncoder(
-            attribute_embed_sizes=self.attribute_embed_sizes,
-            hidden_size=self.hidden_size,
+        self.label_encoder = LabelEncoder(
+            label_embed_sizes=self.label_embed_sizes,
+            hidden_size=self.labels_hidden_size,
             latent_size=self.latent_dim,
         )
 
-        self.label_decoder = AttributeDecoder(
-            attribute_embed_sizes=self.attribute_embed_sizes,
-            hidden_size=self.hidden_size,
+        self.label_decoder = LabelDecoder(
+            attribute_embed_sizes=self.label_embed_sizes,
+            hidden_size=self.labels_hidden_size,
             latent_size=self.latent_dim,
         )
 
@@ -125,27 +122,34 @@ class JVAESeqLSTM(JointExperiment):
         _, L, A = pred_acts.shape
         pred_durations = exp(pred_durations)
 
-        # combined weights
-        label_weights_combined = mask_y.prod(dim=1)
-        label_weights_combined = (
-            label_weights_combined / label_weights_combined.mean()
-        )  # average weight 1
+        # normalise mask weights
+        mask_x = mask_x / mask_x.mean(-1).unsqueeze(-1)
+        duration_mask = mask_x.clone()
+        duration_mask[:, 0] = 0.0
+        duration_mask[
+            torch.arange(duration_mask.shape[0]),
+            (mask_x != 0).cumsum(-1).argmax(1),
+        ] = 0.0
+        duration_mask = duration_mask / duration_mask.mean(-1).unsqueeze(-1)
+        mask_y = mask_y / mask_y.mean(-1).unsqueeze(-1)
+
+        # # combined weights
+        # label_weights_combined = mask_y.prod(dim=1)
+        # label_weights_combined = (
+        #     label_weights_combined / label_weights_combined.mean()
+        # )  # average weight 1
 
         # label loss
         logs = {}
         attribute_loss = 0
         for i, y in enumerate(log_probs_ys):
             target = target_y[:, i].long()
-
             weight = mask_y[:, i]
-            weight = weight / weight.mean()  # average weight to 1
             nll = self.base_NLLL(y, target)
-
-            weighted_nll = nll * weight
-            logs[f"nll_{i}"] = nll.mean()
-
-            attribute_loss += weighted_nll.mean()
-        attribute_loss = attribute_loss / len(log_probs_ys)
+            weighted_nll = (nll * weight).mean()
+            logs[f"nll_{i}"] = weighted_nll
+            attribute_loss += weighted_nll
+        # attribute_loss = attribute_loss / len(log_probs_ys)
         scheduled_label_weight = (
             self.scheduled_label_weight * self.label_loss_weight
         )
@@ -156,7 +160,6 @@ class JVAESeqLSTM(JointExperiment):
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
         # recon_act_weights = label_weights_combined.repeat_interleave(L) / L
-        mask_x = mask_x / mask_x.mean()
         recon_act_nlll = recon_act_nlll * mask_x.view(-1)
         # recon_act_nlll = recon_act_nlll * recon_act_weights
         recon_act_nlll = recon_act_nlll.mean()
@@ -168,12 +171,12 @@ class JVAESeqLSTM(JointExperiment):
 
         # duration loss
         recon_dur_mse = self.MSE(pred_durations, target_durations)
-        recon_dur_mse = recon_dur_mse * mask_x
+        recon_dur_mse = (recon_dur_mse * duration_mask).mean()
         # recon_dur_mse = recon_dur_mse * label_weights_combined[:, None]
         scheduled_dur_weight = (
             self.duration_loss_weight * self.scheduled_dur_weight
         )
-        w_dur_recon = scheduled_dur_weight * recon_dur_mse.mean()
+        w_dur_recon = scheduled_dur_weight * recon_dur_mse
 
         # TODO: could combine above to only apply mask once
 
@@ -348,14 +351,14 @@ class JVAESeqLSTM(JointExperiment):
         return torch.cat((acts, durations), dim=-1)
 
 
-class AttributeEncoder(nn.Module):
-    def __init__(self, attribute_embed_sizes, hidden_size, latent_size):
-        """Attribute Encoder using token embedding.
+class LabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size, latent_size):
+        """Label Encoder using token embedding.
         Embedding outputs are the same size but use different weights so that they can be different sizes.
         Each embedding is then stacked and summed to give single encoding."""
-        super(AttributeEncoder, self).__init__()
+        super(LabelEncoder, self).__init__()
         self.embeds = nn.ModuleList(
-            [nn.Embedding(s, hidden_size) for s in attribute_embed_sizes]
+            [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
         )
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.activation = nn.ReLU()
@@ -373,9 +376,9 @@ class AttributeEncoder(nn.Module):
         return mu, log_var
 
 
-class AttributeDecoder(nn.Module):
+class LabelDecoder(nn.Module):
     def __init__(self, attribute_embed_sizes, hidden_size, latent_size):
-        super(AttributeDecoder, self).__init__()
+        super(LabelDecoder, self).__init__()
         self.fc = nn.Linear(latent_size, hidden_size)
         self.activation = nn.ReLU()
         self.attribute_nets = nn.ModuleList(

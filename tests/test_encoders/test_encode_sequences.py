@@ -54,9 +54,7 @@ def test_encoder():
     expected = torch.tensor(
         [[0, 0.0], [2, 0.4], [3, 0.4], [2, 0.2], [1, 0.0], [1, 0.0]]
     )
-    expected_weights = torch.tensor(
-        [1 / 2, 1 / 1.2, 1 / 0.8, 1 / 1.2, 1 / 2, 0]
-    )
+    expected_weights = torch.tensor([1 / 2, 1 / 4, 1 / 2, 1 / 4, 1 / 2, 0])
     attributes = torch.tensor([[0, 0], [1, 1]])
     attributes_weights = torch.tensor([[1, 2], [3, 4]])
     encoder = seq.SequenceEncoder(max_length=length, norm_duration=duration)

@@ -43,14 +43,14 @@ class JVAESeqLSTMRerouted(JointExperiment):
             sos=self.sos,
         )
 
-        self.label_encoder = AttributeEncoder(
-            attribute_embed_sizes=self.attribute_embed_sizes,
+        self.label_encoder = LabelEncoder(
+            label_embed_sizes=self.label_embed_sizes,
             hidden_size=self.label_hidden_size,
             latent_size=self.latent_dim,
         )
 
         self.label_decoder = AttributeDecoder(
-            attribute_embed_sizes=self.attribute_embed_sizes,
+            label_embed_sizes=self.label_embed_sizes,
             hidden_size=self.label_hidden_size,
             latent_size=self.latent_dim,
         )
@@ -326,14 +326,14 @@ class JVAESeqLSTMRerouted(JointExperiment):
         return torch.cat((acts, durations), dim=-1)
 
 
-class AttributeEncoder(nn.Module):
-    def __init__(self, attribute_embed_sizes, hidden_size, latent_size):
+class LabelEncoder(nn.Module):
+    def __init__(self, label_embed_sizes, hidden_size, latent_size):
         """Attribute Encoder using token embedding.
         Embedding outputs are the same size but use different weights so that they can be different sizes.
         Each embedding is then stacked and summed to give single encoding."""
-        super(AttributeEncoder, self).__init__()
+        super(LabelEncoder, self).__init__()
         self.embeds = nn.ModuleList(
-            [nn.Embedding(s, hidden_size) for s in attribute_embed_sizes]
+            [nn.Embedding(s, hidden_size) for s in label_embed_sizes]
         )
         self.fc = nn.Linear(hidden_size, hidden_size)
         self.activation = nn.ReLU()
@@ -352,7 +352,7 @@ class AttributeEncoder(nn.Module):
 
 
 class AttributeDecoder(nn.Module):
-    def __init__(self, attribute_embed_sizes, hidden_size, latent_size):
+    def __init__(self, label_embed_sizes, hidden_size, latent_size):
         super(AttributeDecoder, self).__init__()
         self.fc = nn.Linear(latent_size, hidden_size)
         self.activation = nn.ReLU()
@@ -365,7 +365,7 @@ class AttributeDecoder(nn.Module):
                     nn.Linear(hidden_size, s),
                     nn.LogSoftmax(dim=-1),
                 )
-                for s in attribute_embed_sizes
+                for s in label_embed_sizes
             ]
         )
 

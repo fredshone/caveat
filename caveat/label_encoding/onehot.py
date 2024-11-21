@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
-from caveat.attribute_encoding.base import (
+from caveat.label_encoding.base import (
     BaseLabelEncoder,
     onehot_encode,
     ordinal_encode,

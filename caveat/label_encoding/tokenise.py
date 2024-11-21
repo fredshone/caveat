@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
-from caveat.attribute_encoding.base import BaseLabelEncoder, row_probs, tokenize
+from caveat.label_encoding.base import BaseLabelEncoder, row_probs, tokenize
 
 
 class TokenAttributeEncoder(BaseLabelEncoder):
@@ -16,7 +16,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
         return self._encode(data)
 
     def build_config(self, data: pd.DataFrame) -> Tensor:
-        self.label_kwargs["attribute_embed_sizes"] = []
+        self.label_kwargs["label_embed_sizes"] = []
 
         for i, (k, v) in enumerate(self.config.copy().items()):
             if k not in data.columns:
@@ -34,7 +34,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     self.config[k].update(
                         {"location": i, "type": data[k].dtype}
                     )
-                    self.label_kwargs["attribute_embed_sizes"].append(
+                    self.label_kwargs["label_embed_sizes"].append(
                         data[k].nunique()
                     )
                 else:
@@ -49,7 +49,7 @@ class TokenAttributeEncoder(BaseLabelEncoder):
                     "location": i,
                     "type": data[k].dtype,
                 }
-                self.label_kwargs["attribute_embed_sizes"].append(
+                self.label_kwargs["label_embed_sizes"].append(
                     len(nominal_encodings)
                 )
 

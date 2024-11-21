@@ -2,7 +2,7 @@ import pandas as pd
 from torch import Tensor
 from torch.testing import assert_close
 
-from caveat.attribute_encoding.base import (
+from caveat.label_encoding.base import (
     onehot_encode,
     ordinal_encode,
     row_probs,

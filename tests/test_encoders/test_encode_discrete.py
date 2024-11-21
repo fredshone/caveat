@@ -67,7 +67,11 @@ def test_encoded_weights():
     )
     length = 6
     step = 2
-    expected_weights = torch.tensor([1 / 7, 1 / 5])
+    expected_weights = torch.tensor([7.0, 5.0])
+    expected_weights = 1 / torch.log(expected_weights)
+    expected_weights = expected_weights / expected_weights.mean()
+    steps = length / step
+    expected_weights = expected_weights / steps
     expected_mask = torch.tensor([1.0, 1.0, 1.0])
     encoder = discrete.DiscreteEncoder(length, step)
     encoded = encoder.encode(traces, None, None)

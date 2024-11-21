@@ -26,7 +26,7 @@ def test_jvae_lstm_forward():
             "hidden_size": 2,
             "latent_dim": 2,
             "dropout": 0.1,
-            "attribute_embed_sizes": [2, 6],
+            "label_embed_sizes": [2, 6],
         },
     )
     (log_prob_x, log_prob_y), mu, log_var, z = model(

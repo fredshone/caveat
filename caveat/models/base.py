@@ -293,18 +293,18 @@ class Base(Experiment):
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
         act_recon = (recon_act_nlll * mask.view(-1)).mean()
-        act_scheduled_weight = (
+        scheduled_act_weight = (
             self.activity_loss_weight * self.scheduled_act_weight
         )
-        w_act_recon = act_scheduled_weight * act_recon
+        w_act_recon = scheduled_act_weight * act_recon
 
         # duration loss
         recon_dur_mse = self.MSE(pred_durations, target_durations)
         recon_dur_mse = (recon_dur_mse * duration_mask).mean()
-        dur_scheduled_weight = (
+        scheduled_dur_weight = (
             self.duration_loss_weight * self.scheduled_dur_weight
         )
-        w_dur_recon = dur_scheduled_weight * recon_dur_mse
+        w_dur_recon = scheduled_dur_weight * recon_dur_mse
 
         # reconstruction loss
         w_recons_loss = w_act_recon + w_dur_recon
@@ -324,8 +324,8 @@ class Base(Experiment):
             "act_recon": w_act_recon.detach(),
             "dur_recon": w_dur_recon.detach(),
             "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
-            "act_weight": torch.tensor([act_scheduled_weight]).float(),
-            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
+            "act_weight": torch.tensor([scheduled_act_weight]).float(),
+            "dur_weight": torch.tensor([scheduled_dur_weight]).float(),
         }
 
     def end_time_seq_loss(

@@ -16,8 +16,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import attribute_encoding, cuda_available, data, encoding, models
-from caveat.attribute_encoding.base import BaseLabelEncoder
+from caveat import label_encoding, cuda_available, data, encoding, models
+from caveat.label_encoding.base import BaseLabelEncoder
 from caveat.callbacks import LinearLossScheduler
 from caveat.data.module import DataModule
 from caveat.encoding import BaseDataset, BaseEncoder
@@ -699,7 +699,7 @@ def encode_input_attributes(
             raise UserWarning("Config must contain conditionals configuration.")
 
         encoder_name = config.get("attribute_encoder", "onehot")
-        attribute_encoder = attribute_encoding.library[encoder_name](
+        attribute_encoder = label_encoding.library[encoder_name](
             conditionals_config
         )
         encoded_attributes, weights = attribute_encoder.encode(input_attributes)
@@ -797,7 +797,7 @@ def run_test(
 def test_inference(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    attribute_encoder: label_encoding.BaseLabelEncoder,
     write_dir: Path,
     seed: int,
     ckpt_path: Optional[str] = None,
@@ -838,7 +838,7 @@ def generate(
     trainer: Trainer,
     population: Union[int, Tensor],
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    attribute_encoder: label_encoding.BaseLabelEncoder,
     config: dict,
     write_dir: Path,
     seed: int,

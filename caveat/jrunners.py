@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import attribute_encoding, data, encoding, samplers
+from caveat import label_encoding, data, encoding, samplers
 from caveat.runners import (
     encode_input_attributes,
     encode_schedules,
@@ -157,7 +157,7 @@ def target_sample(
     synthetic_population: int,
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    attribute_encoder: label_encoding.BaseLabelEncoder,
     config: dict,
     log_dir: Path,
     seed: int,
@@ -377,7 +377,7 @@ def jbatch_command(
 def test_inference(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    attribute_encoder: label_encoding.BaseLabelEncoder,
     write_dir: Path,
     seed: int,
     ckpt_path: Optional[str] = None,
@@ -423,7 +423,7 @@ def generate(
     trainer: Trainer,
     population: int,
     schedule_encoder: encoding.BaseEncoder,
-    attribute_encoder: attribute_encoding.BaseLabelEncoder,
+    attribute_encoder: label_encoding.BaseLabelEncoder,
     config: dict,
     write_dir: Path,
     seed: int,

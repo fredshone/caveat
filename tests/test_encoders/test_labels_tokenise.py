@@ -4,7 +4,7 @@ from pandas.testing import assert_frame_equal
 from torch import Tensor
 from torch.testing import assert_close
 
-from caveat.attribute_encoding.tokenise import TokenAttributeEncoder
+from caveat.label_encoding.tokenise import TokenAttributeEncoder
 
 
 def test_encoder_ordinal():
@@ -115,7 +115,7 @@ def test_encoder_multi():
         "location": 1,
         "type": "object",
     }
-    assert encoder.label_kwargs == {"attribute_embed_sizes": [2, 2]}
+    assert encoder.label_kwargs == {"label_embed_sizes": [2, 2]}
 
 
 def test_re_encoder_mixed():
@@ -149,7 +149,7 @@ def test_re_encoder_mixed():
         "location": 1,
         "type": "object",
     }
-    assert encoder.label_kwargs == {"attribute_embed_sizes": [2, 2]}
+    assert encoder.label_kwargs == {"label_embed_sizes": [2, 2]}
 
 
 def test_decode_attributes():

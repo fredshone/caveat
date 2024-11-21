@@ -4,7 +4,7 @@ from pandas.testing import assert_frame_equal
 from torch import Tensor, ones_like
 from torch.testing import assert_close
 
-from caveat.attribute_encoding.onehot import OneHotAttributeEncoder
+from caveat.label_encoding.onehot import OneHotAttributeEncoder
 
 
 def test_encoder_ordinal():

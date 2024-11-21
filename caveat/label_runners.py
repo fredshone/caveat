@@ -7,7 +7,7 @@ from pytorch_lightning import Trainer
 from torch import Tensor
 from torch.random import seed as seeder
 
-from caveat import attribute_encoding, data, encoding
+from caveat import label_encoding, data, encoding
 from caveat.runners import (
     encode_input_attributes,
     encode_schedules,
@@ -175,7 +175,7 @@ def label_run_command(
 def run_test(
     trainer: Trainer,
     schedule_encoder: encoding.BaseEncoder,
-    label_encoder: attribute_encoding.BaseLabelEncoder,
+    label_encoder: label_encoding.BaseLabelEncoder,
     write_dir: Path,
     seed: int,
     ckpt_path: Optional[str] = None,

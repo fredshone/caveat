@@ -145,7 +145,7 @@ class Seq2SeqLSTM(Base):
         recon_dur_mse = self.duration_loss_weight * self.MSE(
             durations, target_durations
         )
-        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+        recon_dur_mse = (recon_dur_mse.squeeze(-1) * mask).sum() / mask.sum()
 
         # mode loss
         recon_mode_nlll = self.base_NLLL(
@@ -156,7 +156,7 @@ class Seq2SeqLSTM(Base):
 
         # distance loss
         recon_dist_mse = self.MSE(distances, target_distances)
-        recon_dist_mse = (recon_dist_mse * mask).sum() / mask.sum()
+        recon_dist_mse = (recon_dist_mse.squeeze(-1) * mask).sum() / mask.sum()
 
         # reconstruction loss
         recons_loss = (
