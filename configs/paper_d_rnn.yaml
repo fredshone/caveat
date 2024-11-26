@@ -17,7 +17,7 @@ global:
     patience: 20
 
   experiment_params:
-    LR: 0.01
+    LR: 0.001
     weight_decay: 0.0
     scheduler_gamma: 0.95
 

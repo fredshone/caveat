@@ -1,7 +1,7 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "paper_d_cnn_vae_2"
+    name: "paper_d_cnn_vae"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -20,22 +20,22 @@ global:
     duration: 1440
     jitter: 0.1
 
-paper_d_cnn_vae_2_nrun0:
+paper_d_cnn_vae_nrun0:
   model_params:
     name: "VAEDiscConv"
 
-paper_d_cnn_vae_2_nrun1:
+paper_d_cnn_vae_nrun1:
   model_params:
     name: "VAEDiscConv"
 
-paper_d_cnn_vae_2_nrun2:
+paper_d_cnn_vae_nrun2:
   model_params:
     name: "VAEDiscConv"
 
-paper_d_cnn_vae_2_nrun3:
+paper_d_cnn_vae_nrun3:
   model_params:
     name: "VAEDiscConv"
 
-paper_d_cnn_vae_2_nrun4:
+paper_d_cnn_vae_nrun4:
   model_params:
     name: "VAEDiscConv"

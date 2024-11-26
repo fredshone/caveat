@@ -1,7 +1,7 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "paper_c_rnn_Jvae"
+    name: "paper_c_rnn_jvae"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
