@@ -368,7 +368,7 @@ def eval_models_creativity(
         creativity_dists.append(
             Series(
                 [
-                    1 - observed_diversity,
+                    1 - y_diversity,
                     creativity.conservatism(observed_hash, y_hash),
                 ],
                 name=model,

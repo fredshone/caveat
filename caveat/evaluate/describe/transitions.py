@@ -23,7 +23,7 @@ def sequence_prob_plot(
 
     n_plots = len(ys) + 2
     ratios = [1 for _ in range(n_plots)]
-    ratios[-1] = 0.5
+    ratios[-1] = 0.3
 
     fig, axs = plt.subplots(
         1,
@@ -43,7 +43,7 @@ def sequence_prob_plot(
         return fig
     for i, (name, y) in enumerate(ys.items()):
         _probs_plot(name, y, ax=axs[i + 1], cmap=cmap)
-        axs[i + 1].set_title(name.title())
+        axs[i + 1].set_title(name)
 
     elements = [Patch(facecolor=cmap[act], label=act.title()) for act in acts]
     axs[-1].axis("off")

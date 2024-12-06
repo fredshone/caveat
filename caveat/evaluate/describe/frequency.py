@@ -18,7 +18,7 @@ def frequency_plots(
 
     n_plots = len(ys) + 2
     ratios = [1 for _ in range(n_plots)]
-    ratios[-1] = 0.5
+    ratios[-1] = 0.3
 
     cmap = kwargs.pop("cmap", None)
     if cmap is None:
@@ -37,9 +37,9 @@ def frequency_plots(
         gridspec_kw={"width_ratios": ratios},
     )
 
-    plot_agg_acts(
-        "observed", observed, class_map, ax=axs[0], legend=False, **kwargs
-    )
+    name = kwargs.pop("observed_title", "Observed")
+
+    plot_agg_acts(name, observed, class_map, ax=axs[0], legend=False, **kwargs)
 
     # now deal with ys
     for i, (name, y) in enumerate(ys.items()):
