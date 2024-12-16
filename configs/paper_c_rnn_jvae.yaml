@@ -1,7 +1,7 @@
 global:
   logging_params:
     log_dir: "logs"
-    name: "paper_c_rnn_jvae"
+    name: "paper_c_rnn_jvae2"
 
   schedules_path: "tmp/nts_home_schedules.csv"
   attributes_path: "tmp/nts_home_attributes_groups.csv"
@@ -48,7 +48,7 @@ global:
     name: "JVAESeqLSTM"
     hidden_layers: 5
     hidden_size: 256
-    labels_hidden_size: 256
+    labels_hidden_size: 32
     latent_dim: 6
     dropout: 0.1
     teacher_forcing_ratio: 0.5

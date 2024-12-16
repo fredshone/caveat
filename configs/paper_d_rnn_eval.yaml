@@ -21,25 +21,25 @@ global:
     weight_decay: 0.0
     scheduler_gamma: 0.95
 
-  conditionals:
-    gender: nominal
-    age_group: nominal
-    # ethnicity: nominal
-    # education: nominal
-    # license: nominal
-    car_access: nominal
-    work_status: nominal
-    # area: nominal
-    income: ordinal
-    # hh_size: ordinal
-    # hh_composition: nominal
-    # hh_children: ordinal
-    # hh_cars: ordinal
-    # hh_bikes: ordinal
-    # hh_motorcycles: ordinal
+  # conditionals:
+  #   gender: nominal
+  #   age_group: nominal
+  #   # ethnicity: nominal
+  #   # education: nominal
+  #   # license: nominal
+  #   car_access: nominal
+  #   work_status: nominal
+  #   # area: nominal
+  #   income: ordinal
+  #   # hh_size: ordinal
+  #   # hh_composition: nominal
+  #   # hh_children: ordinal
+  #   # hh_cars: ordinal
+  #   # hh_bikes: ordinal
+  #   # hh_motorcycles: ordinal
   
-  evaluation_params:
-    split_on: [gender, age_group, car_access, work_status, income]
+  # evaluation_params:
+  #   split_on: [gender, age_group, car_access, work_status, income]
   
 
 DiscLSTM1:
