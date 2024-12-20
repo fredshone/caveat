@@ -54,7 +54,7 @@ def validate_schedules(data: pd.DataFrame):
 
 
 def load_and_validate_attributes(
-    config: dict, schedules: pd.DataFrame
+    config: dict, schedules: pd.DataFrame, verbose: bool = True
 ) -> pd.DataFrame:
     """
     Load and validate attributes data from a CSV file.
@@ -75,11 +75,33 @@ def load_and_validate_attributes(
         attributes = pd.read_csv(data_path)
         if attributes.empty:
             raise UserWarning(f"No attributes found in {data_path}.")
+        schedule_pids = set(schedules.pid)
+        attribute_pids = set(attributes.pid)
+        if not schedule_pids == attribute_pids:
+            print(
+                "<!> Schedules and attributes pids do not match! Attempting to fix."
+            )
+            intersection = schedule_pids & attribute_pids
+            if not intersection:
+                raise UserWarning(
+                    "No common pids found between schedules and attributes/labels."
+                )
+            if schedule_pids > intersection:
+                print(
+                    f"Removing {len(schedule_pids - intersection)} pids from schedules."
+                )
+                schedules = schedules.loc[schedules.pid.isin(intersection)]
+            if attribute_pids > intersection:
+                print(
+                    f"Removing {len(attribute_pids - intersection)} pids from attributes."
+                )
+                attributes = attributes.loc[attributes.pid.isin(intersection)]
         validate_attributes(attributes, config)
         validate_attributes_index(attributes, schedules)
-        print(
-            f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
-        )
+        if verbose:
+            print(
+                f"Loaded {len(attributes)} attributes from {config['attributes_path']}"
+            )
     else:
         attributes = None
 
@@ -93,12 +115,14 @@ def load_and_validate_attributes(
                     f"No synthetic attributes found in {data_path}."
                 )
             validate_attributes(synthetic_attributes, config, synthetic=True)
-            print(
-                f"Loaded {len(synthetic_attributes)} synthetic attributes from {config['synthetic_attributes_path']}"
-            )
+            if verbose:
+                print(
+                    f"Loaded {len(synthetic_attributes)} synthetic attributes from {config['synthetic_attributes_path']}"
+                )
         else:
             synthetic_attributes = attributes
-            print("Using input attributes as synthetic attributes")
+            if verbose:
+                print("Using input attributes as synthetic attributes")
 
     else:
         synthetic_attributes = None
@@ -154,9 +178,11 @@ def validate_attributes_index(
     """
     seq_index = schedules.pid
     attr_index = attributes.pid
-    if not set(seq_index).issubset(set(attr_index)):
-        raise UserWarning("Missing attributes.")
     if not seq_index.dtype == attr_index.dtype:
         raise UserWarning(
             "Schedules and attributes pid datatypes do not match, this may result in 'misalignment' of schedules and attributes."
         )
+    if not set(seq_index).issubset(set(attr_index)):
+        raise UserWarning("Schedule pids missing from attributes.")
+    if not set(attr_index).issubset(set(seq_index)):
+        raise UserWarning("Attribute pids missing from schedules.")

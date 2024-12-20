@@ -1,37 +1,10 @@
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
-from torch import Tensor
+from torch import Tensor, ones_like
 from torch.testing import assert_close
 
-from caveat.encoding.attributes import (
-    AttributeEncoder,
-    nominal_encode,
-    ordinal_encode,
-)
-
-
-def test_encode_ordinal():
-    data = pd.Series([34, 96, 15])
-    min, max = 0, 100
-    encoded = ordinal_encode(data, min, max)
-    expected = Tensor([[0.34], [0.96], [0.15]]).float()
-    assert_close(encoded, expected)
-
-
-def test_encode_nominal_no_encodings():
-    data = pd.Series(["M", "F", "F"])
-    encoded, encodings = nominal_encode(data, None)
-    assert_close(encoded, Tensor([[0, 1], [1, 0], [1, 0]]).float())
-    assert encodings == {"M": 1, "F": 0}
-
-
-def test_encode_nominal_with_encodings():
-    data = pd.Series(["M", "F", "F"])
-    encodings = {"M": 0, "F": 1}
-    encoded, encodings = nominal_encode(data, encodings)
-    assert_close(encoded, Tensor([[1, 0], [0, 1], [0, 1]]).float())
-    assert encodings == {"M": 0, "F": 1}
+from caveat.label_encoding.onehot import OneHotAttributeEncoder
 
 
 def test_encoder_ordinal():
@@ -39,10 +12,11 @@ def test_encoder_ordinal():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, weights = encoder.encode(data)
     expected = Tensor([[0.34], [0.96], [0.15]]).float()
     assert_close(encoded, expected)
+    assert_close(weights, ones_like(encoded))
     assert encoder.config["age"] == {
         "ordinal": [0, 100],
         "location": 0,
@@ -55,14 +29,16 @@ def test_re_encoder_ordinal():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [10, 50, 20], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config={"age": "ordinal"})
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config={"age": "ordinal"})
+    encoded, weights = encoder.encode(data)
     expected = Tensor([[0.0], [1.0], [0.25]]).float()
     assert_close(encoded, expected)
+    assert_close(weights, ones_like(encoded))
     new_data = pd.DataFrame({"pid": [0, 1, 2], "age": [20, 30, 40]})
-    new_encoded = encoder.encode(new_data)
+    new_encoded, weights = encoder.encode(new_data)
     new_expected = Tensor([[0.25], [0.5], [0.75]]).float()
     assert_close(new_encoded, new_expected)
+    assert_close(weights, ones_like(encoded))
     assert encoder.config["age"] == {
         "ordinal": [10, 50],
         "location": 0,
@@ -75,8 +51,8 @@ def test_re_encoder_ordinal_with_dtype_change():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [10, 50, 20], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config={"age": "ordinal"})
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config={"age": "ordinal"})
+    encoded, _ = encoder.encode(data)
     expected = Tensor([[0.0], [1.0], [0.25]]).float()
     assert_close(encoded, expected)
     new_data = pd.DataFrame({"pid": [0, 1, 2], "age": [20.0, 30.0, 40.0]})
@@ -91,8 +67,8 @@ def test_encoder_nominal():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
     expected = Tensor([[0, 1], [1, 0], [1, 0]]).float()
     assert_close(encoded, expected)
     assert encoder.config["gender"] == {
@@ -108,8 +84,8 @@ def test_re_encoder_nominal():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
     assert_close(encoded, Tensor([[0, 1], [1, 0], [1, 0]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
@@ -120,7 +96,7 @@ def test_re_encoder_nominal():
     new = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "M", "F"]}
     )
-    new_encoded = encoder.encode(new)
+    new_encoded, _ = encoder.encode(new)
     assert_close(new_encoded, Tensor([[0, 1], [0, 1], [1, 0]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
@@ -135,8 +111,8 @@ def test_re_encoder_new_cat_nominal():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
     assert_close(encoded, Tensor([[0, 1], [1, 0], [1, 0]]).float())
     assert encoder.config["gender"] == {
         "nominal": {"M": 1, "F": 0},
@@ -157,7 +133,7 @@ def test_encoder_missing_columns():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
+    encoder = OneHotAttributeEncoder(config=config)
     with pytest.raises(UserWarning):
         encoder.encode(data)
 
@@ -167,7 +143,7 @@ def test_encoder_bad_config():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=bad_config)
+    encoder = OneHotAttributeEncoder(config=bad_config)
     with pytest.raises(UserWarning):
         encoder.encode(data)
 
@@ -177,8 +153,8 @@ def test_encoder_mixed():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
     expected = Tensor([[0, 1, 0.34], [1, 0, 0.96], [1, 0, 0.15]]).float()
     assert_close(encoded, expected)
     assert encoder.config["gender"] == {
@@ -200,15 +176,15 @@ def test_re_encoder_mixed():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
     assert_close(
         encoded, Tensor([[0, 1, 0.34], [1, 0, 0.96], [1, 0, 0.15]]).float()
     )
     new_data = pd.DataFrame(
         {"pid": [3, 4, 5], "age": [25, 50, 75], "gender": ["F", "M", "F"]}
     )
-    new_encoded = encoder.encode(new_data)
+    new_encoded, _ = encoder.encode(new_data)
     new_expected = Tensor([[1, 0, 0.25], [0, 1, 0.5], [1, 0, 0.75]]).float()
     assert_close(new_encoded, new_expected)
     assert encoder.config["gender"] == {
@@ -230,15 +206,15 @@ def test_re_encoder_mixed_re_ordered_dataframe():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [34, 96, 15], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
     assert_close(
         encoded, Tensor([[0, 1, 0.34], [1, 0, 0.96], [1, 0, 0.15]]).float()
     )
     new_data = pd.DataFrame(
         {"pid": [0, 1, 2], "gender": ["F", "M", "F"], "age": [25, 50, 75]}
     )
-    new_encoded = encoder.encode(new_data)
+    new_encoded, _ = encoder.encode(new_data)
     new_expected = Tensor([[1, 0, 0.25], [0, 1, 0.5], [1, 0, 0.75]]).float()
     assert_close(new_encoded, new_expected)
     assert encoder.config["gender"] == {
@@ -260,8 +236,8 @@ def test_decode_attributes():
     data = pd.DataFrame(
         {"pid": [0, 1, 2], "age": [30, 90, 25], "gender": ["M", "F", "F"]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
     assert_close(
         encoded, Tensor([[0, 1, 0.30], [1, 0, 0.90], [1, 0, 0.25]]).float()
     )
@@ -277,9 +253,9 @@ def test_re_encoder_mixed_re_ordered_dataframe_and_decode():
     new_data = pd.DataFrame(
         {"pid": [0, 1, 2], "gender": ["F", "M", "F"], "age": [25, 50, 75]}
     )
-    encoder = AttributeEncoder(config=config)
-    encoded = encoder.encode(data)
-    new_encoded = encoder.encode(new_data)
+    encoder = OneHotAttributeEncoder(config=config)
+    encoded, _ = encoder.encode(data)
+    new_encoded, _ = encoder.encode(new_data)
 
     decoded_data = encoder.decode(encoded)[data.columns]
     assert_frame_equal(data, decoded_data, check_dtype=True, check_exact=True)

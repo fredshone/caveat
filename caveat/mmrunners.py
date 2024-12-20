@@ -5,7 +5,7 @@ import pandas as pd
 from torch import concat as torch_concat
 from torch.random import seed as seeder
 
-from caveat.run import (
+from caveat.runners import (
     build_dataloader,
     encode_input_attributes,
     encode_schedules,
@@ -64,12 +64,16 @@ def mmrun_command(
 
     # encode data
     base_logger = initiate_logger(logger_params.get("log_dir", "logs"), name)
-    attribute_encoder, encoded_attributes = encode_input_attributes(
+    attribute_encoder, encoded_labels, label_weights = encode_input_attributes(
         base_logger.log_dir, input_attributes, config
     )
 
     schedule_encoder, encoded_schedules, data_loader = encode_schedules(
-        base_logger.log_dir, input_schedules.copy(), encoded_attributes, config
+        base_logger.log_dir,
+        input_schedules.copy(),
+        encoded_labels,
+        label_weights,
+        config,
     )
 
     if warm_start:
@@ -81,6 +85,7 @@ def mmrun_command(
             name=name,
             data_loader=data_loader,
             encoded_schedules=encoded_schedules,
+            label_encoder=attribute_encoder,
             config=config,
             test=test,
             gen=gen,
@@ -135,12 +140,12 @@ def mmrun_command(
         logger = initiate_logger(log_root, name)
 
         # encode data
-        attribute_encoder, encoded_attributes = encode_input_attributes(
+        attribute_encoder, encoded_labels = encode_input_attributes(
             logger.log_dir, sub_attributes, config
         )
 
         encoded_schedules = schedule_encoder.encode(
-            schedules=sub_schedules, conditionals=encoded_attributes
+            schedules=sub_schedules, labels=encoded_labels
         )
         data_loader = build_dataloader(config, encoded_schedules)
 
@@ -149,6 +154,7 @@ def mmrun_command(
             name=name,
             data_loader=data_loader,
             encoded_schedules=encoded_schedules,
+            label_encoder=attribute_encoder,
             config=config,
             test=test,
             gen=gen,
@@ -192,7 +198,7 @@ def mmrun_command(
                         f"No synthetic attributes found for {name}. Skipping generation."
                     )
                     continue
-                synthetic_population = attribute_encoder.encode(
+                synthetic_population, _ = attribute_encoder.encode(
                     sub_synthetic_attributes
                 )
             else:

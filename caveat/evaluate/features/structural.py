@@ -46,7 +46,7 @@ def sequence_lengths(
     lengths = population.groupby("pid").size().value_counts().sort_index()
     keys = array(lengths.index)
     values = array(lengths.values)
-    return {"sequence lengths": (keys, values / values.sum())}
+    return {"sequence lengths": (keys, values)}
 
 
 def trip_consistency(

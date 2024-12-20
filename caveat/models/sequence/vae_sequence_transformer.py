@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torchmetrics.classification import MulticlassHammingDistance
 
-from caveat.models.sequence.VAE_LSTM import Encoder
+from caveat.models.sequence.vae_sequence_lstm import Encoder
 
 
 class BahdanauAttention(nn.Module):
@@ -80,15 +80,13 @@ class AttnDecoderRNN(nn.Module):
         acts_logits, durations = torch.split(
             decoder_outputs, [self.output_size - 1, 1], dim=-1
         )
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
         durations = self.duration_activation(durations)
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
 
         decoder_outputs = F.log_softmax(decoder_outputs, dim=-1)
 
-        return log_prob_outputs, prob_outputs, decoder_hidden, attentions
+        return log_prob_outputs, decoder_hidden, attentions
 
     def forward_step(self, input, hidden, encoder_outputs):
         # input: [N, 1, 2]
@@ -229,15 +227,15 @@ class Transformer(nn.Module):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs
 
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
         """Reparameterization trick to sample from N(mu, var) from N(0,1).

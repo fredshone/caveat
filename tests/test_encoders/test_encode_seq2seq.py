@@ -104,4 +104,4 @@ def test_encoder():
 
     assert torch.equal(encoded.lhs[0], expected)
     assert torch.equal(encoded.rhs[0], expected)
-    assert torch.equal(encoded.masks[0], expected_weights)
+    assert torch.equal(encoded.lhs_weights[0], expected_weights)

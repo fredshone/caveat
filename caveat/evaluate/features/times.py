@@ -45,9 +45,8 @@ def start_durations_by_act(population: DataFrame) -> dict[str, ndarray]:
 def start_and_duration_by_act_bins(
     population: DataFrame, bin_size: int = 15
 ) -> dict[str, tuple[ndarray, ndarray]]:
-    return weighted_features(
-        start_durations_by_act(population), bin_size=bin_size, factor=1440
-    )
+    features = start_durations_by_act(population)
+    return weighted_features(features, bin_size=bin_size, factor=1440)
 
 
 def start_times_by_act_plan_seq(

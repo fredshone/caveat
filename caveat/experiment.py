@@ -4,8 +4,7 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
-from pandas import DataFrame
-from torch import Tensor, optim
+from torch import Tensor, nn, optim
 
 from caveat.models.utils import ScheduledOptim
 
@@ -14,12 +13,15 @@ class Experiment(pl.LightningModule):
 
     def __init__(
         self,
+        in_shape: tuple,
+        encodings: int,
+        encoding_weights: Optional[Tensor] = None,
+        conditionals_size: Optional[tuple] = None,
+        sos: int = 0,
         gen: bool = False,
         test: bool = False,
         LR: float = 0.005,
         weight_decay: float = 0.0,
-        kld_weight: float = 0.00025,
-        duration_weight: float = 1.0,
         **kwargs,
     ) -> None:
         super(Experiment, self).__init__()
@@ -28,24 +30,91 @@ class Experiment(pl.LightningModule):
         self.LR = LR
         self.weight_decay = weight_decay
         self.kwargs = kwargs
-        self.kld_weight = kld_weight
-        self.duration_weight = duration_weight
         self.curr_device = None
         self.save_hyperparameters()
-        self.test_outputs = []
+        """Base VAE.
+
+        Args:
+            in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
+            encodings (int): Number of activity encodings.
+            encoding_weights (tensor): Weights for activity encodings.
+            conditionals_size (int, optional): Size of conditionals encoding. Defaults to None.
+            sos (int, optional): Start of sequence token. Defaults to 0.
+            config: Additional arguments from config.
+        """
+        # encoding params
+        self.in_shape = in_shape
+        print(f"Found input shape: {self.in_shape}")
+        self.encodings = encodings
+        print(f"Found encodings: {self.encodings}")
+        self.encoding_weights = encoding_weights
+        print(f"Found encoding weights: {self.encoding_weights}")
+        self.conditionals_size = conditionals_size
+        if self.conditionals_size is not None:
+            print(f"Found conditionals size: {self.conditionals_size}")
+        self.sos = sos
+        print(f"Found start of sequence token: {self.sos}")
+        self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
+        print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
+
+        # loss function params
+        self.kld_loss_weight = kwargs.get("kld_weight", 0.001)
+        print(f"Found KLD weight: {self.kld_loss_weight}")
+
+        self.activity_loss_weight = kwargs.get("activity_loss_weight", 1.0)
+        print(f"Found activity loss weight: {self.activity_loss_weight}")
+
+        self.duration_loss_weight = kwargs.get("duration_loss_weight", 1.0)
+        print(f"Found duration loss weight: {self.duration_loss_weight}")
+
+        self.label_loss_weight = kwargs.get("label_loss_weight", 0.0001)
+        print(f"Found labels loss weight: {self.label_loss_weight}")
+
+        self.use_mask = kwargs.get("use_mask", True)
+        print(f"Using mask: {self.use_mask}")
+
+        self.use_weighted_loss = kwargs.get("weighted_loss", True)
+        print(f"Using weighted loss: {self.use_weighted_loss}")
+
+        # set up weighted loss
+        if self.use_weighted_loss and self.encoding_weights is not None:
+            print("Using weighted loss function")
+            self.NLLL = nn.NLLLoss(weight=self.encoding_weights)
+        else:
+            self.NLLL = nn.NLLLoss()
+
+        self.base_NLLL = nn.NLLLoss(reduction="none")
+
+        self.loss = nn.NLLLoss(reduction="none")
+        self.MSE = nn.MSELoss(reduction="none")
+
+        # set up scheduled loss function weights
+        self.scheduled_kld_weight = 1.0
+        self.scheduled_act_weight = 1.0
+        self.scheduled_dur_weight = 1.0
+        self.scheduled_label_weight = 1.0
+
+        self.build(**kwargs)
+
+    def on_validation_epoch_end(self) -> None:
+        return super().on_validation_epoch_end()
 
     def training_step(self, batch, batch_idx):
-        (x, x_mask), (y, y_mask), conditionals = batch
+        (x, _), (y, y_mask), (labels, _) = batch
 
         self.curr_device = x.device
 
-        results = self.forward(x, conditionals=conditionals, target=y)
+        log_probs, mu, log_var, z = self.forward(
+            x, conditionals=labels, target=y
+        )
         train_loss = self.loss_function(
-            *results,
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
             target=y,
             mask=y_mask,
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
+            kld_weight=self.kld_loss_weight,
+            duration_weight=self.duration_loss_weight,
             batch_idx=batch_idx,
         )
         self.log_dict(
@@ -55,27 +124,18 @@ class Experiment(pl.LightningModule):
         return train_loss["loss"]
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
-        (x, _), (y, y_mask), conditionals = batch
+        (x, _), (y, y_weights), (labels, _) = batch
         self.curr_device = x.device
 
-        results = self.forward(x, conditionals=conditionals)
-        # z = results[-1]
-        # DataFrame(z.cpu().numpy()).to_csv(
-        #     Path(
-        #         self.logger.log_dir,
-        #         "val_z",
-        #         f"z_epoch_{self.current_epoch}.csv",
-        #     ),
-        #     index=False,
-        #     header=False,
-        #     mode="a",
-        # )
+        log_probs, mu, log_var, z = self.forward(x, conditionals=labels)
         val_loss = self.loss_function(
-            *results,
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
             target=y,
-            mask=y_mask,
-            kld_weight=self.kld_weight,
-            duration_weight=self.duration_weight,
+            mask=y_weights,
+            kld_weight=self.kld_loss_weight,
+            duration_weight=self.duration_loss_weight,
             optimizer_idx=optimizer_idx,
             batch_idx=batch_idx,
         )
@@ -95,16 +155,20 @@ class Experiment(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         if self.test:
-            (x, _), (y, y_mask), conditionals = batch
+            (x, _), (y, y_weights), conditionals = batch
             self.curr_device = x.device
 
-            results = self.forward(x, conditionals=conditionals)
+            log_probs_x, mu, log_var, z = self.forward(
+                x, conditionals=conditionals
+            )
             test_loss = self.loss_function(
-                *results,
+                log_probs_x=log_probs_x,
+                mu=mu,
+                log_var=log_var,
                 target=y,
-                mask=y_mask,
-                kld_weight=self.kld_weight,
-                duration_weight=self.duration_weight,
+                mask=y_weights,
+                kld_weight=self.kld_loss_weight,
+                duration_weight=self.duration_loss_weight,
                 batch_idx=batch_idx,
             )
 
@@ -117,14 +181,14 @@ class Experiment(pl.LightningModule):
             )
 
     def regenerate_val_batch(self):
-        (x, _), (y, _), conditionals = next(
+        (x, _), (y, _), (labels, _) = next(
             iter(self.trainer.datamodule.val_dataloader())
         )
         x = x.to(self.curr_device)
         y = y.to(self.curr_device)
-        conditionals = conditionals.to(self.curr_device)
+        labels = labels.to(self.curr_device)
         self.regenerate_batch(
-            x, target=y, name="reconstructions", conditionals=conditionals
+            x, target=y, name="reconstructions", conditionals=labels
         )
 
     def regenerate_batch(
@@ -154,14 +218,12 @@ class Experiment(pl.LightningModule):
         )
 
     def sample_sequences(self, name: str = "samples") -> None:
-        _, _, conditionals = next(
+        _, _, (labels, _) = next(
             iter(self.trainer.datamodule.test_dataloader())
         )
-        conditionals = conditionals.to(self.curr_device)
-        z = torch.randn(len(conditionals), self.latent_dim)
-        y_probs = self.predict(
-            z, conditionals=conditionals, device=self.curr_device
-        )
+        labels = labels.to(self.curr_device)
+        z = torch.randn(len(labels), self.latent_dim)
+        y_probs = self.predict(z, conditionals=labels, device=self.curr_device)
         vutils.save_image(
             pre_process(y_probs.cpu().data),
             Path(
@@ -176,6 +238,7 @@ class Experiment(pl.LightningModule):
 
     def get_scheduler(self, optimizer):
         if self.kwargs.get("scheduler_gamma") is not None:
+            print("Using ExponentialLR scheduler")
             scheduler = optim.lr_scheduler.ExponentialLR(
                 optimizer, gamma=self.kwargs["scheduler_gamma"]
             )
@@ -184,6 +247,7 @@ class Experiment(pl.LightningModule):
             lr_mul = self.kwargs.get("lr_mul", 2)
             d_model = self.kwargs.get("d_model", 512)
             n_warmup_steps = self.kwargs.get("warmup")
+            print("Using ScheduledOptim scheduler")
             scheduler = {
                 "scheduler": ScheduledOptim(
                     optimizer,
@@ -212,20 +276,16 @@ class Experiment(pl.LightningModule):
     def predict_step(self, batch):
         # YUCK
         if len(batch) == 2:  # generative process
-            zs, conditionals = batch
+            zs, labels = batch
             return (
-                conditionals,
-                self.predict(
-                    zs, conditionals=conditionals, device=self.curr_device
-                ),
+                labels,
+                self.predict(zs, conditionals=labels, device=self.curr_device),
                 zs,
             )
         # inference process
-        (x, _), (_, _), conditionals = batch
-        preds, zs = self.infer(
-            x, conditionals=conditionals, device=self.curr_device
-        )
-        return x, preds, zs, conditionals
+        (x, _), (_, _), (labels, _) = batch
+        preds, zs = self.infer(x, conditionals=labels, device=self.curr_device)
+        return x, preds, zs, labels
 
 
 def unpack(x, y, current_device):

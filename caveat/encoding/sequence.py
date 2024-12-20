@@ -25,11 +25,16 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = None  # initialise as none so we can check for encoding versus re-encoding
 
     def encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
+        if labels is not None:
+            assert schedules.pid.nunique() == labels.shape[0]
         if self.encodings is None:
             self.setup_encoder(schedules)
-        return self._encode(schedules, conditionals)
+        return self._encode(schedules, labels, label_weights)
 
     def setup_encoder(self, schedules: pd.DataFrame) -> None:
         self.sos = 0
@@ -45,7 +50,10 @@ class SequenceEncoder(BaseEncoder):
         self.encodings = len(self.index_to_acts)
 
     def _encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
         # prepare schedules dataframe
         schedules = schedules.copy()
@@ -62,11 +70,12 @@ class SequenceEncoder(BaseEncoder):
 
         return BaseDataset(
             schedules=encoded_schedules,
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=len(self.index_to_acts),
             activity_weights=None,
             augment=augment,
-            conditionals=conditionals,
+            labels=labels,
+            label_weights=label_weights,
         )
 
     def _encode_sequences(
@@ -101,9 +110,8 @@ class SequenceEncoder(BaseEncoder):
         return (torch.from_numpy(encoded), torch.from_numpy(weights))
 
     def _calc_act_weights(self, data: pd.DataFrame) -> Dict[str, float]:
-        act_weights = (
-            data.groupby("act", observed=True).duration.sum().to_dict()
-        )
+
+        act_weights = data.act.value_counts().to_dict()
         n = data.pid.nunique()
         act_weights.update({self.sos: n, self.eos: n})
         for act in self.index_to_acts.keys():
@@ -146,6 +154,9 @@ class SequenceEncoder(BaseEncoder):
                 if int(act_idx) == self.sos:
                     continue
                 if int(act_idx) == self.eos:
+                    if act_start == 0:
+                        print(f"Failed to decode pid: {pid}")
+                        decoded.append([pid, "home", 0, 0])  # todo: hack
                     break
                 duration = int(duration * self.norm_duration)
                 decoded.append(
@@ -199,11 +210,11 @@ class SequenceEncoderStaggered(SequenceEncoder):
 
         return StaggeredDataset(
             schedules=encoded_schedules,
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=len(self.index_to_acts),
             activity_weights=None,
             augment=augment,
-            conditionals=conditionals,
+            labels=conditionals,
         )
 
 

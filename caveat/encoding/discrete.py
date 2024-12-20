@@ -21,11 +21,14 @@ class DiscreteEncoder(BaseEncoder):
         )
 
     def encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
         if self.acts_to_index is None:
             self.setup_encoder(schedules)
-        return self._encode(schedules, conditionals)
+        return self._encode(schedules, labels, label_weights)
 
     def setup_encoder(self, schedules: pd.DataFrame) -> None:
         self.index_to_acts = {
@@ -34,14 +37,27 @@ class DiscreteEncoder(BaseEncoder):
         self.acts_to_index = {a: i for i, a in self.index_to_acts.items()}
 
         # calc weightings
-        weights = (
+        act_freqs = (
             schedules.groupby("act", observed=True).duration.sum().to_dict()
         )
-        weights = np.array([weights[k] for k in range(len(weights))])
-        self.encoding_weights = torch.from_numpy(1 / weights).float()
+        index_freqs = {self.acts_to_index[k]: v for k, v in act_freqs.items()}
+        ordered_freqs = np.array(
+            [index_freqs[k] for k in range(len(index_freqs))]
+        )
+        weights = 1 / np.log(ordered_freqs)
+        weights = (
+            weights / weights.mean()
+        )  # normalise to average 1 for each activity
+        weights = (
+            weights / self.steps
+        )  # normalise to average 1 for each activity schedule
+        self.encoding_weights = torch.from_numpy(weights).float()
 
     def _encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self,
+        schedules: pd.DataFrame,
+        labels: Optional[Tensor],
+        label_weights: Optional[Tensor],
     ) -> BaseDataset:
 
         schedules = schedules.copy()
@@ -59,11 +75,12 @@ class DiscreteEncoder(BaseEncoder):
 
         return BaseDataset(
             schedules=encoded.long(),
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=activity_encodings,
             activity_weights=self.encoding_weights,
             augment=augment,
-            conditionals=conditionals,
+            labels=labels,
+            label_weights=label_weights,
         )
 
     def decode(self, schedules: Tensor, argmax=True) -> pd.DataFrame:
@@ -158,11 +175,12 @@ class DiscreteEncoderPadded(BaseEncoder):
 
         return PaddedDatatset(
             schedules=encoded.long(),
-            masks=masks,
+            schedule_weights=masks,
             activity_encodings=activity_encodings,
             activity_weights=activity_weights,
             augment=augment,
-            conditionals=conditionals,
+            labels=conditionals,
+            label_weights=None,
         )
 
     def decode(self, schedules: Tensor) -> pd.DataFrame:

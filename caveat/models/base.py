@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 
 import torch
 from pytorch_lightning import LightningModule
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat.experiment import Experiment
 
@@ -11,63 +11,19 @@ class BaseEncoder(LightningModule):
     def __init__(self, **kwargs):
         raise NotImplementedError
 
+    def forward(self, x: Tensor, y: Optional[Tensor]) -> Tensor:
+        raise NotImplementedError
+
 
 class BaseDecoder(LightningModule):
     def __init__(self, **kwargs):
         raise NotImplementedError
 
+    def forward(self, x: Tensor, y: Optional[Tensor]) -> Tensor:
+        raise NotImplementedError
+
 
 class Base(Experiment):
-    def __init__(
-        self,
-        in_shape: tuple,
-        encodings: int,
-        encoding_weights: Optional[Tensor] = None,
-        conditionals_size: Optional[tuple] = None,
-        sos: int = 0,
-        **kwargs,
-    ) -> None:
-        """Base VAE.
-
-        Args:
-            in_shape (tuple[int, int]): [time_step, activity one-hot encoding].
-            encodings (int): Number of activity encodings.
-            encoding_weights (tensor): Weights for activity encodings.
-            conditionals_size (int, optional): Size of conditionals encoding. Defaults to None.
-            sos (int, optional): Start of sequence token. Defaults to 0.
-            config: Additional arguments from config.
-        """
-        super(Base, self).__init__(**kwargs)
-
-        self.in_shape = in_shape
-        print(f"Found input shape: {self.in_shape}")
-        self.encodings = encodings
-        self.encoding_weights = encoding_weights
-        self.conditionals_size = conditionals_size
-        if self.conditionals_size is not None:
-            print(f"Found conditionals size: {self.conditionals_size}")
-        self.sos = sos
-
-        self.teacher_forcing_ratio = kwargs.get("teacher_forcing_ratio", 0.5)
-        print(f"Found teacher forcing ratio: {self.teacher_forcing_ratio}")
-        self.kld_weight = kwargs.get("kld_weight", 0.0001)
-        print(f"Found KLD weight: {self.kld_weight}")
-        self.duration_weight = kwargs.get("duration_weight", 1)
-        print(f"Found duration weight: {self.duration_weight}")
-        self.use_mask = kwargs.get("use_mask", True)
-        print(f"Using mask: {self.use_mask}")
-        self.use_weighted_loss = kwargs.get("weighted_loss", True)
-
-        if self.use_weighted_loss and encoding_weights is not None:
-            print("Using weighted loss function")
-            self.NLLL = nn.NLLLoss(weight=encoding_weights)
-        else:
-            self.NLLL = nn.NLLLoss()
-
-        self.base_NLLL = nn.NLLLoss(reduction="none")
-        self.MSE = nn.MSELoss()
-
-        self.build(**kwargs)
 
     def build(self, **config):
         self.latent_dim = config["latent_dim"]
@@ -111,14 +67,71 @@ class Base(Experiment):
         Returns:
             list[tensor]: [Log probs, Probs [N, L, Cout], Input [N, L, Cin], mu [N, latent], var [N, latent]].
         """
-        mu, log_var = self.encode(x)
+        mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y, mu, log_var, z]
+        log_probs_x = self.decode(z, conditionals=conditionals, target=target)
+        return [log_probs_x, mu, log_var, z]
 
-    def encode(self, input: Tensor) -> list[Tensor]:
+    def loss_function(
+        self,
+        log_probs: Tensor,
+        mu: Tensor,
+        log_var: Tensor,
+        target: Tensor,
+        mask: Tensor,
+        **kwargs,
+    ) -> dict:
+        """Computes the loss function. Different models are expected to need different loss functions
+        depending on the data structure. Typically it will either be a sequence encoding [N, L, 2],
+        or discretized encoding [N, L, C] or [N, L].
+
+        The default is to use the sequence loss function. But child classes can override this method.
+
+        Returns losses as a dictionary. Which must include the keys "loss" and "recon_loss".
+
+        Args:
+            log_probs (Tensor): Log probabilities of the output.
+            mu (Tensor): Latent layer means.
+            log_var (Tensor): Latent layer log variances.
+            target (Tensor): Target sequences.
+            mask (Tensor): Input mask.
+
+        Returns:
+            dict: Losses.
+        """
+
+        return self.weighted_seq_loss(
+            log_probs=log_probs,
+            mu=mu,
+            log_var=log_var,
+            target=target,
+            mask=mask,
+            **kwargs,
+        )
+
+    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
+        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
+
+        Args:
+            mu (tensor): Mean of the latent Gaussian [N x latent_dims].
+            logvar (tensor): Standard deviation of the latent Gaussian [N x latent_dims].
+
+        Returns:
+            tensor: [N x latent_dims].
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return (eps * std) + mu
+
+    def kld(self, mu: Tensor, log_var: Tensor) -> Tensor:
+        # from https://kvfrans.com/deriving-the-kl/
+        return torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+        )
+
+    def encode(
+        self, input: Tensor, conditionals: Optional[Tensor]
+    ) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
 
         Args:
@@ -157,55 +170,15 @@ class Base(Experiment):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # attempt to use teacher forcing by passing target
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
-
-    def loss_function(
-        self,
-        log_probs: Tensor,
-        probs: Tensor,
-        mu: Tensor,
-        log_var: Tensor,
-        target: Tensor,
-        mask: Tensor,
-        **kwargs,
-    ) -> dict:
-        """Computes the loss function. Different models are expected to need different loss functions
-        depending on the data structure. Typically it will either be a sequence encoding [N, L, 2],
-        or discretized encoding [N, L, C] or [N, L].
-
-        The default is to use the sequence loss function. But child classes can override this method.
-
-        Returns losses as a dictionary. Which must include the keys "loss" and "recon_loss".
-
-        Args:
-            log_probs (Tensor): Log probabilities of the output.
-            probs (Tensor): Probabilities of the output.
-            mu (Tensor): Latent layer means.
-            log_var (Tensor): Latent layer log variances.
-            target (Tensor): Target sequences.
-            mask (Tensor): Input mask.
-
-        Returns:
-            dict: Losses.
-        """
-
-        return self.weighted_seq_loss(
-            log_probs=log_probs,
-            probs=probs,
-            mu=mu,
-            log_var=log_var,
-            target=target,
-            mask=mask,
-            **kwargs,
-        )
+        return log_probs
 
     def predict(self, z: Tensor, device: int, **kwargs) -> Tensor:
         """Given samples from the latent space, return the corresponding decoder space map.
@@ -218,7 +191,7 @@ class Base(Experiment):
             tensor: [N, steps, acts].
         """
         z = z.to(device)
-        prob_samples = self.decode(z, **kwargs)[1]
+        prob_samples = exp(self.decode(z, **kwargs))
         return prob_samples
 
     def infer(self, x: Tensor, device: int, **kwargs) -> Tensor:
@@ -230,20 +203,21 @@ class Base(Experiment):
         Returns:
             (tensor: [N, steps, acts], tensor: [N, latent_dims]).
         """
-        results = self.forward(x, **kwargs)
-        _, prob_samples, _, _, zs = results
+        log_probs_x, _, _, z = self.forward(x, **kwargs)
+        prob_samples = exp(log_probs_x)
         prob_samples = prob_samples.to(device)
-        zs = zs.to(device)
-        return prob_samples, zs
+        z = z.to(device)
+        return prob_samples, z
 
     def unweighted_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
 
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
 
         if self.use_mask:  # default is to use masking
             flat_mask = mask.view(-1).bool()
@@ -251,231 +225,262 @@ class Base(Experiment):
             flat_mask = torch.ones_like(target_acts).view(-1).bool()
 
         # activity loss
-        recon_act_nlll = self.NLLL(
+        act_recon = self.NLLL(
             pred_acts.view(-1, self.encodings)[flat_mask],
             target_acts.view(-1).long()[flat_mask],
         )
+        act_scheduled_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = act_scheduled_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
+        dur_recon = self.duration_loss_weight * self.MSE(
             pred_durations.view(-1)[flat_mask],
             target_durations.view(-1)[flat_mask],
         )
+        dur_scheduled_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = dur_scheduled_weight * dur_recon
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_dur_mse
+        w_recons_loss = act_recon + dur_recon
 
         # # hamming distance
         # recon_argmax = torch.argmax(pred_acts, dim=-1)
         # recon_act_ham = self.hamming(recon_argmax, target_acts.squeeze().long())
 
         # kld loss
-        norm_kld_weight = self.kld_weight * self.latent_dim
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
 
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_dur_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_scheduled_weight]).float(),
+            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
         }
 
     def weighted_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
+
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
+        duration_mask = mask.clone()
+        duration_mask[:, 0] = 0.0
+        duration_mask[
+            torch.arange(duration_mask.shape[0]),
+            (mask != 0).cumsum(-1).argmax(1),
+        ] = 0.0
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
+        scheduled_act_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = scheduled_act_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
-            pred_durations, target_durations
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
+        recon_dur_mse = (recon_dur_mse * duration_mask).mean()
+        scheduled_dur_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
         )
-        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+        w_dur_recon = scheduled_dur_weight * recon_dur_mse
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_dur_mse
+        w_recons_loss = w_act_recon + w_dur_recon
 
         # kld loss
-        norm_kld_weight = self.kld_weight
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
 
-        unweighted_kld = torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
-        kld_loss = norm_kld_weight * unweighted_kld
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": unweighted_kld.detach(),
-            "betaKLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_dur_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_dur_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([scheduled_act_weight]).float(),
+            "dur_weight": torch.tensor([scheduled_dur_weight]).float(),
         }
 
     def end_time_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
+
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
+        act_scheduled_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = act_scheduled_weight * act_recon
 
         # ends loss
         target_ends = torch.cumsum(target_durations, dim=-1)
         pred_ends = torch.cumsum(pred_durations, dim=-1)
 
-        recon_end_mse = self.duration_weight * self.MSE(pred_ends, target_ends)
-        recon_end_mse = (recon_end_mse * mask).sum() / mask.sum()
+        recon_end_mse = self.MSE(pred_ends, target_ends)
+        recon_end_mse = (recon_end_mse * mask).mean()
+        dur_scheduled_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = dur_scheduled_weight * recon_end_mse
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_end_mse
+        w_recons_loss = w_act_recon + w_dur_recon
 
         # kld loss
-        norm_kld_weight = self.kld_weight * self.latent_dim
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
 
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_end_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_end_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_scheduled_weight]).float(),
+            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
         }
 
     def combined_seq_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for sequence encoding [N, L, 2]."""
         # unpack act probs and durations
         target_acts, target_durations = self.unpack_encoding(target)
         pred_acts, pred_durations = self.unpack_encoding(log_probs)
+        pred_durations = torch.exp(pred_durations)
+
+        # normalise mask weights
+        mask = mask / mask.mean(-1).unsqueeze(-1)
 
         # activity loss
         recon_act_nlll = self.base_NLLL(
             pred_acts.view(-1, self.encodings), target_acts.view(-1).long()
         )
-        recon_act_nlll = (recon_act_nlll * mask.view(-1)).sum() / mask.sum()
+        act_recon = (recon_act_nlll * mask.view(-1)).mean()
+        act_scheduled_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_act_recon = act_scheduled_weight * act_recon
 
         # duration loss
-        recon_dur_mse = self.duration_weight * self.MSE(
-            pred_durations, target_durations
-        )
-        recon_dur_mse = (recon_dur_mse * mask).sum() / mask.sum()
+        recon_dur_mse = self.MSE(pred_durations, target_durations)
+        recon_dur_mse = (recon_dur_mse * mask).mean()
 
         # ends loss
         target_ends = torch.cumsum(target_durations, dim=-1)
         pred_ends = torch.cumsum(pred_durations, dim=-1)
 
-        recon_end_mse = self.duration_weight * self.MSE(pred_ends, target_ends)
-        recon_end_mse = (recon_end_mse * mask).sum() / mask.sum()
+        recon_end_mse = self.MSE(pred_ends, target_ends)
+        recon_end_mse = (recon_end_mse * mask).mean()
 
-        # combined time loss
-        recon_time_mse = (0.5 * recon_dur_mse) + (0.5 * recon_end_mse)
+        dur_scheduled_weight = (
+            self.duration_loss_weight * self.scheduled_dur_weight
+        )
+        w_dur_recon = dur_scheduled_weight * (recon_end_mse + recon_dur_mse)
 
         # reconstruction loss
-        recons_loss = recon_act_nlll + recon_time_mse
+        w_recons_loss = w_act_recon + w_dur_recon
 
         # kld loss
-        norm_kld_weight = self.kld_weight * self.latent_dim
+        kld_loss = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * kld_loss
 
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        # final loss
+        loss = w_recons_loss + w_kld_loss
 
         return {
-            "loss": recons_loss + kld_loss,
-            "KLD": kld_loss.detach(),
-            "recon_loss": recons_loss.detach(),
-            "recon_act_nlll_loss": recon_act_nlll.detach(),
-            "recon_time_mse_loss": recon_time_mse.detach(),
-            "norm_kld_weight": torch.tensor([norm_kld_weight]).float(),
-            "recon_act_ratio": recon_act_nlll / recon_time_mse,
-            "recon_kld_ratio": recons_loss / kld_loss,
+            "loss": loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "act_recon": w_act_recon.detach(),
+            "dur_recon": w_dur_recon.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([act_scheduled_weight]).float(),
+            "dur_weight": torch.tensor([dur_scheduled_weight]).float(),
         }
 
     def discretized_loss(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss
         recon_act_nlll = self.NLLL(
             log_probs.squeeze().permute(0, 2, 1), target.long()
         )
-
-        # recon_argmax = probs.squeeze().argmax(dim=-1)
-        # recon_act_ham = self.hamming(recon_argmax, input.long())
+        scheduled_act_weight = (
+            self.activity_loss_weight * self.scheduled_act_weight
+        )
+        w_recons_loss = scheduled_act_weight * recon_act_nlll
 
         # kld loss
-        norm_kld_weight = self.kld_weight
-        kld_loss = norm_kld_weight * torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
-        )
+        unweighted_kld = self.kld(mu, log_var)
+        scheduled_kld_weight = self.kld_loss_weight * self.scheduled_kld_weight
+        w_kld_loss = scheduled_kld_weight * unweighted_kld
 
         # loss
-        loss = recon_act_nlll + kld_loss
+        loss = recon_act_nlll + w_kld_loss
 
         return {
             "loss": loss,
-            "recon_loss": recon_act_nlll,
-            "recon_act_nlll_loss": recon_act_nlll,
-            "KLD": kld_loss,
-            "norm_kld_weight": torch.tensor([norm_kld_weight]),
-            "recon_kld_ratio": recon_act_nlll / kld_loss,
+            "KLD": w_kld_loss.detach(),
+            "recon_loss": w_recons_loss.detach(),
+            "kld_weight": torch.tensor([scheduled_kld_weight]).float(),
+            "act_weight": torch.tensor([scheduled_act_weight]).float(),
         }
 
     def discretized_loss_encoded(
-        self, log_probs, probs, mu, log_var, target, mask, **kwargs
+        self, log_probs, mu, log_var, target, mask, **kwargs
     ) -> dict:
         """Computes the loss function for discretized encoding [N, L, C]."""
 
         target_argmax = target.squeeze().argmax(dim=-1)
         return self.discretized_loss(
-            log_probs, probs, mu, log_var, target_argmax, mask, **kwargs
+            log_probs, mu, log_var, target_argmax, mask, **kwargs
         )
-
-    def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
-        """Re-parameterization trick to sample from N(mu, var) from N(0,1).
-
-        Args:
-            mu (tensor): Mean of the latent Gaussian [N x latent_dims].
-            logvar (tensor): Standard deviation of the latent Gaussian [N x latent_dims].
-
-        Returns:
-            tensor: [N x latent_dims].
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return eps * std + mu
 
     def unpack_encoding(self, input: Tensor) -> tuple[Tensor, Tensor]:
         """Split the input into activity and duration.

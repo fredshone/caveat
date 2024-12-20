@@ -1,11 +1,17 @@
 """Console script for caveat."""
 
+from typing import Optional
+
 import click
 import yaml
 
-from caveat.mmrun import mmrun_command
-from caveat.run import (
+from caveat.jrunners import jbatch_command, jrun_command
+from caveat.label_runners import label_run_command
+from caveat.mmrunners import mmrun_command
+from caveat.runners import (
     batch_command,
+    batch_eval_command,
+    eval_command,
     ngen_command,
     nrun_command,
     report_command,
@@ -42,6 +48,96 @@ def run(
             test=test,
             gen=not no_gen,
             infer=not no_infer,
+        )
+
+
+@cli.command(name="jrun")
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--test", "-t", is_flag=True)
+@click.option("--no-infer", "-ni", is_flag=True)
+@click.option("--no-gen", "-ng", is_flag=True)
+@click.option("--verbose", "-v", is_flag=True)
+@click.option("--no_sample", "-ns", is_flag=True)
+@click.option("--patience", "-p", type=int, default=8)
+def jrun(
+    config_path: click.Path,
+    test: bool,
+    no_gen: bool,
+    no_infer: bool,
+    verbose: bool,
+    no_sample: bool,
+    patience: int,
+):
+    """Train and report on a joint model as per the given configuration file."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        jrun_command(
+            config,
+            verbose=verbose,
+            test=test,
+            gen=not no_gen,
+            infer=not no_infer,
+            sample=not no_sample,
+            patience=patience,
+        )
+
+
+# @cli.command(name="jsample")
+# @click.argument("config_path", type=click.Path(exists=True))
+# @click.option("--patience", "-p", type=int, default=10)
+# @click.option("--test", "-t", is_flag=True)
+# @click.option("--no-infer", "-ni", is_flag=True)
+# @click.option("--no-gen", "-ng", is_flag=True)
+# @click.option("--verbose", "-v", is_flag=True)
+# def jsample(
+#     config_path: click.Path,
+#     patience: int,
+#     test: bool,
+#     no_gen: bool,
+#     no_infer: bool,
+#     verbose: bool,
+# ):
+#     """Train and report on a joint model with sampling as per the given configuration file."""
+#     with open(config_path, "r") as file:
+#         config = yaml.safe_load(file)
+#         jsample_command(
+#             config,
+#             patience=patience,
+#             verbose=verbose,
+#             test=test,
+#             gen=not no_gen,
+#             infer=not no_infer,
+#         )
+
+
+@cli.command(name="jbatch")
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--test", "-t", is_flag=True)
+@click.option("--no-infer", "-ni", is_flag=True)
+@click.option("--no-gen", "-ng", is_flag=True)
+@click.option("--verbose", "-v", is_flag=True)
+@click.option("--no_sample", "-ns", is_flag=True)
+@click.option("--patience", "-p", type=int, default=8)
+def jbatch(
+    config_path: click.Path,
+    test: bool,
+    no_gen: bool,
+    no_infer: bool,
+    verbose: bool,
+    no_sample: bool,
+    patience: int,
+):
+    """Train and report on a batch of joint models as per the given configuration file."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        jbatch_command(
+            config,
+            verbose=verbose,
+            test=test,
+            gen=not no_gen,
+            infer=not no_infer,
+            sample=not no_sample,
+            patience=patience,
         )
 
 
@@ -141,7 +237,7 @@ def ngen(
 @cli.command()
 @click.argument("observed_path", type=click.Path(exists=True))
 @click.argument("logs_dir", type=click.Path(exists=True))
-@click.option("--name", type=str, default="synthetic.csv")
+@click.option("--name", type=str, default="synthetic_schedules.csv")
 @click.option("--verbose", is_flag=True)
 @click.option("--head", type=int, default=10)
 @click.option("--batch", "-b", is_flag=True)
@@ -155,3 +251,49 @@ def report(
 ):
     """Report on the given observed population and logs directory."""
     report_command(observed_path, logs_dir, name, verbose, head, batch)
+
+
+@cli.command()
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--schedules", type=str, default="synthetic_schedules.csv")
+@click.option("--labels", type=str)
+@click.option("--verbose", "-v", is_flag=True)
+@click.option("--stats", is_flag=True)
+@click.option("--batch", "-b", is_flag=True)
+def eval(
+    config_path: click.Path,
+    batch: bool,
+    verbose: bool,
+    stats: bool,
+    schedules: str = "synthetic_schedules.csv",
+    labels: Optional[str] = None,
+):
+    """Evaluate on the given observed population and logs directory."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        if batch:
+            batch_eval_command(
+                batch_config=config,
+                schedules_name=schedules,
+                labels_name=labels,
+                verbose=verbose,
+                stats=stats,
+            )
+        else:
+            eval_command(
+                config,
+                schedules_name=schedules,
+                labels_name=labels,
+                verbose=verbose,
+                stats=stats,
+            )
+
+
+@cli.command()
+@click.argument("config_path", type=click.Path(exists=True))
+@click.option("--verbose", "-v", is_flag=True)
+def lrun(config_path: click.Path, verbose: bool):
+    """Train and test label predicting model."""
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+        label_run_command(config, verbose=verbose)

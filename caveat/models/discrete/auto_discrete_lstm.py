@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat import current_device
 from caveat.models import Base
@@ -58,18 +58,11 @@ class AutoDiscLSTM(Base):
         **kwargs,
     ) -> List[Tensor]:
 
-        log_probs, probs = self.decode(
-            z=x, conditionals=conditionals, target=target
-        )
-        return [log_probs, probs]
+        log_probs = self.decode(z=x, conditionals=conditionals, target=target)
+        return [log_probs, Tensor([]), Tensor([]), Tensor([])]
 
     def loss_function(
-        self,
-        log_probs: Tensor,
-        probs: Tensor,
-        target: Tensor,
-        mask: Tensor,
-        **kwargs,
+        self, log_probs: Tensor, target: Tensor, mask: Tensor, **kwargs
     ) -> dict:
         """Loss function for discretized encoding [N, L]."""
         # activity loss
@@ -111,22 +104,22 @@ class AutoDiscLSTM(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
     ) -> Tensor:
         z = z.to(device)
         conditionals = conditionals.to(device)
-        return self.decode(z=z, conditionals=conditionals, kwargs=kwargs)[1]
+        return exp(self.decode(z=z, conditionals=conditionals, kwargs=kwargs))
 
 
 class Decoder(nn.Module):
@@ -209,10 +202,9 @@ class Decoder(nn.Module):
                 decoder_input = self.sample(decoder_output)
 
         acts_logits = torch.cat(outputs, dim=1)  # [N, L, C]
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
 
-        return acts_log_probs, acts_probs
+        return acts_log_probs
 
     def forward_step(self, x, hidden):
         embedded = self.embedding(x)

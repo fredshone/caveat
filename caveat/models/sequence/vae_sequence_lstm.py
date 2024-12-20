@@ -68,22 +68,21 @@ class VAESeqLSTM(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs
 
 
 class VAE_LSTM_Unweighted(VAESeqLSTM):
     def loss_function(
         self,
         log_probs: Tensor,
-        probs: Tensor,
         input: Tensor,
         mu: Tensor,
         log_var: Tensor,
@@ -91,7 +90,7 @@ class VAE_LSTM_Unweighted(VAESeqLSTM):
         **kwargs,
     ) -> dict:
         return self.unweighted_seq_loss(
-            log_probs, probs, input, mu, log_var, mask, **kwargs
+            log_probs, input, mu, log_var, mask, **kwargs
         )
 
 
@@ -208,13 +207,13 @@ class Decoder(nn.Module):
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
         )
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
         durations = self.duration_activation(durations)
-        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
+        durations = torch.log(durations)
 
-        return log_prob_outputs, prob_outputs
+        log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
+
+        return log_prob_outputs
 
     def forward_step(self, x, hidden):
         # [N, 1, 2]

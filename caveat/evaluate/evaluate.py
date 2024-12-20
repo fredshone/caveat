@@ -7,11 +7,11 @@ from pandas import DataFrame, MultiIndex, Series, concat
 from caveat.evaluate.describe.features import (
     average,
     average2d,
-    average_weight,
-    feature_length,
+    average_density,
+    feature_value,
     feature_weight,
 )
-from caveat.evaluate.distance import emd, mape
+from caveat.evaluate.distance import emd
 from caveat.evaluate.features import (
     creativity,
     frequency,
@@ -21,13 +21,12 @@ from caveat.evaluate.features import (
     transitions,
 )
 
-structure_jobs = [
+sample_quality_jobs = [
     (
         ("duration", structural.duration_consistency),
         (feature_weight),
         ("duration", average),
         ("EMD", emd),
-        # ("MAE", abs_av_diff),
     ),
     (
         ("home based", structural.start_and_end_acts),
@@ -35,62 +34,53 @@ structure_jobs = [
         ("prob.", average),
         ("EMD", emd),
     ),
+]
+count_jobs = [
+    (
+        ("total schedules", frequency.count_schedules),
+        (feature_value),
+        ("count", feature_value),
+        ("EMD", emd),
+    )
+]
+aggregate_jobs = [
+    (
+        ("agg. frequency", frequency.activity_frequencies),
+        (feature_weight),
+        ("average freq.", average_density),
+        ("EMD", emd),
+    )
+]
+# participation_prob_jobs = [
+
+#     (
+#         ("participation", participation.participation_prob_by_act),
+#         (feature_weight),
+#         ("prob.", average),
+#         ("MAPE", mape),
+#     ),
+#     (
+#         ("joint participation", participation.joint_participation_prob),
+#         (feature_weight),
+#         ("prob.", average),
+#         ("MAPE", mape),
+#     ),
+# ]
+participation_rate_jobs = [
     (
         ("lengths", structural.sequence_lengths),
         (feature_weight),
-        ("prob.", average),
+        ("length.", average),
         ("EMD", emd),
     ),
-]
-frequency_jobs = [
     (
-        ("agg. participation", frequency.activity_frequencies),
-        (feature_length),
-        ("average freq.", average_weight),
-        ("MAPE", mape),
-    )
-]
-participation_prob_jobs = [
-    (
-        ("participation", participation.participation_prob_by_act),
-        (feature_weight),
-        ("prob.", average),
-        ("MAPE", mape),
-    ),
-    (
-        ("joint participation", participation.joint_participation_prob),
-        (feature_weight),
-        ("prob.", average),
-        ("MAPE", mape),
-    ),
-]
-participation_rate_jobs = [
-    # (
-    #     ("participation rate", participation.participation_rates),
-    #     (feature_weight),
-    #     ("av. rate", average),
-    #     ("EMD", emd),
-    # ),
-    # (
-    #     (
-    #         "activity participation rates",
-    #         participation.participation_rates_by_act,
-    #     ),
-    #     (feature_weight),
-    #     ("av. rate", average),
-    #     ("EMD", emd),
-    # ),
-    (
-        (
-            "enumerated participation rates",
-            participation.participation_rates_by_act_enum,
-        ),
+        ("participation rate", participation.participation_rates_by_act_enum),
         (feature_weight),
         ("av. rate", average),
         ("EMD", emd),
     ),
     (
-        ("joint participation rate", participation.joint_participation_rate),
+        ("pair participation rate", participation.joint_participation_rate),
         (feature_weight),
         ("av rate.", average),
         ("EMD", emd),
@@ -150,6 +140,7 @@ def evaluate_subsampled(
     target_attributes: DataFrame,
     split_on: List[str],
     report_stats: bool = True,
+    verbose: bool = False,
 ):
     descriptions = []
     distances = []
@@ -163,6 +154,10 @@ def evaluate_subsampled(
             sub_schedules = {}
             for model, attributes in synthetic_attributes.items():
                 sample_pids = attributes[attributes[split] == cat].pid
+                if verbose:
+                    print(
+                        f">>> Subsampled {model} {split}={cat} with {len(sample_pids)}"
+                    )
                 sample_schedules = synthetic_schedules[model]
                 sub_schedules[model] = sample_schedules[
                     sample_schedules.pid.isin(sample_pids)
@@ -178,8 +173,10 @@ def evaluate_subsampled(
                 )
             descriptions.append(sub_reports[0])
             distances.append(sub_reports[1])
+
     descriptions = concat(descriptions, axis=0)
     distances = concat(distances, axis=0)
+
     frames = describe_splits(descriptions, distances)
 
     if report_stats:
@@ -216,29 +213,32 @@ def process(
     )
 
     for domain, jobs in [
-        ("structure", structure_jobs),
-        ("frequency", frequency_jobs),
-        ("participation_probs", participation_prob_jobs),
-        ("participation_rates", participation_rate_jobs),
+        ("count", count_jobs),
+        ("sample quality", sample_quality_jobs),
+        ("aggregate", aggregate_jobs),
+        # ("participation_probs", participation_prob_jobs),
+        ("participations", participation_rate_jobs),
         ("transitions", transition_jobs),
         ("timing", time_jobs),
     ]:
         for feature, size, description_job, distance_job in jobs:
-            feature_descriptions, feature_distances = eval_models_correctness(
-                synthetic_schedules,
-                target_schedules,
-                domain,
-                feature,
-                size,
-                description_job,
-                distance_job,
+            feature_descriptions, feature_distances = (
+                eval_models_density_estimation(
+                    synthetic_schedules,
+                    target_schedules,
+                    domain,
+                    feature,
+                    size,
+                    description_job,
+                    distance_job,
+                )
             )
             descriptions = concat([descriptions, feature_descriptions], axis=0)
             distances = concat([distances, feature_distances], axis=0)
 
     # remove nans
-    descriptions = descriptions.fillna(0)
-    distances = distances.fillna(0)
+    descriptions = descriptions.fillna(0.0)
+    distances = distances.fillna(0.0)
     return descriptions, distances
 
 
@@ -258,13 +258,13 @@ def describe(
     features_distances = (
         distances.drop("distance", axis=1)
         .groupby(["domain", "feature"])
-        .apply(weighted_av)
+        .apply(distance_weighted_av)
     )
     features_distances["distance"] = (
         distances["distance"].groupby(["domain", "feature"]).first()
     )
 
-    # themes
+    # domains
     domain_descriptions = (
         features_descriptions.drop("description", axis=1)
         .groupby("domain")
@@ -303,7 +303,7 @@ def describe_splits(
     features_distances = (
         distances.drop("distance", axis=1)
         .groupby(["domain", "feature", "sub_pop"])
-        .apply(weighted_av)
+        .apply(distance_weighted_av)
     )
     features_distances["distance"] = (
         distances["distance"].groupby(["domain", "feature", "sub_pop"]).first()
@@ -336,15 +336,16 @@ def eval_models_creativity(
     # Evaluate Creativity
     observed_hash = creativity.hash_population(target_schedules)
     observed_diversity = creativity.diversity(target_schedules, observed_hash)
+    feature_count = target_schedules.pid.nunique()
     creativity_descriptions = DataFrame(
         {
-            "feature count": [target_schedules.pid.nunique()] * 2,
+            "observed__weight": [feature_count] * 2,
             "observed": [observed_diversity, 1],
         }
     )
     creativity_distance = DataFrame(
         {
-            "feature count": [target_schedules.pid.nunique()] * 2,
+            "observed__weight": [feature_count] * 2,
             "observed": [1 - observed_diversity, 0],
         }
     )
@@ -354,28 +355,36 @@ def eval_models_creativity(
     for model, y in synthetic_schedules.items():
         y_hash = creativity.hash_population(y)
         y_diversity = creativity.diversity(y, y_hash)
+        y_count = y.pid.nunique()
         creativity_descs.append(
             Series(
                 [y_diversity, creativity.novelty(observed_hash, y_hash)],
                 name=model,
             )
         )
+        creativity_descs.append(  # add feature count
+            Series([y_count, y_count], name=f"{model}__weight")
+        )
         creativity_dists.append(
             Series(
                 [
-                    1 - observed_diversity,
+                    1 - y_diversity,
                     creativity.conservatism(observed_hash, y_hash),
                 ],
                 name=model,
             )
         )
+        creativity_dists.append(  # add feature count
+            Series([y_count, y_count], name=f"{model}__weight")
+        )
+
     creativity_descs.append(
         Series(["prob. unique", "prob. novel"], name="description")
     )
     creativity_dists.append(
         Series(["prob. not unique", "prob. conservative"], name="distance")
     )
-    # combinbe
+    # combine
     descriptions = concat(
         [creativity_descriptions, concat(creativity_descs, axis=1)], axis=1
     )
@@ -396,7 +405,7 @@ def eval_models_creativity(
     return descriptions, distances
 
 
-def eval_models_correctness(
+def eval_models_density_estimation(
     synthetic_schedules: dict[str, DataFrame],
     target_schedules: DataFrame,
     domain: str,
@@ -418,16 +427,16 @@ def eval_models_correctness(
 
     # create an observed feature count and description
     feature_weight = size(observed_features)
-    feature_weight.name = "feature count"
+    feature_weight.name = "observed__weight"
 
     description_job = describe(observed_features)
     feature_descriptions = DataFrame(
-        {"feature count": feature_weight, "observed": description_job}
+        {"observed__weight": feature_weight, "observed": description_job}
     )
 
     # sort by count and description, drop description and add distance description
     feature_descriptions = feature_descriptions.sort_values(
-        ascending=False, by=["feature count", "observed"]
+        ascending=False, by=["observed__weight", "observed"]
     )
 
     feature_distances = feature_descriptions.copy()
@@ -435,8 +444,12 @@ def eval_models_correctness(
     # iterate through samples
     for model, y in synthetic_schedules.items():
         synth_features = feature(y)
+        synth_weight = size(synth_features)
+        synth_weight.name = f"{model}__weight"
+
         feature_descriptions = concat(
             [
+                synth_weight,
                 feature_descriptions,
                 describe_feature(model, synth_features, describe),
             ],
@@ -446,6 +459,7 @@ def eval_models_correctness(
         # report sampled distances
         feature_distances = concat(
             [
+                synth_weight,
                 feature_distances,
                 score_features(
                     model,
@@ -469,6 +483,7 @@ def eval_models_correctness(
         [(domain, feature_name, f) for f in feature_distances.index],
         name=["domain", "feature", "segment"],
     )
+
     return feature_descriptions, feature_distances
 
 
@@ -488,6 +503,7 @@ def report(
     head: Optional[int] = None,
     verbose: bool = True,
     suffix: str = "",
+    ranking: bool = False,
 ):
     if head is not None:
         frames["descriptions_short"] = (
@@ -515,15 +531,17 @@ def report(
     print_markdown(frames["feature_descriptions"])
     print("\nFeature Evaluations (Distance):")
     print_markdown(frames["feature_distances"])
-    print("\nFeature Evaluations (Ranked):")
-    print_markdown(rank(frames["feature_distances"]))
+    if ranking:
+        print("\nFeature Evaluations (Ranked):")
+        print_markdown(rank(frames["feature_distances"]))
 
     print("\nDomain Descriptions:")
     print_markdown(frames["domain_descriptions"])
     print("\nDomain Evaluations (Distance):")
     print_markdown(frames["domain_distances"])
-    print("\nDomain Evaluations (Ranked):")
-    print_markdown(rank(frames["domain_distances"]))
+    if ranking:
+        print("\nDomain Evaluations (Ranked):")
+        print_markdown(rank(frames["domain_distances"]))
 
 
 def report_splits(
@@ -532,6 +550,7 @@ def report_splits(
     head: Optional[int] = None,
     verbose: bool = True,
     suffix: str = "",
+    ranking: bool = False,
 ):
     if head is not None:
         frames["descriptions_short"] = (
@@ -563,15 +582,17 @@ def report_splits(
     print_markdown(frames["feature_descriptions"])
     print("\nFeature Evaluations (Distance):")
     print_markdown(frames["feature_distances"])
-    print("\nFeature Evaluations (Ranked):")
-    print_markdown(rank(frames["feature_distances"]))
+    if ranking:
+        print("\nFeature Evaluations (Ranked):")
+        print_markdown(rank(frames["feature_distances"]))
 
     print("\nDomain Descriptions:")
     print_markdown(frames["domain_descriptions"])
     print("\nDomain Evaluations (Distance):")
     print_markdown(frames["domain_distances"])
-    print("\nDomain Evaluations (Ranked):")
-    print_markdown(rank(frames["domain_distances"]))
+    if ranking:
+        print("\nDomain Evaluations (Ranked):")
+        print_markdown(rank(frames["domain_distances"]))
 
 
 def add_stats(data: DataFrame, columns: dict[str, DataFrame]):
@@ -648,12 +669,33 @@ def extract_default_shape(
     raise ValueError("No features found in the given dictionary.")
 
 
-def weighted_av(report: DataFrame, weight_col: str = "feature count") -> Series:
-    weights = report[weight_col]
-    total = sum(weights)
+def weighted_av(report: DataFrame, weight_col: str = "__weight") -> Series:
+    """Weighted avergae of dataframe using weights in the weight column."""
     cols = list(report.columns)
-    cols.remove(weight_col)
+    cols = [c for c in cols if not c.endswith(weight_col)]
     scores = DataFrame()
     for c in cols:
+        weights = report[f"{c}{weight_col}"]
+        total = weights.sum()
+        scores[c] = report[c] * weights / total
+    return scores.sum()
+
+
+def distance_weighted_av(
+    report: DataFrame,
+    base_col: str = "observed__weight",
+    weight_col: str = "__weight",
+) -> Series:
+    """Weighted avergae of dataframe using weights in the weight column and a base column.
+    This deals with cases where models have different features.
+    """
+    cols = list(report.columns)
+    cols = [c for c in cols if not c.endswith(weight_col)]
+    base_weights = report[base_col]
+    scores = DataFrame()
+    for c in cols:
+        weights = report[f"{c}{weight_col}"]
+        weights = (weights + base_weights) / 2
+        total = weights.sum()
         scores[c] = report[c] * weights / total
     return scores.sum()

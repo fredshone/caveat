@@ -27,6 +27,8 @@ def diversity(population: DataFrame, hashed: set[str]) -> float:
         float: Diversity of the population.
     """
     n = population.pid.nunique()
+    if n == 0:
+        return 0
     unique = len(hashed)
     return unique / n
 
@@ -54,7 +56,10 @@ def novelty(observed_hashed: set[str], synthetic_hashed: set[str]) -> float:
     Returns:
         float: Novelty of the synthetic population.
     """
-    return len(synthetic_hashed - observed_hashed) / len(synthetic_hashed)
+    n = len(synthetic_hashed)
+    if n == 0:
+        return 0
+    return len(synthetic_hashed - observed_hashed) / n
 
 
 def conservatism(

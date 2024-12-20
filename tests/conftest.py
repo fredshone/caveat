@@ -25,6 +25,38 @@ def schedules():
 
 
 @pytest.fixture
+def config_discrete_conv(tmp_path):
+    return {
+        "schedules_path": "tests/fixtures/test_schedules.csv",
+        "logging_params": {"log_dir": tmp_path, "name": "test"},
+        "encoder_params": {
+            "name": "discrete",
+            "step_size": 60,
+            "duration": 1440,
+        },
+        "loader_params": {
+            "train_batch_size": 8,
+            "val_batch_size": 8,
+            "num_workers": 1,
+        },
+        "experiment_params": {
+            "LR": 0.005,
+            "weight_decay": 0.0,
+            "scheduler_gamma": 0.95,
+            "kld_weight": 0.001,
+        },
+        "trainer_params": {"max_epochs": 1, "min_epochs": 1},
+        "seed": 1234,
+        "model_params": {
+            "name": "VAEDiscConv",
+            "hidden_layers": [64, 64],
+            "latent_dim": 2,
+            "dropout": 0.1,
+        },
+    }
+
+
+@pytest.fixture
 def config_vae_lstm(tmp_path):
     return {
         "schedules_path": "tests/fixtures/test_schedules.csv",
@@ -49,7 +81,46 @@ def config_vae_lstm(tmp_path):
         "trainer_params": {"max_epochs": 1, "min_epochs": 1},
         "seed": 1234,
         "model_params": {
-            "name": "VAE_LSTM",
+            "name": "VAESeqLSTM",
+            "hidden_layers": 2,
+            "hidden_size": 8,
+            "latent_dim": 2,
+            "teacher_forcing_ratio": 0.5,
+            "use_mask": True,
+            "dropout": 0.1,
+        },
+    }
+
+
+@pytest.fixture
+def config_jvae_lstm(tmp_path):
+    return {
+        "schedules_path": "tests/fixtures/test_schedules.csv",
+        "attributes_path": "tests/fixtures/test_attributes.csv",
+        "conditionals": {"car": "nominal", "gender": "nominal"},
+        "logging_params": {"log_dir": tmp_path, "name": "test"},
+        "attribute_encoder": "tokens",
+        "encoder_params": {
+            "name": "sequence",
+            "max_length": 4,
+            "norm_duration": 1440,
+        },
+        "loader_params": {
+            "train_batch_size": 12,
+            "val_batch_size": 12,
+            "num_workers": 2,
+        },
+        "experiment_params": {
+            "LR": 0.005,
+            "weight_decay": 0.0,
+            "scheduler_gamma": 0.95,
+            "kld_weight": 0.025,
+            "duration_weight": 10,
+        },
+        "trainer_params": {"max_epochs": 1, "min_epochs": 1},
+        "seed": 1234,
+        "model_params": {
+            "name": "JVAESeqLSTM",
             "hidden_layers": 2,
             "hidden_size": 8,
             "latent_dim": 2,
@@ -87,7 +158,7 @@ def config_cvae_lstm(tmp_path):
         "trainer_params": {"max_epochs": 1, "min_epochs": 1},
         "seed": 1234,
         "model_params": {
-            "name": "CVAE_LSTM",
+            "name": "CVAESeqLSTM",
             "hidden_layers": 2,
             "hidden_size": 8,
             "latent_dim": 2,
@@ -125,44 +196,12 @@ def config_c_lstm(tmp_path):
         "trainer_params": {"max_epochs": 1, "min_epochs": 1},
         "seed": 1234,
         "model_params": {
-            "name": "C_LSTM",
+            "name": "CondSeqLSTM",
             "hidden_layers": 2,
             "hidden_size": 8,
             "latent_dim": 2,
             "teacher_forcing_ratio": 0.5,
             "use_mask": True,
-            "dropout": 0.1,
-        },
-    }
-
-
-@pytest.fixture
-def config_conv(tmp_path):
-    return {
-        "schedules_path": "tests/fixtures/test_schedules.csv",
-        "logging_params": {"log_dir": tmp_path, "name": "test"},
-        "encoder_params": {
-            "name": "discrete",
-            "step_size": 60,
-            "duration": 1440,
-        },
-        "loader_params": {
-            "train_batch_size": 8,
-            "val_batch_size": 8,
-            "num_workers": 1,
-        },
-        "experiment_params": {
-            "LR": 0.005,
-            "weight_decay": 0.0,
-            "scheduler_gamma": 0.95,
-            "kld_weight": 0.001,
-        },
-        "trainer_params": {"max_epochs": 1, "min_epochs": 1},
-        "seed": 1234,
-        "model_params": {
-            "name": "conv",
-            "hidden_layers": [64, 64],
-            "latent_dim": 2,
             "dropout": 0.1,
         },
     }
@@ -196,7 +235,7 @@ def batch_config(tmp_path):
                 "duration": 1440,
             },
             "model_params": {
-                "name": "conv",
+                "name": "VAEDiscConv",
                 "hidden_layers": [64, 64],
                 "latent_dim": 2,
                 "dropout": 0.1,
@@ -209,7 +248,7 @@ def batch_config(tmp_path):
                 "norm_duration": 1440,
             },
             "model_params": {
-                "name": "LSTM",
+                "name": "VAESeqLSTM",
                 "hidden_layers": 2,
                 "hidden_size": 8,
                 "latent_dim": 2,

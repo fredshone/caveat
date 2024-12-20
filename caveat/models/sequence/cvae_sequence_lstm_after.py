@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, exp, nn
 
 from caveat import current_device
 from caveat.models import Base, CustomDurationEmbedding
@@ -69,10 +69,8 @@ class CVAESeqLSTMAfter(Base):
         """
         mu, log_var = self.encode(x, conditionals)
         z = self.reparameterize(mu, log_var)
-        log_prob_y, prob_y = self.decode(
-            z, conditionals=conditionals, target=target
-        )
-        return [log_prob_y, prob_y, mu, log_var, z]
+        log_prob_y = self.decode(z, conditionals=conditionals, target=target)
+        return [log_prob_y, mu, log_var, z]
 
     def encode(self, input: Tensor, conditionals: Tensor) -> list[Tensor]:
         """Encodes the input by passing through the encoder network.
@@ -131,21 +129,21 @@ class CVAESeqLSTMAfter(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size,
                 hidden=hidden,
                 conditionals=conditionals,
                 target=target,
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size,
                 hidden=hidden,
                 conditionals=conditionals,
                 target=None,
             )
 
-        return log_probs, probs
+        return log_probs
 
     def predict(
         self, z: Tensor, conditionals: Tensor, device: int, **kwargs
@@ -160,7 +158,9 @@ class CVAESeqLSTMAfter(Base):
         """
         z = z.to(device)
         conditionals = conditionals.to(device)
-        prob_samples = self.decode(z=z, conditionals=conditionals, **kwargs)[1]
+        prob_samples = exp(
+            self.decode(z=z, conditionals=conditionals, **kwargs)
+        )
         return prob_samples
 
 
@@ -265,7 +265,7 @@ class Decoder(nn.Module):
         self.fc3 = nn.Linear(hidden_size, output_size)
         self.activity_prob_activation = nn.Softmax(dim=-1)
         self.activity_logprob_activation = nn.LogSoftmax(dim=-1)
-        self.duration_activation = nn.Softmax(dim=-2)
+        self.duration_activation = nn.Sigmoid()
         if top_sampler:
             print("Decoder using topk sampling")
             self.sample = self.topk
@@ -303,13 +303,11 @@ class Decoder(nn.Module):
         acts_logits, durations = torch.split(
             outputs, [self.output_size - 1, 1], dim=-1
         )
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
-        durations = self.duration_activation(durations)
+        durations = torch.log(self.duration_activation(durations))
         log_prob_outputs = torch.cat((acts_log_probs, durations), dim=-1)
-        prob_outputs = torch.cat((acts_probs, durations), dim=-1)
 
-        return log_prob_outputs, prob_outputs
+        return log_prob_outputs
 
     def forward_step(self, x, hidden, conditionals):
         # [N, 1, 2]

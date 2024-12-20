@@ -6,15 +6,15 @@ from .discrete.vae_discrete_conv import VAEDiscConv
 from .discrete.vae_discrete_lstm import VAEDiscLSTM
 from .discrete.vae_discrete_transformer import VAEDiscTrans
 from .embed import CustomDurationEmbedding, CustomDurationModeDistanceEmbedding
+from .joint_vaes.jvae_sequence import JVAESeqLSTM
+from .joint_vaes.jvae_sequence_rerouted import JVAESeqLSTMRerouted
+from .schedule2label.feedforward import Schedule2LabelFeedForward
 from .seq2score.lstm import Seq2ScoreLSTM
 from .seq2seq.lstm import Seq2SeqLSTM
 from .sequence.auto_sequence_lstm import AutoSeqLSTM
 from .sequence.cond_sequence_lstm import CondSeqLSTM
 from .sequence.cvae_sequence_lstm import CVAESeqLSTM
-from .sequence.cvae_sequence_lstm_2 import CVAESeqLSTM2
-from .sequence.cvae_sequence_lstm_3 import CVAESeqLSTM3
 from .sequence.cvae_sequence_lstm_add import CVAESeqLSTMAdd
-from .sequence.cvae_sequence_lstm_add2 import CVAESeqLSTMAdd2
 from .sequence.cvae_sequence_lstm_after import CVAESeqLSTMAfter
 from .sequence.cvae_sequence_lstm_all import CVAESeqLSTMAll
 from .sequence.cvae_sequence_lstm_double_nudger import CVAESeqLSTMDoubleNudger
@@ -36,10 +36,7 @@ library = {
     "VAEDiscLSTM": VAEDiscLSTM,
     "VAEDiscTrans": VAEDiscTrans,
     "CVAESeqLSTM": CVAESeqLSTM,  # attributes at decoder only
-    "CVAESeqLSTM2": CVAESeqLSTM2,  # attributes at encoder and decoder
-    "CVAESeqLSTM3": CVAESeqLSTM3,  # normed decoder attributes size
     "CVAESeqLSTMAdd": CVAESeqLSTMAdd,  # adds conditionals to latent layer
-    "CVAESeqLSTMAdd2": CVAESeqLSTMAdd2,  # adds conditionals to latent layer encoder and decoder side
     "CVAESeqLSTMFeed": CVAESeqLSTMFeed,  # passes conditionals to decoder units
     "CVAESeqLSTMAfter": CVAESeqLSTMAfter,  # conditionals concat after LSTM output
     "CVAESeqLSTMAll": CVAESeqLSTMAll,  # labels cat to latents and added to unit in/outs
@@ -48,4 +45,7 @@ library = {
     "CVAESeqLSTMNudgeAdv": CVAESeqLSTMNudgerAdversarial,  # adversarial nudger model
     "Seq2SeqLSTM": Seq2SeqLSTM,
     "Seq2ScoreLSTM": Seq2ScoreLSTM,
+    "JVAESeqLSTM": JVAESeqLSTM,
+    "JVAESeqLSTMRerouted": JVAESeqLSTMRerouted,
+    "LabelFeedForward": Schedule2LabelFeedForward,
 }

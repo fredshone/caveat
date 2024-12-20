@@ -18,7 +18,7 @@ class Seq2ScoreEncoder(BaseEncoder):
         self.jitter = kwargs.get("jitter", 0)
 
     def encode(
-        self, schedules: pd.DataFrame, conditionals: Optional[Tensor]
+        self, schedules: pd.DataFrame, labels: Optional[Tensor]
     ) -> LHS2RHSDataset:
         # act encoding
         self.sos = 0
@@ -60,12 +60,13 @@ class Seq2ScoreEncoder(BaseEncoder):
         return LHS2RHSDataset(
             lhs=encoded_schedules,
             rhs=encoded_target,
-            masks=masks,
+            lhs_weights=masks,
+            rhs_weights=masks,
             act_encodings=len(self.index_to_acts),
             mode_encodings=len(self.index_to_modes),
             activity_weights=None,
             augment=augment,
-            conditionals=conditionals,
+            labels=labels,
         )
 
     def _encode_sequences(

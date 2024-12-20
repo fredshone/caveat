@@ -68,20 +68,19 @@ class VAEDiscLSTM(Base):
 
         if target is not None and torch.rand(1) < self.teacher_forcing_ratio:
             # use teacher forcing
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=target
             )
         else:
-            log_probs, probs = self.decoder(
+            log_probs = self.decoder(
                 batch_size=batch_size, hidden=hidden, target=None
             )
 
-        return log_probs, probs
+        return log_probs
 
     def loss_function(
         self,
         log_probs: Tensor,
-        probs: Tensor,
         mu: Tensor,
         log_var: Tensor,
         target: Tensor,
@@ -89,7 +88,7 @@ class VAEDiscLSTM(Base):
         **kwargs,
     ) -> dict:
         return super().discretized_loss(
-            log_probs, probs, mu, log_var, target, mask, **kwargs
+            log_probs, mu, log_var, target, mask, **kwargs
         )
 
 
@@ -206,10 +205,9 @@ class Decoder(nn.Module):
                 decoder_input = self.pack(decoder_output)
 
         acts_logits = torch.cat(outputs, dim=1)  # [N, L, C]
-        acts_probs = self.activity_prob_activation(acts_logits)
         acts_log_probs = self.activity_logprob_activation(acts_logits)
 
-        return acts_log_probs, acts_probs
+        return acts_log_probs
 
     def forward_step(self, x, hidden):
         # x = [N, 1]
