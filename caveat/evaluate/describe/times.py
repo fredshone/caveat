@@ -146,7 +146,7 @@ def joint_time_distributions_plot(
     ratios = [1 for _ in range(rows)]
     ratios[0] = 0.2
 
-    cmaps = kwargs.pop("cmaps", None)
+    cmaps = kwargs.pop("cmaps", {})
     legend = []
     legend_colours = []
 
@@ -168,7 +168,7 @@ def joint_time_distributions_plot(
     lcolours = colormaps[cmap]([0, 0.5, 1])
     legend_colours.append(lcolours[int(len(lcolours) / 2)])
 
-    _joint_time_plot(name, observed, axs[1], acts, cmap=cmap)
+    _joint_time_plot(observed, axs[1], acts, cmap=cmap)
 
     # now deal with ys
     for i, (name, y) in enumerate(ys.items()):
@@ -178,7 +178,7 @@ def joint_time_distributions_plot(
         lcolours = colormaps[cmap]([0, 0.5, 1])
         legend_colours.append(lcolours[int(len(lcolours) / 2)])
 
-        _joint_time_plot(name, y, axs[i + 2], acts, cmap=cmap)
+        _joint_time_plot(y, axs[i + 2], acts, cmap=cmap)
 
     # xlabel on bottom row
     for ax in axs[-1]:
@@ -220,7 +220,6 @@ def joint_time_distributions_plot(
 
 
 def _joint_time_plot(
-    name: str,
     population: DataFrame,
     axs: Axes,
     acts: list[str],
@@ -231,7 +230,6 @@ def _joint_time_plot(
     ymax: int = 960,
     xstep: int = 30,
     ystep: int = 30,
-    **kwargs,
 ):
     starts = population.groupby("act", observed=False).start
     durations = population.groupby("act", observed=False).duration
